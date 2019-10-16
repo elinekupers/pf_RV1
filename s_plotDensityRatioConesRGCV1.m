@@ -13,21 +13,21 @@ eccMM = logspace(-5,-1,20);
 eccDeg = eccMM./mm2deg;
 
 %% Set range
-angDeg = (0:.02:1.0) * 2 * pi;  % Angle around all 360 deg (plus a little)
+angDeg = (0:.02:1) * 2 * pi;  % Angle around 360 deg
 
 %% Fill up a matrix with cone density
 coneDensityMM2 = zeros(length(eccMM), length(angDeg));
 coneDensityDeg2 = coneDensityMM2;
 for jj = 1:length(angDeg)
-    for ii = 1:length(eccMM)
+    for ii = 1:length(eccDeg)
         coneDensityMM2(ii, jj) = coneDensityReadData('coneDensitySource', 'Curcio1990', ...
-            'eccentricity', eccMM(ii), ...
+            'eccentricity', eccDeg(ii), ...
             'angle', angDeg(jj), ...
             'whichEye', 'left', ...
-            'eccentriticyUnits', 'mm');
+            'eccentriticyUnits', 'deg');
     end
     
-    coneDensityDeg2(:,jj) = coneDensityMM2(:,jj)/(mm2deg.^2);
+    coneDensityDeg2(:,jj) = coneDensityMM2(:,jj)./(mm2deg.^2);
 
 end
 
@@ -37,9 +37,7 @@ end
 [X, Y] = pol2cart(A, T);
 
 fH1 = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [686, 345, 1223, 1000])
-% surfc(X, Y, log10(coneDensityDeg2));
-% set(gca, 'View', [0 90]);
-contour(X,Y,coneDensityDeg2)
+contour(X,Y,log10(coneDensityDeg2))
 
 colormap(hsv)
 xlabel('Position (deg)')
