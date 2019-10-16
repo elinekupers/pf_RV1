@@ -16,7 +16,9 @@ eccDeg = eccMM./mm2deg;
 angDeg = (0:.02:1) * 2 * pi;  % Angle around 360 deg
 % angDeg = deg2rad([0, 90, 180, 270, 360]);
 
-%% Get cone density
+%% -------- CONES ----------
+
+% Get cone density
 coneDensityMM2 = zeros(length(eccMM), length(angDeg));
 coneDensityDeg2 = coneDensityMM2;
 for jj = 1:length(angDeg)
@@ -48,4 +50,40 @@ title('Cone density (left eye)');
 c = colorbar; c.TickDirection = 'out'; ylabel(c, 'log_{10} Cones / deg^2 ');
 set(gca, 'FontSize', 14', 'TickDir', 'out'); axis square;
 
+
+%% -------- RGC ISETIO (under construction) ----------
+
+% using isetbio, we first need to create a cone mosaic object
+fov = 2; % deg
+cMosaic = coneMosaic('center', [0 0]);
+cMosaic.setSizeToFOV(fov);
+
+% Create bipolar layer
+clear bpL bpMosaicParams
+bpL = bipolarLayer(cMosaic);
+
+bpMosaicParams.spread  = 2;  % ???RF diameter w.r.t. input samples 
+bpMosaicParams.stride  = 2;  % ???RF diameter w.r.t. input samples
+bpL.mosaic{1} = bipolarMosaic(cMosaic,'on midget',bpMosaicParams);
+
+% Create a rgc layer
+clear rgcL rgcParams
+rgcL = rgcLayer(bpL);
+
+% Spread and stride are not working
+rgcParams.rfDiameter = 2;
+
+% rgcL.mosaic{ii} = rgcGLM(rgcL, bpL.mosaic{1},'on midget');
+rgcL.mosaic{ii} = rgcGLM(rgcL, bpL.mosaic{1},'on midget',rgcParams);
+
+
+% nr of cells
+[x_cells, y_cells, ~] = size(rgcL.mosaic{1}.cellLocation);
+nrOfCells = prod([x_cells,y_cells]);
+
+% what's the size of the rgc layer?
+patchSize  = prod(rgcL.size);
+
+% Density within fov
+rgcDensity = nrOfCells * (1/patchSize);
 
