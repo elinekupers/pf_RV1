@@ -1,6 +1,6 @@
 % s_plotDensityRatioConesRGCV1
 
-
+%% Define params
 % Unit Converters
 deg2m   = 0.3 * 0.001;
 m2deg   = 1/deg2m;
@@ -12,10 +12,11 @@ mm2deg  = 1/deg2mm;
 eccMM = logspace(-5,-1,20);
 eccDeg = eccMM./mm2deg;
 
-%% Set range
+% Define polar angle range
 angDeg = (0:.02:1) * 2 * pi;  % Angle around 360 deg
+% angDeg = deg2rad([0, 90, 180, 270, 360]);
 
-%% Fill up a matrix with cone density
+%% Get cone density
 coneDensityMM2 = zeros(length(eccMM), length(angDeg));
 coneDensityDeg2 = coneDensityMM2;
 for jj = 1:length(angDeg)
@@ -31,13 +32,12 @@ for jj = 1:length(angDeg)
 
 end
 
-
-%% But the surface plot looks snazzy
-[A, T] = meshgrid(angDeg, eccDeg);
-[X, Y] = pol2cart(A, T);
+%% Plot filled contour map
+[theta, rad] = meshgrid(angDeg, eccDeg);
+[X, Y] = pol2cart(theta, rad);
 
 fH1 = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [686, 345, 1223, 1000])
-contour(X,Y,log10(coneDensityDeg2))
+contourf(X,Y,log10(coneDensityDeg2))
 
 colormap(hsv)
 xlabel('Position (deg)')
@@ -47,4 +47,5 @@ grid on;
 title('Cone density (left eye)');
 c = colorbar; c.TickDirection = 'out'; ylabel(c, 'log_{10} Cones / deg^2 ');
 set(gca, 'FontSize', 14', 'TickDir', 'out'); axis square;
+
 
