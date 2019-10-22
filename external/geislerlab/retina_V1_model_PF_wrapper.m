@@ -1,4 +1,4 @@
-function out = retina_V1_model_PF(tx,ty)
+function out = retina_V1_model_PF_wrapper(tx,ty)
 
 % Modification of retina_V1_model_inputs, a function that calls
 % retina_V1_model with a set of example inputs.
@@ -68,6 +68,6 @@ Stacks = multi_resolution_stacks(target, background, Parameters);
 %out = retina_V1_model(target, background, tx, ty, fx, fy, [], []);
 
 %Using required and optional inputs:
-out = retina_V1_model(target, background, tx, ty, fx, fy, Parameters, Stacks);
+out = retina_V1_model_PF(target, background, tx, ty, fx, fy, Parameters, Stacks);
 
 
