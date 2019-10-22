@@ -1,20 +1,27 @@
 %% s_BradleyAbramsGeisler_RV1_model_predictions.m
 
-%Coordinate vectors of target in degrees assuming (0,0) is at the center of the background.
-eccen = 6;
-diag = cos(deg2rad(45))*eccen;
-tx = [eccen, diag,  0,      -diag, -eccen, -diag,     0,  diag, eccen]; % horz VF (EAST), 45 deg (SOUTHEAST), LVF (SOUTH), 45 deg (SOUTHWEST), horz VF (WEST), 45 deg (NORTHWEST), UVF (NORTH), 45 deg (NORTHEAST).
-ty = [0,     -diag, -eccen, -diag,      0,  diag, eccen,  diag, 0];
+%% Define target locations (we assume uniform gray background)
+% Coordinate vectors of target in degrees assuming (0,0) is at the center of the background.
+eccen = 6; % deg
+diag  = cos(deg2rad(45))*eccen; % deg
+tx    = [eccen, diag,  0,      -diag, -eccen, -diag,     0,  diag, eccen]; % horz VF (EAST), 45 deg (SOUTHEAST), LVF (SOUTH), 45 deg (SOUTHWEST), horz VF (WEST), 45 deg (NORTHWEST), UVF (NORTH), 45 deg (NORTHEAST).
+ty    = [0,     -diag, -eccen, -diag,      0,  diag, eccen,  diag, 0];
 
 [theta, rho] = cart2pol(tx,ty);
 
+%% Debug: plot locations of stimuli
 % figure(1); clf; set(gcf,'Color', 'w');
 % p = polarplot(theta, rho, 'ko-','LineWidth', 3);
 % title('Stimulus locations');
 % set(gca, 'FontSize', 14)
-% 
-out = retina_V1_model_PF(tx,ty);
+
+%% Run model
+out = retina_V1_model_PF_wrapper(tx,ty);
+
+%% Convert thresholds to sensitivity
 sensitivity = 1./out.threshold;
+
+%% Visualize results
 
 figure(2); clf; set(gcf,'Color', 'w');
 p = polarplot(theta, sensitivity, 'ko-', 'LineWidth', 3);
