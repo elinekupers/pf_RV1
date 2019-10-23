@@ -41,6 +41,6 @@ fprintf('Predicted Vertical-Meridian Asymmetry (sensitivity):  \t %1.2f\n', vma)
 % Print out RGC spacing
 for ii = 1:length(tx)
     
-    t0 = spacing_fn(tx(ii),ty(ii)); % RGC spacing at target center location
-    fprintf('RGC spacing at %s: %1.3f\n', locLabels{ii}, t0)
+    t0 = spacing_fn(tx(ii),ty(ii)); % RGC spacing at target center location (in deg) 
+    fprintf('RGC spacing at %s: %1.3f deg\n', locLabels{ii}, t0)
 end    
