@@ -2,14 +2,14 @@
 
 %% Define target locations (we assume uniform gray background)
 % Coordinate vectors of target in degrees assuming (0,0) is at the center of the background.
-eccen = 6; % deg
-diag  = cos(deg2rad(45))*eccen; % deg
-tx    = [eccen, diag,  0,      -diag, -eccen, -diag,     0,  diag, eccen]; % horz VF (EAST), 45 deg (SOUTHEAST), LVF (SOUTH), 45 deg (SOUTHWEST), horz VF (WEST), 45 deg (NORTHWEST), UVF (NORTH), 45 deg (NORTHEAST).
-ty    = [0,     -diag, -eccen, -diag,      0,  diag, eccen,  diag, 0];
+eccen   = 9; % deg
+theta   = 0:pi/4:2*pi; % every 45 degrees, in radians
+rho     = ones(size(theta))*eccen; % deg
 
-locLabels =  {'EAST','SOUTHEAST', 'SOUTH', 'SOUTHWEST', 'WEST', 'NORTHWEST', 'NORTH', 'NORTHEAST'};
+[tx, ty] = pol2cart(theta, rho);
 
-[theta, rho] = cart2pol(tx,ty);
+locLabels =  {'EAST', 'NORTHEAST', 'NORTH', 'NORTHWEST', 'WEST', 'SOUTHWEST',  'SOUTH', 'SOUTHEAST'};
+
 
 %% Debug: plot locations of stimuli
 % figure(1); clf; set(gcf,'Color', 'w');
@@ -25,22 +25,32 @@ sensitivity = 1./out.threshold;
 
 %% Visualize results
 
-figure(2); clf; set(gcf,'Color', 'w');
-p = polarplot(theta, sensitivity, 'ko-', 'LineWidth', 3);
+figure; 
+clf; set(gcf,'Color', 'w');
+%hold on
+p = polarplot(theta, sensitivity, 'ko--', 'LineWidth', 3);
 title(sprintf('Predicted performance (contrast sensitivity) at %d deg eccen',eccen));
 set(gca, 'FontSize', 14)
 
-hva = mean([sensitivity(1),sensitivity(5)]) / mean([sensitivity(3),sensitivity(7)]);
-vma = sensitivity(3)/sensitivity(7);
+hva = @(x) 100*(mean(x([1 5])) - mean(x([3 7]))) ./ mean(x([1 3 5 7]));
+vma = @(x) 100*(x(7)-x(3)) / mean(x([3 7]));
+
 
 fprintf('Bradley, Abrams, Geisler (2014) Retina-V1 model predictions:\n')
-fprintf('Predicted Horizontal-Vertical Asymmetry (sensitivity):\t %1.2f\n', hva)
-fprintf('Predicted Vertical-Meridian Asymmetry (sensitivity):  \t %1.2f\n', vma)
+fprintf('Predicted Horizontal-Vertical Asymmetry (sensitivity):\t %1.0f%%\n', hva(sensitivity))
+fprintf('Predicted Vertical-Meridian Asymmetry (sensitivity):  \t %1.0f%%\n', vma(sensitivity))
 
 
 % Print out RGC spacing
-for ii = 1:length(tx)
-    
-    t0 = spacing_fn(tx(ii),ty(ii)); % RGC spacing at target center location (in deg) 
-    fprintf('RGC spacing at %s: %1.3f deg\n', locLabels{ii}, t0)
+t0 = spacing_fn(tx,ty); % RGC spacing at target center location (in deg) 
+
+for ii = 1:length(tx)-1    
+    fprintf('RGC spacing at %s: %1.3f deg\n', locLabels{ii}, t0(ii))
 end    
+
+%% RGC spacing HVA, VMA
+rgcDensity = (1./t0).^2;
+
+fprintf('Horizontal-Vertical Asymmetry (RGC density):\t %1.0f%%\n', hva(rgcDensity))
+fprintf('Vertical-Meridian Asymmetry (RGC density):  \t %1.0f%%\n', vma(rgcDensity))
+

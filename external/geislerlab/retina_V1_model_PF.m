@@ -159,7 +159,8 @@ for qq = 1:length(fx)
     P.ro_mod = 2+(t0*10);
     
     %Pooled target responses
-    T_pool = (sum(sum(abs(SAMP_cut_T.*DT_fov).^P.ro_mod))).^(1./P.ro_mod);
+    % T_pool = (sum(sum(abs(SAMP_cut_T.*DT_fov).^P.ro_mod))).^(1./P.ro_mod);
+    T_pool = (sum(sum(abs(SAMP_cut_T.*DT_fov).^P.ro))).^(1./P.ro);
     fprintf('For location [x,y] = [%1.1f, %1.1f], target pool response = %1.3f\n', tx(qq), ty(qq), T_pool)
     
     %Broadband power
