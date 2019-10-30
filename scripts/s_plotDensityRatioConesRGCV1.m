@@ -54,7 +54,7 @@ c = colorbar; c.TickDirection = 'out'; ylabel(c, 'log_{10} Cones / deg^2 ');
 set(gca, 'FontSize', 14', 'TickDir', 'out'); axis square;
 
 
-%% -------- RGC ISETIO (under construction) ----------
+%% -------- RGC ISETBIO (Not yet implemented) ----------
 
 % using isetbio, we first need to create a cone mosaic object
 fov = 2; % deg
