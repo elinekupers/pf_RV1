@@ -9,37 +9,40 @@ deg2mm  = 0.3; % Degrees of visual angle, 0.3 mm/deg.
 mm2deg  = 1/deg2mm;
 
 % Define eccentricity range
-eccMM = logspace(-5,-1,20);
-eccDeg = eccMM./mm2deg;
+eccDeg = linspace(0,30,73); % deg
+eccMM  = eccDeg.*deg2mm; % mm
 
 % Define polar angle range
-angDeg = (0:.02:1) * 2 * pi;  % Angle around 360 deg
+angDeg = (0:5:360);  % deg
 % angDeg = deg2rad([0, 90, 180, 270, 360]);
 
 %% -------- CONES ----------
+clear coneDensityMM2 coneDensityDeg2
 
 % Get cone density
-coneDensityMM2 = zeros(length(eccMM), length(angDeg));
-coneDensityDeg2 = coneDensityMM2;
-for jj = 1:length(angDeg)
-    for ii = 1:length(eccDeg)
-        coneDensityMM2(ii, jj) = coneDensityReadData('coneDensitySource', 'Curcio1990', ...
-            'eccentricity', eccDeg(ii), ...
-            'angle', angDeg(jj), ...
+for ii = 1:length(angDeg)
+    for jj = 1:length(eccMM)
+        coneDensityMM2(ii,jj) = coneDensityReadData('coneDensitySource', 'Curcio1990', ...
+            'eccentricity', eccMM(jj), ...
+            'angle', angDeg(ii), ...
             'whichEye', 'left', ...
-            'eccentriticyUnits', 'deg');
+            'angleUnits', 'deg', ...
+            'eccentriticyUnits', 'mm');
     end
     
-    coneDensityDeg2(:,jj) = coneDensityMM2(:,jj)./(mm2deg.^2);
+    coneDensityDeg2(ii,:) = coneDensityMM2(ii,:)./(mm2deg.^2);
 
 end
 
+
 %% Plot filled contour map
-[theta, rad] = meshgrid(angDeg, eccDeg);
-[X, Y] = pol2cart(theta, rad);
+% nanMask = ~isnan(coneDensityDeg2); 
+
+[X, Y] = pol2cart(deg2rad(angDeg),eccDeg);
+[XX, YY] = meshgrid(angDeg, eccDeg);
 
 fH1 = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [686, 345, 1223, 1000])
-contourf(X,Y,log10(coneDensityDeg2))
+contourf(XX,YY,log10(coneDensityDeg2))
 
 colormap(hsv)
 xlabel('Position (deg)')
