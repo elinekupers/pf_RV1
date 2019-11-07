@@ -32,10 +32,6 @@ p = polarplot(theta, sensitivity, 'ko--', 'LineWidth', 3);
 title(sprintf('Predicted performance (contrast sensitivity) at %d deg eccen',eccen));
 set(gca, 'FontSize', 14)
 
-hva = @(x) 100*(mean(x([1 5])) - mean(x([3 7]))) ./ mean(x([1 3 5 7]));
-vma = @(x) 100*(x(7)-x(3)) / mean(x([3 7]));
-
-
 fprintf('Bradley, Abrams, Geisler (2014) Retina-V1 model predictions:\n')
 fprintf('Predicted Horizontal-Vertical Asymmetry (sensitivity):\t %1.0f%%\n', hva(sensitivity))
 fprintf('Predicted Vertical-Meridian Asymmetry (sensitivity):  \t %1.0f%%\n', vma(sensitivity))
