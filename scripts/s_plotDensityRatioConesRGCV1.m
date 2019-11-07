@@ -6,17 +6,17 @@ cd(pfRV1rootPath)
 %% -------- CONES from ISETBIO ----------
 
 % Eccentricity range
-% eccDeg = linspace(0,30,73); % deg
+eccDeg = linspace(0,30,73); % deg
 
 % Polar angle range
-% angDeg = (0:5:360);  % deg
+angDeg = [(0:5:360), 0];  % deg
 % angDeg = deg2rad([0, 90, 180, 270, 360]);
 
-% plotConeDensityIsetbio(angDeg, eccDeg)
+plotConeDensityIsetbio(angDeg, eccDeg)
 
 %% -------- RGC from ISETBIO (Not yet implemented) ----------
 % fov = 2; % deg
-% plotConeDensityIsetbio(fov)
+% plotRGCDensityIsetbio(fov)
 
 
 %% ---------- CONES and RGC from displacement map toolbox ---------
