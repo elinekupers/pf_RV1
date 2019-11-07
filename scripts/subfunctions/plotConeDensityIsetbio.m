@@ -43,53 +43,23 @@ for ii = 1:length(angDeg)
 
 end
 
-% Shift axis to set fovea to middle
-angDegAxis = angDeg - (max(angDeg(:))/2);
-eccDegAxis = eccDeg - (max(eccDeg(:))/2);
 
-[ang, th] = meshgrid(angDegAxis, eccDegAxis);
+[A, T] = meshgrid(angDeg, eccDeg);
+[X, Y] = pol2cart(A, T);
 
-for ll = 1:length(angDegAxis)
-    coneDensityDeg2Shifted(ll,:) = circshift(coneDensityDeg2(ll,:),36);
-    coneDensityDeg2Shifted(ll,1:36) = fliplr(coneDensityDeg2Shifted(ll,1:36));
-end
+fH1 = figure(); clf; set(gcf, 'Color', 'w', 'Position', [686, 345, 1223, 1000])
+contour(X,Y,log10(coneDensityDeg2'))
 
-% Convert from polar to image
-eccenMax = max(angDeg);
-pixelsPerDegVisual =  2;
-imRdim  = (eccenMax * pixelsPerDegVisual * 2) -1;
+% Add labels, make plot pretty
+colormap(hsv)
+xlabel('Position (deg)')
+ylabel('Position (deg)')
+grid on;
 
-maxConeDensity = max(coneDensityDeg2Shifted(:));
-minConeDensity = min(coneDensityDeg2Shifted(:));
+title('Cone density (Curcio data from ISETBIO left eye)');
+c = colorbar; c.TickDirection = 'out'; ylabel(c, 'log_{10} Cones / deg^2 ');
+set(gca, 'FontSize', 14', 'TickDir', 'out'); axis square;
 
-imR = PolarToIm((coneDensityDeg2Shifted./maxConeDensity), minConeDensity, maxConeDensity, imRdim, imRdim);
 
-% Fix the rotation of the map and re-scale to original max
-imageMapToPlot = imrotate(imR .* maxConeDensity,-90);
-
-% Plot filled contour map
-fH = figure();
-fH.Renderer='Painters';
-climVals = [0,ceil(maxConeDensity)];
-
-displayRetinalImage(imageMapToPlot, climVals, pixelsPerDegVisual, eccenMax, ...
-                    'Cone density Curcio 1990');
-
-% % Transform polar coords to cartesian coords
-% [X, Y] = pol2cart(deg2rad(angDeg),eccDeg);
-% [XX, YY] = meshgrid(angDeg, eccDeg);
-
-% fH1 = figure(); clf; set(gcf, 'Color', 'w', 'Position', [686, 345, 1223, 1000])
-% contourf(XX,YY,log10(coneDensityDeg2))
-% 
-% % Add labels, make plot pretty
-% colormap(hsv)
-% xlabel('Position (deg)')
-% ylabel('Position (deg)')
-% grid on;
-% 
-% title('Cone density (left eye)');
-% c = colorbar; c.TickDirection = 'out'; ylabel(c, 'log_{10} Cones / deg^2 ');
-% set(gca, 'FontSize', 14', 'TickDir', 'out'); axis square;
 
 return
