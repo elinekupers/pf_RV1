@@ -6,22 +6,30 @@ function v1CMF = plotV1CMFHCP()
 %% V1 CMF
 v1CMF = readtable(fullfile(pfRV1rootPath, 'external', 'data', 'HV-DV-surface-areas.csv'));
 
-eccen = (v1CMF.min_eccen==1); % deg
-polang = (v1CMF.delta_angle==1); % deg
+eccen    = [1, 6]; % deg
+eccenIdx = v1CMF.min_eccen==eccen(1); % deg
+polang   = v1CMF.delta_angle==30; % deg
 
+% TO CHECK
+temporal = (v1CMF.meridian=={'horizontal'}) & (v1CMF.label=='v1d');
+nasal    = (v1CMF.meridian=='horizontal') & (v1CMF.label=='v1v');
+inferior = (v1CMF.meridian=='vertical') & (v1CMF.label=='v1d');
+superior = (v1CMF.meridian=='vertical') & (v1CMF.label=='v1v');
+
+eccentricity = linspace(eccen(1),eccen(2),1000);
 
 % Visualize cone data
 colors = {'r','b','g','k'}; % for polar angles [0 90 180 270]
-colorLabels = {'temporal retina', 'superior retina', 'nasal retina', 'inferior retina'};
+colorLabels = {'temporal V1', 'superior V1', 'nasal V1', 'inferior V1'};
 
 figure; clf; set(gcf, 'Color', 'w'); hold all;
-plot(rgcWatson.eccentricity, rgcWatson.temporal, 'LineWidth',3, 'Color', colors{1});
-plot(rgcWatson.eccentricity, rgcWatson.superior, 'LineWidth',3,'Color', colors{2});
-plot(rgcWatson.eccentricity, rgcWatson.nasal, 'LineWidth',3,'Color', colors{3});
-plot(rgcWatson.eccentricity, rgcWatson.inferior, 'LineWidth',3,'Color', colors{4});
+plot(eccentricity, temporal, 'LineWidth',3, 'Color', colors{1});
+plot(eccentricity, superior, 'LineWidth',3,'Color', colors{2});
+plot(eccentricity, nasal, 'LineWidth',3,'Color', colors{3});
+plot(eccentricity, inferior, 'LineWidth',3,'Color', colors{4});
 xlim([0 7])
 xlabel('Eccentricity (deg)')
-ylabel('mRGC RF density (counts/deg^2)')
+ylabel('V1 CMF (mm2/deg^2)')
 title('mRGC RF density from Watson 2014')
 set(gca, 'TickDir', 'out', 'FontSize', 20, 'YScale', 'log')
 legend(colorLabels, 'FontSize', 20); legend boxoff;
