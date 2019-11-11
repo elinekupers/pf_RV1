@@ -1,4 +1,4 @@
-function allMaps = plotConeAndRGCDensityDisplacementMap(sampleResEccen, sampleResPolAng, maxEccen, pixelsPerDegVisual)
+function [allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = plotConeAndRGCDensityDisplacementMap(sampleResEccen, sampleResPolAng, maxEccen, pixelsPerDegVisual)
 %% plotConeDensityIsetbio(angDeg, eccMM, sourceDataset)
 % 
 % function to plot cone density using ISETBIO toolbox
@@ -19,7 +19,7 @@ function allMaps = plotConeAndRGCDensityDisplacementMap(sampleResEccen, sampleRe
 
 % Check inputs
 if ~isempty(sampleResEccen) || ~exist('sampleResEccen','var')
-    sampleResEccen = 1;
+    sampleResEccen = 0.01;
 end
 
 if ~isempty(sampleResPolAng) || ~exist('sampleResPolAng','var')
@@ -27,7 +27,7 @@ if ~isempty(sampleResPolAng) || ~exist('sampleResPolAng','var')
 end
 
 if ~isempty(maxEccen) || ~exist('maxEccen','var')
-    maxEccen = 20;
+    maxEccen = 40;
 end
 
 if ~isempty(pixelsPerDegVisual) || ~exist('pixelsPerDegVisual','var')
@@ -43,14 +43,13 @@ rgcDensityDataFileName  = fullfile([getpref('rgcDisplacementMap','LocalDataPath'
 
 % Create the displacement model
 [ rgcDisplacementByMeridian, meridianAngleSupport, regularSupportPosDegVisual, opticDiscLocationByMeridian, mRF_RingCumulativeByMeridian, mRGC_RingCumulativeByMeridian, fitParamsByMeridian, ~, ~ ] = ...
-    createDisplacementModel(...
+    createDisplacementModel('verbose', true, ...
     'sampleResolutionDegVisual', sampleResEccen, ...
     'maxModeledEccentricityDegVisual', maxEccen, ...
-    'meridianAngleResolutionDeg', sampleResPolAng, ...
-    'displacementMapPixelsPerDegVisual', pixelsPerDegVisual, ...
-    'coneDensityDataFileName', coneDensityDataFileName, ...
-    'rgcDensityDataFileName', rgcDensityDataFileName, ...
-    'verbose', true);
+     'meridianAngleResolutionDeg', sampleResPolAng); %, ...
+%     'displacementMapPixelsPerDegVisual', pixelsPerDegVisual, ...
+%     'coneDensityDataFileName', coneDensityDataFileName, ...
+%     'rgcDensityDataFileName', rgcDensityDataFileName);
 
 
 % Loop over the meridians
@@ -97,8 +96,8 @@ dashIndices                 = 1:10:size(opticDiscBoundaryArray,1);
 % loop over the maps
 for vv = 1:length(polarMapNameList)
     mapImage = feval('convertPolarMapToImageMap', eval(polarMapNameList{vv}), 'imRdim', imRdim);
-    allMaps{vv} = mapImage;
-    
+    allMaps{vv}.data = mapImage;
+    allMaps{vv}.comment = polarMapNameList{vv};
     fH1 = figure();
     fH1.Renderer='Painters';
     climVals = [0,ceil(max(max(mapImage)))];
@@ -134,27 +133,67 @@ displayRetinalImage(ratioConeMRFMap, climVals, pixelsPerDegVisual, maxEccen, ...
 title(titleString,'FontSize',20);
 
 %% Plot meridia cone data and midget RGC RF as separate lines
-fH3 = figure();
 
 allAngles = (0:sampleResPolAng:(360-1));
 cardinalMeridianAngles = [0 90 180 270];
-meridianIdx = find(allAngles==cardinalMeridianAngles);
+cardinalMeridianLabels = {'nasal meridian on retina', ...
+                          'superior meridian on retina', ...
+                          'temporal meridian on retina', ...
+                          'inferior meridian on retina'};
+                          
+for ii = 1:length(cardinalMeridianAngles)
+    [~, meridianIdx(ii)] = find(allAngles==cardinalMeridianAngles(ii));
+end
 
 meridianColors={'r','b','g','k'};
 
+fH3 = figure(); set(gcf, 'Color', 'w', 'Position', [560   232   584   716])
+clf;
 for mm = 1:length(cardinalMeridianAngles)
-    subplot(2,1,1)
-    plot(regularSupportPosDegVisual,coneDensityByMeridian(:,meridianIdx),'-','Color',meridianColors{mm});
+    subplot(2,1,1); hold all;
+    plot(regularSupportPosDegVisual,coneDensityByMeridian(meridianIdx(mm),:),meridianColors{mm}, 'LineWidth', 3);
     xlim([0,maxEccen]);
-    ylim([0,3e4]);
+    ylim([0,2e4]);
     xlabel('Eccentricity (deg)');
     ylabel('Cone density [counts / deg retina ^2]');
+    title('Cone density from rgcDisplacement map')
+    set(gca, 'YScale', 'log', 'TickDir', 'out', 'FontSize', 14)
+    if mm == 4
+        legend(cardinalMeridianLabels, 'FontSize', 14); legend boxoff
+    end
 
-    subplot(2,1,2)
-    plot(regularSupportPosDegVisual,mRFDensityByMeridian(:,meridianIdx),'-','Color',meridianColors{mm});
+    subplot(2,1,2); hold all;
+    plot(regularSupportPosDegVisual,mRFDensityByMeridian(meridianIdx(mm),:),meridianColors{mm}, 'LineWidth', 3);
     xlim([0,maxEccen]);
     ylim([0,3e4]);
     xlabel('Eccentricity (deg)');
     ylabel('mRF density [counts / deg retina ^2]');
+    title('midget RGC RF from rgcDisplacement map')
+    set(gca, 'YScale', 'log', 'TickDir', 'out', 'FontSize', 14)
+    if mm == 4
+        legend(cardinalMeridianLabels, 'FontSize', 14); legend boxoff
+    end
 end
+
+
+for ii = 1:length(regularSupportPosDegVisual)
+    coneHVA(ii) = hva(coneDensityByMeridian(meridianIdx,ii));
+    coneVMA(ii) = vma(coneDensityByMeridian(meridianIdx, ii));
+    mrgcrfHVA(ii) = hva(mRFDensityByMeridian(meridianIdx,ii));
+    mrgcrfVMA(ii) = vma(mRFDensityByMeridian(meridianIdx, ii));
+end
+
+figure; clf; hold all;
+plot(regularSupportPosDegVisual,coneHVA, 'k', 'LineWidth',3);
+plot(regularSupportPosDegVisual,coneVMA, 'k:', 'LineWidth',3);
+plot(regularSupportPosDegVisual,mrgcrfHVA, 'r', 'LineWidth',3);
+plot(regularSupportPosDegVisual,mrgcrfVMA, 'r:', 'LineWidth',3);
+plot(regularSupportPosDegVisual, zeros(size(regularSupportPosDegVisual)), 'k')
+legend({'Cone HVA', 'Cone VMA', 'mRGC RF HVA','mRGC RF VMA', ''}, 'Location', 'Best');
+legend boxoff;
+ylabel('more vert/inf retina <- Asymmetry (%) -> more horz/sup retina')
+xlabel('Eccentricity (deg)')
+title('Cone and mRGC RF density asymmetries as a function of eccentricity')
+set(gca', 'xlim', [0 max(regularSupportPosDegVisual)], ...
+    'ylim', [-80 80], 'TickDir', 'out', 'FontSize', 14')
 
