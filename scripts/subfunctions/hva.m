@@ -31,7 +31,7 @@ elseif numel(dataIn) == 8 % If data contain cardinals and off cardinals
     vert = [3 7];
     
 else
-    error('%s, number of elements in data (%d) do not have correct size', mfilename, numel(sz))
+    error('%s, number of elements in data (%d) do not have correct size', mfilename, numel(dataIn))
 end
 
 asymmetry = (mean(dataIn(horz)) - mean(dataIn(vert))) ./ mean(dataIn([horz, vert]));
