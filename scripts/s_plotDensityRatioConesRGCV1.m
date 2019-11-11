@@ -23,10 +23,11 @@ plotConeDensityIsetbio(angDeg, eccDeg)
 
 sampleResEccen      = 1; % deg
 sampleResPolAng     = 5; % deg
-maxEccen            = 20; % deg
+maxEccen            = 40; % deg
 pixelsPerDegVisual  = 10; % resolution for plotting (more pixels=higher resolution)
 
-allMaps = plotConeAndRGCDensityDisplacementMap(sampleResEccen, sampleResPolAng, maxEccen, pixelsPerDegVisual);
+[allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = ...
+    plotConeAndRGCDensityDisplacementMap(sampleResEccen, sampleResPolAng, maxEccen, pixelsPerDegVisual);
 
 
 
@@ -40,3 +41,8 @@ rgcWatson = plotmRGCRFWatson;
 
 %% ---------- V1 CMF from Noah's SFN poster ---------
 v1CMF = plotV1CMFHCP;
+
+%% Plot HVA and VMA as a function of eccentricity
+
+
+
