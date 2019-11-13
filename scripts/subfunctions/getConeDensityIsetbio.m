@@ -1,4 +1,4 @@
-function plotConeDensityIsetbio(angDeg, eccDeg, sourceDataset)
+function coneDensityDeg2 = getConeDensityIsetbio(angDeg, eccDeg, sourceDataset)
 %% plotConeDensityIsetbio(angDeg, eccMM, sourceDataset)
 % 
 % function to plot cone density using ISETBIO toolbox
@@ -48,7 +48,8 @@ end
 [X, Y] = pol2cart(A, T);
 
 fH1 = figure(); clf; set(gcf, 'Color', 'w', 'Position', [686, 345, 1223, 1000])
-contour(X,Y,log10(coneDensityDeg2'))
+surf(X, Y, log10(coneDensityDeg2)', 'EdgeColor', [1 1 1])
+colormap(hsv)
 
 % Add labels, make plot pretty
 colormap(hsv)
@@ -56,10 +57,8 @@ xlabel('Position (deg)')
 ylabel('Position (deg)')
 grid on;
 
-title('Cone density (Curcio data from ISETBIO left eye)');
+title(sprintf('Cone density (%s from ISETBIO left eye)', sourceDataset));
 c = colorbar; c.TickDirection = 'out'; ylabel(c, 'log_{10} Cones / deg^2 ');
 set(gca, 'FontSize', 14', 'TickDir', 'out'); axis square;
-
-
 
 return
