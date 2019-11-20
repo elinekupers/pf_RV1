@@ -33,6 +33,7 @@ end
 
 
 %% Visualize results
+
 figureDir = fullfile(pfRV1rootPath, 'figures');
 cmap = hsv(length(eccentricities));
  figure; clf; set(gcf,'Color', 'w');
@@ -59,8 +60,17 @@ figName = sprintf('sensitivity_Bradley_et_al_2014_eccen2-12deg');
 savefig(fullfile(figureDir, figName))
 print(fullfile(figureDir, figName), '-dpdf', '-fillpage')
 
-titleStr = 'HVA VMA sensitivity Bradley et al 2014 - Retina V1 Model';
-fH1 = plotHVAandVMA(sensitivity(:,1:8)', eccentricities, titleStr, true);
+
+% Resave sensitivity on cardinals as if they were retinal coords, not visual record:
+sensitivityRetina = NaN(4,length(eccentricities)); % nasal, superior, temporal, inferior RETINA)
+sensitivityRetina(1,:) = sensitivity(:,rad2deg(theta) == 0);   % 1. nasal
+sensitivityRetina(2,:) = sensitivity(:,rad2deg(theta) == 270); % 2. superior (flip inferior to superior)
+sensitivityRetina(3,:) = sensitivity(:,rad2deg(theta) == 180); % 3. temporal
+sensitivityRetina(4,:) = sensitivity(:,rad2deg(theta) == 90);  % 4. inferior (flip superior to inferior)
+
+
+titleStr = 'HVA VMA sensitivity in retinal coords Bradley et al 2014 - Retina V1 Model';
+fH1 = plotHVAandVMA(sensitivityRetina, eccentricities, titleStr, true);
 
 
 
@@ -81,7 +91,7 @@ fH1 = plotHVAandVMA(sensitivity(:,1:8)', eccentricities, titleStr, true);
 
 
 %% RGC spacing HVA, VMA vs eccen
-clear t0 rgcDensity
+clear spacingVisualField rgcDensityVisualField
 for ii = 1:length(eccentricities)
 
     eccen   = eccentricities(ii); % deg
@@ -90,14 +100,31 @@ for ii = 1:length(eccentricities)
     [tx, ty] = pol2cart(theta, rho);
 
     % Print out RGC spacing
-    t0(ii,:) = spacing_fn(tx,ty); % RGC spacing at target center location (in deg) 
+    spacingVisualField(ii,:) = spacing_fn(tx,ty); % RGC spacing at target center location (1/sqrt(density)
+                                       % relative to the fovea (in deg) in
+                                       % visual field coords
 
-    rgcDensity(ii,:) = (1./t0(ii,:)).^2;
+    rgcDensityVisualField(ii,:) = (1./spacingVisualField(ii,:)).^2; % visual field coords
 
 end
 
-titleStr = 'HVA VMA RGC spacing from Bradley et al 2014 - Retina V1 Model';
-fH2 = plotHVAandVMA(t0(:,1:8)', eccentricities, titleStr, true);
+% Resave cardinals into retinal coords:
+spacingRetina = NaN(4,length(eccentricities)); % nasal, superior, temporal, inferior RETINA)
+spacingRetina(1,:) = spacingVisualField(:,rad2deg(theta) == 0);   % 1. nasal
+spacingRetina(2,:) = spacingVisualField(:,rad2deg(theta) == 270); % 2. superior (flip inferior to superior)
+spacingRetina(3,:) = spacingVisualField(:,rad2deg(theta) == 180); % 3. temporal
+spacingRetina(4,:) = spacingVisualField(:,rad2deg(theta) == 90);  % 4. inferior (flip superior to inferior)
 
-titleStr = 'HVA VMA RGC density derived from spacing from Bradley et al 2014 - Retina V1 Model';
-fH3 = plotHVAandVMA(rgcDensity(:,1:8)', eccentricities, titleStr, true);
+rgcDensityRetina = (1./spacingRetina).^2;
+
+titleStr = 'RGC RF spacing Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+plotMeridiansVsEccen(spacingRetina, eccentricities, titleStr, [], true);
+
+titleStr = 'RGC RF density Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+plotMeridiansVsEccen(rgcDensityRetina, eccentricities, titleStr, [], true);
+
+titleStr = 'HVA VMA RGC RF spacing Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+plotHVAandVMA(spacingRetina, eccentricities, titleStr, true);
+
+titleStr = 'HVA VMA RGC density Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+plotHVAandVMA(rgcDensityRetina, eccentricities, titleStr, true);
