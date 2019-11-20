@@ -34,7 +34,7 @@ else
     error('%s, number of elements in data (%d) do not have correct size', mfilename, numel(sz))
 end
 
-asymmetry = (dataIn(south)-dataIn(north)) / mean(dataIn([south north]));
+asymmetry = (dataIn(north)-dataIn(south)) / mean(dataIn([south north]));
 asymmetryPercent = 100*asymmetry;
 
 
