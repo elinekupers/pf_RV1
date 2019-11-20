@@ -15,6 +15,17 @@ conesSong = load(dataFile);
 % Assuming the delta angle for each meridian is 15 deg.
 eccen = (conesSong.eccentricity>=1) & (conesSong.eccentricity<=6); % deg
 
+% % flip nasal / temporal
+% n = conesSong.nasal;
+% t = conesSong.temporal;
+% i = conesSong.inferior;
+% s = conesSong.superior;
+% 
+% conesSong.nasal = t;
+% conesSong.temporal = n;
+% conesSong.superior = i;
+% conesSong.inferior = s;
+
 integralPA15.nasal    = trapz(conesSong.nasal(eccen));
 integralPA15.superior = trapz(conesSong.superior(eccen));
 integralPA15.temporal = trapz(conesSong.temporal(eccen));
