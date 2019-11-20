@@ -55,7 +55,7 @@ h = findobj(gca, 'Type', 'line');
 legend(h([3,2]), labels, 'Location', 'NorthWest'); 
 legend boxoff;
 
-ylabel('more vert/sup retina <- Asymmetry (%) -> more horz/inf retina')
+ylabel('more vert/inf retina <- Asymmetry (%) -> more horz/sup retina')
 xlabel('Eccentricity (deg)')
 title(titleStr)
 set(gca', 'xlim', [0 max(regularSupportPosDegVisual)], ...
