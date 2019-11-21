@@ -1,7 +1,9 @@
 function [fH9, fH10, fH11, fH12] = visualizeConeAndRGCDensitySFNPoster(conesSong, ...
                 rgcWatson, coneDataMeridiansIntegral15, rgcDataMeridiansIntegral15, saveFigures)
 
+yl = [1e2, 3e4];
 
+            
 % ------------ Visualize meridan vs eccentricity ------------
 titleStr = 'Cone density Song et al 2011 - SfN Poster';
 meridianData.conesSong = [conesSong.nasal; conesSong.superior; conesSong.temporal; conesSong.inferior];
