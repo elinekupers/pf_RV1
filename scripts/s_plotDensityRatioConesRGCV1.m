@@ -67,7 +67,7 @@ end
 
 
 [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
-                            mRFDensityByMeridian, regularSupportPosDegVisual, fH1, fH3, saveFigures);
+                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, saveFigures);
 
 %% -----------------------------------------------------------------
 %  ------------ CONES, RGCs & V1 from Noah's SFN poster --------------
@@ -76,8 +76,6 @@ end
 % Get data
 [conesSong, coneDataMeridiansIntegral15] = getConesSong;
 [rgcWatson, rgcDataMeridiansIntegral15]  = getMRGCRFWatson;
-
-yl = [1e2, 3e4];
 
 [fH9, fH10, fH11, fH12] = visualizeConeAndRGCDensitySFNPoster(conesSong, ...
                 rgcWatson, coneDataMeridiansIntegral15, rgcDataMeridiansIntegral15, saveFigures);
@@ -90,12 +88,29 @@ eccDeg = 0:0.05:40; % deg
 % Get CMF from HCP:
 v1CMFMeridiansIntegral15 = getV1CMFHCP;
 
+% Compute HVA and VMA for different wedge sizes
+CMFV1_HCP = struct();
+
+for ii = 1:size(v1CMFMeridiansIntegral15.individualSubjects.eccen0_35,1)
+    CMFV1_HCP.hvaAll035(ii) = hva(v1CMFMeridiansIntegral15.individualSubjects.eccen0_35(ii,:));
+    CMFV1_HCP.vmaAll035(ii) = vma(v1CMFMeridiansIntegral15.individualSubjects.eccen0_35(ii,:));
+
+    CMFV1_HCP.hvaAll16(ii) = hva(v1CMFMeridiansIntegral15.individualSubjects.eccen1_6(ii,:));
+    CMFV1_HCP.vmaAll16(ii) = vma(v1CMFMeridiansIntegral15.individualSubjects.eccen1_6(ii,:));
+
+    CMFV1_HCP.hvaAll357(ii) = hva(v1CMFMeridiansIntegral15.individualSubjects.eccen35_7(ii,:));
+    CMFV1_HCP.vmaAll357(ii) = vma(v1CMFMeridiansIntegral15.individualSubjects.eccen35_7(ii,:));
+end
+
 % Get CMF from & Hoyt (1991)
 CMF_HH91 = HortonHoytCMF(eccDeg);
-% Get CMF from Romavo & Virsu (1979)
+% Get CMF from Rovamo & Virsu (1979)
 CMF_RV79 = RovamuVirsuCMF(eccDeg);
 meridianDataCMF_RV79 = [CMF_RV79.nasalR; CMF_RV79.superiorR; CMF_RV79.temporalR; CMF_RV79.inferiorR];
 
+
+
+
 [fH13, fH14, fH15] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
-                CMF_HH91, eccDeg, saveFigures);
+                CMF_HH91, eccDeg, saveFigures, figureDir);
 
