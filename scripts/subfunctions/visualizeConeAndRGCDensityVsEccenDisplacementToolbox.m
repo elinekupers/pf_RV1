@@ -1,5 +1,5 @@
 function [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
-                            mRFDensityByMeridian, regularSupportPosDegVisual, fH1, fH3, saveFigures)
+                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, saveFigures)
 
 % ------------ Visualize meridan cone density vs eccentricity ------------
 titleStr = 'Cone density Curcio et al 1990 - rgcDisplacement map toolbox';
@@ -9,7 +9,7 @@ fH5 = plotMeridiansVsEccen(meridianData.conesCurcioDisplMap, regularSupportPosDe
 
 titleStr = 'mRGC RF density - rgcDisplacement map toolbox';
 meridianData.rgcDisplMap = mRFDensityByMeridian(meridianIdx,:);
-fH6 = plotMeridiansVsEccen(meridianData.rgcWatsonDisplMap, regularSupportPosDegVisual, titleStr, [], saveFigures);
+fH6 = plotMeridiansVsEccen(meridianData.rgcDisplMap, regularSupportPosDegVisual, titleStr, [], saveFigures);
 
 
 
@@ -32,7 +32,7 @@ for ii = 4:-1:1
 end
 
 title('ISETBIO (solid) vs DisplacementMap (dashed): Cone density Curcio et al 1990')
-save(figfullfile(pfRV1rootPath, 'figures', 'Cone_density_Curcio_et_al_1990_-_ISETBIO_vs_rgcDisplacementMap_left_eye')
+save(fullfile(pfRV1rootPath, 'figures', 'Cone_density_Curcio_et_al_1990_-_ISETBIO_vs_rgcDisplacementMap_left_eye'))
 print(fullfile(pfRV1rootPath, 'figures', 'Cone_density_Curcio_et_al_1990_-_ISETBIO_vs_rgcDisplacementMap_left_eye'), '-dpdf', '-fillpage')
 
 % ----- Compare HVA vs VMA vs eccen for cones using ISETBIO vs rgcDisplacement Toolbox --------
