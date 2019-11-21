@@ -22,16 +22,16 @@ eccDeg = 0:0.05:40; % deg
 % Polar angle range
 angDeg = [(0:5:360), 0];  % deg
 
-conesCurcioIsetbio = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
-conesSongIsetbioYoung   = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Young');
+conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
+conesSongIsetbioYoung = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Young');
 conesSongIsetbioOld   = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Old');
 
 for ii = 1:length(cardinalMeridianAngles)
     [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
 end
 
-[fH1, fH2, fH3, fH4] = visualizeConeDensityVsEccenIsetbio(conesSongIsetbioYoung, ...
-                       conesSongIsetbioOld, conesSongIsetbio, meridianIdx, eccDeg, saveFigures);
+[fH1, fH2, fH3, fH4] = visualizeConeDensityVsEccenIsetbio(conesCurcioIsetbio, conesSongIsetbioYoung, ...
+                       conesSongIsetbioOld, meridianIdx, eccDeg, saveFigures);
 
 %% ------------------------------------------------------------
 %  --------- (Not yet implemented) RGC from ISETBIO -----------
