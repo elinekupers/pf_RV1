@@ -54,10 +54,13 @@ if loadDataFromServer
     end
     load(fullfile(pfRV1rootPath, 'external', 'data', 'coneDensityByMeridian.mat'),'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
     load(fullfile(pfRV1rootPath, 'external', 'data', 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplacementMaps.mat'), 'allMaps')
+
 else
     % Get data (by computation, takes about 20 minutes)
     [allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = ...
-        getConeAndRGCDensityDisplacementMap();
+        getConeAndRGCDensityDisplacementMap(0.01, 5, 40, ...
+            10, true, true);
 end
 
 % Plot density along cardinal meridians vs eccen
@@ -65,10 +68,18 @@ for ii = 1:length(cardinalMeridianAngles)
     [~, meridianIdx(ii)] = find(sampleResPolAng==cardinalMeridianAngles(ii));
 end
 
+% pixelsPerDegVisual = 10;
+% imRdim = (max(regularSupportPosDegVisual) * pixelsPerDegVisual * 2) -1;
+% x = linspace(-1.* (max(regularSupportPosDegVisual)-.1),(max(regularSupportPosDegVisual)-.1), imRdim)
+% xy = meshgrid(x);
+% 
+% figure; surf(x,x,log10(allMaps{3}.data))
 
 [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
-                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, saveFigures);
+                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, fH4, saveFigures);
 
+                        
+                        
 %% -----------------------------------------------------------------
 %  ------------ CONES, RGCs & V1 from Noah's SFN poster --------------
 %  -----------------------------------------------------------------
@@ -78,7 +89,7 @@ end
 [rgcWatson, rgcDataMeridiansIntegral15]  = getMRGCRFWatson;
 
 [fH9, fH10, fH11, fH12] = visualizeConeAndRGCDensitySFNPoster(conesSong, ...
-                rgcWatson, coneDataMeridiansIntegral15, rgcDataMeridiansIntegral15, saveFigures);
+                rgcWatson, coneDataMeridiansIntegral15, rgcDataMeridiansIntegral15, fH7, saveFigures);
 
 % ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
 
@@ -109,8 +120,6 @@ CMF_RV79 = RovamuVirsuCMF(eccDeg);
 meridianDataCMF_RV79 = [CMF_RV79.nasalR; CMF_RV79.superiorR; CMF_RV79.temporalR; CMF_RV79.inferiorR];
 
 
-
-
-[fH13, fH14, fH15] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
-                CMF_HH91, eccDeg, saveFigures, figureDir);
+[fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
+                CMF_HH91, eccDeg, fH12, saveFigures, figureDir);
 
