@@ -112,12 +112,12 @@ fprintf('Horizontal-Vertical Asymmetry (Horz / Vert):\t %1.2f%%\n', hva(coneData
 fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', vma(coneDataMeridians.singleMeridian))
 
 pointEccen = find(eccDeg(eccen)==mean(eccenBoundary));
-tmp1 = hva([singleMeridian_coneDensity.nasal(pointEccen);singleMeridian_coneDensity.superior(pointEccen);singleMeridian_coneDensity.temporal(pointEccen);singleMeridian_coneDensity.inferior(pointEccen)]);
-tmp2 = vma([singleMeridian_coneDensity.nasal(pointEccen);singleMeridian_coneDensity.superior(pointEccen);singleMeridian_coneDensity.temporal(pointEccen);singleMeridian_coneDensity.inferior(pointEccen)]);
+hva35_cones = hva([singleMeridian_coneDensity.nasal(pointEccen);singleMeridian_coneDensity.superior(pointEccen);singleMeridian_coneDensity.temporal(pointEccen);singleMeridian_coneDensity.inferior(pointEccen)]);
+vma35_cones = vma([singleMeridian_coneDensity.nasal(pointEccen);singleMeridian_coneDensity.superior(pointEccen);singleMeridian_coneDensity.temporal(pointEccen);singleMeridian_coneDensity.inferior(pointEccen)]);
 
 fprintf('\nCone density from %s, 3.5 deg eccen, only on meridian (no WEDGE) \n', dataSet)
-fprintf('Horizontal-Vertical Asymmetry (Horz / Vert):\t %1.2f%%\n', tmp1)
-fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', tmp2)
+fprintf('Horizontal-Vertical Asymmetry (Horz / Vert):\t %1.2f%%\n', hva35_cones)
+fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', vma35_cones)
 
 % ------ Visualize HVA and VMA ------ 
 % 
@@ -243,14 +243,33 @@ fprintf('Horizontal-Vertical Asymmetry (Horz / Vert):\t %1.2f%%\n', hva(totalrgc
 fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', vma(totalrgcDataMeridians.wedge))
 
 pointEccen = find(eccDeg(eccen)==mean(eccenBoundary));
-tmp3 = hva([singleMeridian_mRGCfWatson.nasal(pointEccen);singleMeridian_mRGCfWatson.superior(pointEccen);singleMeridian_mRGCfWatson.temporal(pointEccen);singleMeridian_mRGCfWatson.inferior(pointEccen)]);
-tmp4 = vma([singleMeridian_mRGCfWatson.nasal(pointEccen);singleMeridian_mRGCfWatson.superior(pointEccen);singleMeridian_mRGCfWatson.temporal(pointEccen);singleMeridian_mRGCfWatson.inferior(pointEccen)]);
+hva35_mrgc = hva([singleMeridian_mRGCfWatson.nasal(pointEccen);singleMeridian_mRGCfWatson.superior(pointEccen);singleMeridian_mRGCfWatson.temporal(pointEccen);singleMeridian_mRGCfWatson.inferior(pointEccen)]);
+vma35_mrgc = vma([singleMeridian_mRGCfWatson.nasal(pointEccen);singleMeridian_mRGCfWatson.superior(pointEccen);singleMeridian_mRGCfWatson.temporal(pointEccen);singleMeridian_mRGCfWatson.inferior(pointEccen)]);
 
 fprintf('\nmRGCf density from Watson (2014), 3.5 deg eccen, only on meridian (no WEDGE)\n')
-fprintf('Horizontal-Vertical Asymmetry (Horz / Vert):\t %1.2f%%\n', tmp3)
-fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', tmp4)
+fprintf('Horizontal-Vertical Asymmetry (Horz / Vert):\t %1.2f%%\n', hva35_mrgc)
+fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', vma35_mrgc)
 
+ttl = 'Density integral of 15^o wedges, 1-6^o eccen';
+hvas = [hva(coneDataMeridians.wedge), hva(mrgcDataMeridians.wedge)];
+vmas = [vma(coneDataMeridians.wedge), vma(mrgcDataMeridians.wedge)];
 
+ttl = 'Density integral of meridia only, 1-6^o eccen';
+hvas = [hva(coneDataMeridians.singleMeridian), hva(mrgcDataMeridians.singleMeridian)];
+vmas = [vma(coneDataMeridians.singleMeridian), vma(mrgcDataMeridians.singleMeridian)];
+
+ttl = 'Density at meridia only, 3.5^o eccen';
+hvas = [hva35_cones,hva35_mrgc];
+vmas = [vma35_cones,vma35_mrgc];
+
+figure(100); clf; set(gcf, 'Position', [230   273   370   437], 'Color', 'w');
+bar([1,1.3], hvas,  0.3, 'EdgeColor','none','facecolor','r', 'FaceAlpha', 0.8, 'LineWidth',3); hold on
+bar([1.1,1.4], vmas,  0.3, 'EdgeColor','none','facecolor','b', 'FaceAlpha', 0.8,'LineWidth',3); hold on
+title(ttl)
+legend({'HVA', 'VMA'}, 'Location', 'SouthEast'); legend boxoff;
+set(gca,'xlim',[0.9,1.5],'ylim',[-10,25], 'FontSize', 15);
+set(gca,'XTick', [1.05,1.35], 'XTickLabel',{'Cones', 'mRGC'}, 'TickDir', 'out');
+ylabel('Asymmetry %'); box off;
 
 
 % ------ Visualize density and HVA vs VMA ------ 
@@ -264,4 +283,5 @@ fprintf('Vertical-Meridian Asymmetry (North / South):  \t %1.2f%%\n', tmp4)
 % figure(fH2); set(gca, 'XLim', [0 40]); hold on;
 % plot(mean([1,6]),hva(mrgcDataMeridians.singleMeridian), 'ko', 'MarkerSize',10, 'MarkerFaceColor', 'k')
 % plot(mean([1,6]),vma(mrgcDataMeridians.singleMeridian), 'ko', 'MarkerSize',10)
+
 
