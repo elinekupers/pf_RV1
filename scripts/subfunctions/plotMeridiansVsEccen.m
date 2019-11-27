@@ -1,4 +1,4 @@
-function fH = plotMeridiansVsEccen(meridianData, regularSupportPosDegVisual, titleStr, yl, saveFigures)
+function fH = plotMeridiansVsEccen(meridianData, regularSupportPosDegVisual, titleStr, yl, figureDir, saveFigures)
 % Function to plot meridia data as a function of eccentricity. 
 %
 % INPUT:
@@ -63,7 +63,7 @@ end
 
 if saveFigures
     % Make figure dir if doesnt exist
-    figureDir = fullfile(pfRV1rootPath, 'figures');
+    if isempty(figureDir); figureDir = fullfile(pfRV1rootPath, 'figures'); end
     if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
     % Save matlab fig and pdf

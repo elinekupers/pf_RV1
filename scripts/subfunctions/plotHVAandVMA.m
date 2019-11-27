@@ -1,4 +1,4 @@
-function fH = plotHVAandVMA(meridianData, regularSupportPosDegVisual, titleStr, saveFigures)
+function fH = plotHVAandVMA(meridianData, regularSupportPosDegVisual, titleStr, figureDir, saveFigures)
 % Function to plot HVA and VMA as a function of eccentricity. 
 %
 % INPUT:
@@ -37,9 +37,20 @@ end
 
 % Define HVA and VMA for every eccentricity data point
 for ii = 1:length(regularSupportPosDegVisual)
-    HVAvsEccen(ii) = hva(meridianData(:,ii));
-    VMAvsEccen(ii) = vma(meridianData(:,ii)); 
+    
+    % Remove blindspot data (if there)
+    if ((meridianData(1,ii) == 0) && (regularSupportPosDegVisual(ii)>12.8) && (regularSupportPosDegVisual(ii)<18.05))
+        
+        HVAvsEccen(ii) = NaN;
+        VMAvsEccen(ii) = NaN;
+    else
+        HVAvsEccen(ii) = hva(meridianData(:,ii));
+        VMAvsEccen(ii) = vma(meridianData(:,ii));
+    end
 end
+
+
+
 
 % Go plot
 labels = {'HVA', 'VMA'};
@@ -63,7 +74,7 @@ set(gca', 'xlim', [0 max(regularSupportPosDegVisual)], ...
 
 if saveFigures
     % Make figure dir if doesnt exist
-    figureDir = fullfile(pfRV1rootPath, 'figures');
+    if isempty(figureDir); figureDir = fullfile(pfRV1rootPath, 'figures'); end
     if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
     % Save matlab fig and pdf
