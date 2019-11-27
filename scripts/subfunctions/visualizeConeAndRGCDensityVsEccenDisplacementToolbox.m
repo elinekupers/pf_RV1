@@ -1,5 +1,5 @@
 function [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
-                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, saveFigures)
+                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, fH4, saveFigures)
 
 % ------------ Visualize meridan cone density vs eccentricity ------------
 titleStr = 'Cone density Curcio et al 1990 - rgcDisplacement map toolbox';
@@ -20,8 +20,9 @@ fH7 = plotHVAandVMA(meridianData.conesCurcioDisplMap, regularSupportPosDegVisual
 titleStr = 'HVA VMA mRGC RF density - rgcDisplacement map';
 fH8 = plotHVAandVMA(meridianData.rgcDisplMap, regularSupportPosDegVisual, titleStr, saveFigures);
 
-% ----- Compare Density vs eccen for cones using ISETBIO vs rgcDisplacement Toolbox --------
-h1 = get(fH5, 'Children');
+
+% ----- Compare Density vs eccen for cones using ISETBIO vs Song vs rgcDisplacement Toolbox --------
+h1 = get(fH5, 'Children'); % curcio density data from displacement map 
 
 figure(fH1);
 for ii = 4:-1:1
@@ -38,16 +39,41 @@ print(fullfile(pfRV1rootPath, 'figures', 'Cone_density_Curcio_et_al_1990_-_ISETB
 % ----- Compare HVA vs VMA vs eccen for cones using ISETBIO vs rgcDisplacement Toolbox --------
 figure(fH3);
 h2 = get(fH7, 'Children');
+h21 = get(fH4, 'Children');  % Song HVA/VMA data
+
 for ii = [3,2]
     plot(h2(2).Children(ii).XData,h2(2).Children(ii).YData, ...
-        'Color', [.8 .8 .8], ...
+        'Color', [.7 .7 .7], ...
         'LineWidth', h2(2).Children(ii).LineWidth, ...
         'LineStyle', h2(2).Children(ii).LineStyle); hold on
 end
 
-title('ISETBIO (black) vs DisplacementMap (red): Cone HVA VMA Curcio et al 1990')
-savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_density_Curcio_et_al_1990_-_ISETBIO_vs_rgcDisplacementMap_left_eye'))
-print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_density_Curcio_et_al_1990_-_ISETBIO_vs_rgcDisplacementMap_left_eye'), '-dpdf', '-fillpage')
+legend({'HVA Cones Curcio et al (1990) - Isetbio', 'VMA Cones Curcio et al (1990) - Isetbio', '',...
+    'HVA Cones Curcio et al (1990) - rgcDisplacement map', ...
+    'VMA Cones Curcio et al (1990) - rgcDisplacement map'}, 'Location', 'SouthEast');
+
+title('ISETBIO (black) vs DisplacementMap (light gray): Cone HVA VMA Curcio et al 1990')
+savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_density_Curcio_et_al_1990_-_ISETBIO_left_eye_vs_rgcDisplacementMap'))
+print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_density_Curcio_et_al_1990_-_ISETBIO_left_eye_vs_rgcDisplacementMap'), '-dpdf', '-fillpage')
+
+figure(fH3);
+for ii = [3,2]
+    plot(h21(2).Children(ii).XData,h21(2).Children(ii).YData, ...
+        'Color', [0.5 0.5 0.5], ...
+        'LineWidth', h21(2).Children(ii).LineWidth, ...
+        'LineStyle', h21(2).Children(ii).LineStyle); hold on
+    
+end
+
+legend({'HVA Cones Curcio et al (1990) - Isetbio', 'VMA Cones Curcio et al (1990) - Isetbio', '',...
+    'HVA Cones Curcio et al (1990) - rgcDisplacement map', ...
+    'HVA Cones Song et al (2011) - Isetbio', ...
+    'VMA Cones Curcio et al (1990) - rgcDisplacement map', ...
+    'VMA Cones Song et al (2011) - Isetbio'}, 'Location', 'SouthEast');
+
+title('ISETBIO (black) vs DisplacementMap (light gray) vs Song (dark gray): Cone HVA VMA Curcio et al 1990')
+savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_density_Curcio_et_al_1990_-_ISETBIO_left_eye_vs_rgcDisplacementMap_vs_Song_et_al_2011'))
+print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_density_Curcio_et_al_1990_-_ISETBIO_left_eye_vs_rgcDisplacementMap_vs_Song_et_al_2011'), '-dpdf', '-fillpage')
 
 
 % ----- Compare HVA Cones vs mRGC RF vs eccen using rgcDisplacement Toolbox --------
@@ -59,6 +85,10 @@ for ii = [3,2]
         'LineWidth', h3(2).Children(ii).LineWidth, ...
         'LineStyle', h3(2).Children(ii).LineStyle); hold on
 end
+
+legend({'HVA Cones Curcio et al (1990) - rgcDisplacement map', 'VMA Cones Curcio et al (1990) - rgcDisplacement map', '',...
+    'HVA mRGC RF - rgcDisplacement map', 'VMA mRGC RF - rgcDisplacement map'}, 'Location', 'SouthEast');
+
 
 title('Cones (black) vs mRGC RF (red): HVA VMA rgc displacement map')
 savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_vs_mRGC_RF_density_rgcDisplacementMap'))
