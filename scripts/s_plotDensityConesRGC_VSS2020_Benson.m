@@ -49,20 +49,19 @@ for ii = 1:length(cardinalMeridianAngles)
         angleBoundary(angleBoundary<0) = 360 + angleBoundary(angleBoundary<0);
     
         ai1 = (angDeg>=angleBoundary(1) & angDeg<=360);
-        ai2 = (angDeg>=0 & angDeg<=angleBoundary(2));
-        ai(ii,:) = or(ai1,ai2);
+        ai2 = (angDeg>0 & angDeg<=angleBoundary(2));
+        ai = or(ai1,ai2);
     else   
-        ai(ii,:) = (angDeg>=angleBoundary(1) & angDeg<=angleBoundary(2));    
+        ai = (angDeg>=angleBoundary(1) & angDeg<=angleBoundary(2));    
     end 
-    
-    ma = NaN(size(angDeg));
-    me = NaN(size(eccDeg));
-    ma(ai(ii,:)) = deg2rad(angDeg(ai(ii,:)));
-    ma_single(
-    me(eccen) = eccDeg(eccen);
 
-    [mt, mr] = meshgrid(ma,me);
-    [mx(:,:,ii), my(:,:,ii)] = pol2cart(mt, mr);
+    ma = NaN(size(angDeg));
+    ma(ai) = angDeg(ai);
+    me = NaN(size(eccDeg));
+    me(eccen) = eccDeg(eccen);
+    [mt, mr] = meshgrid(ma, me);
+    [mx(:,:,ii), my(:,:,ii)] = pol2cart(deg2rad(mt),mr);
+    
 end
 
 clear ai1 ai2 angleBoundary
@@ -83,47 +82,46 @@ load(fullfile(pfRV1rootPath, 'external', 'data', 'conesSongISETBIO.mat'),'conesS
 coneDensity = griddata(theta,rho,conesSongIsetbioYoung', X, Y, 'linear');
 
 % ------ Index data to get polar angle wedges ------ 
-mask = zeros(size(coneDensity));
 
-mask.nasal = mask(mx(:,:,ii))
+for ii = 1:numel(meridians)
+    
+    maskWedge = false(size(coneDensity));
+%     maskSingleMeridian = false(size(coneDensity));
+    maskWedge(~isnan(mx(:,:,ii))) = true;
+    maskWedge(~isnan(my(:,:,ii))) = true;
+    
+%     maskSingleMeridian(~isnan(mxs(:,:,ii))) = true;
+%     maskSingleMeridian(~isnan(mys(:,:,ii))) = true;
 
+    wedge_coneDensity(ii,:) = coneDensity(maskWedge);
+%     singleMeridian_coneDensity(ii,:) = coneDensity(maskSingleMeridian);
 
-% Get cone density for 15 deg wedge around every meridian
-wedge_coneDensity.nasal    = coneDensity.*~isnan(mx(:,:,1)).*~isnan(my(:,:,1));
-wedge_coneDensity.superior = coneDensity.*~isnan(mx(:,:,2)).*~isnan(my(:,:,2));
-wedge_coneDensity.temporal = coneDensity.*~isnan(mx(:,:,3)).*~isnan(my(:,:,3));
-wedge_coneDensity.inferior = coneDensity.*~isnan(mx(:,:,4)).*~isnan(my(:,:,4));
-
-% Or get cone density only the meridia themselves
-singleMeridian_coneDensity.nasal    = coneDensity(meridians(1),eccen);
-singleMeridian_coneDensity.superior = coneDensity(meridians(2),eccen);
-singleMeridian_coneDensity.temporal = coneDensity(meridians(3),eccen);
-singleMeridian_coneDensity.inferior = coneDensity(meridians(4),eccen);
+end
 
 % Take the integral of cone density in wedge for every meridian
-wedge_coneDensity_integralPA15.nasal    = sum(wedge_coneDensity.nasal(:));
-wedge_coneDensity_integralPA15.superior = sum(wedge_coneDensity.superior(:));
-wedge_coneDensity_integralPA15.temporal = sum(wedge_coneDensity.temporal(:));
-wedge_coneDensity_integralPA15.inferior = sum(wedge_coneDensity.inferior(:));
+wedge_coneDensity_integralPA15.nasal    = sum(wedge_coneDensity(1,:),'omitnan');
+wedge_coneDensity_integralPA15.superior = sum(wedge_coneDensity(2,:),'omitnan');
+wedge_coneDensity_integralPA15.temporal = sum(wedge_coneDensity(3,:),'omitnan');
+wedge_coneDensity_integralPA15.inferior = sum(wedge_coneDensity(4,:),'omitnan');
 
-
+trapz(
 
 % Take the integral of cone density along line on every meridia itself
-singleMeridian_coneDensity_integralPA15.nasal    = sum(singleMeridian_coneDensity.nasal(:));
-singleMeridian_coneDensity_integralPA15.superior = sum(singleMeridian_coneDensity.superior(:));
-singleMeridian_coneDensity_integralPA15.temporal = sum(singleMeridian_coneDensity.temporal(:));
-singleMeridian_coneDensity_integralPA15.inferior = sum(singleMeridian_coneDensity.inferior(:));
-
+% singleMeridian_coneDensity_integralPA15.nasal    = sum(singleMeridian_coneDensity(1,:),'omitnan');
+% singleMeridian_coneDensity_integralPA15.superior = sum(singleMeridian_coneDensity(2,:),'omitnan');
+% singleMeridian_coneDensity_integralPA15.temporal = sum(singleMeridian_coneDensity(3,:),'omitnan');
+% singleMeridian_coneDensity_integralPA15.inferior = sum(singleMeridian_coneDensity(4,:),'omitnan');
+% 
 % Concatenate data
 coneDataMeridians.wedge = [wedge_coneDensity_integralPA15.nasal, ...
                            wedge_coneDensity_integralPA15.superior, ...
                            wedge_coneDensity_integralPA15.temporal, ...
                            wedge_coneDensity_integralPA15.inferior];
                      
-coneDataMeridians.singleMeridian = [singleMeridian_coneDensity_integralPA15.nasal, ...
-                           singleMeridian_coneDensity_integralPA15.superior, ...
-                           singleMeridian_coneDensity_integralPA15.temporal, ...
-                           singleMeridian_coneDensity_integralPA15.inferior];
+% coneDataMeridians.singleMeridian = [singleMeridian_coneDensity_integralPA15.nasal, ...
+%                            singleMeridian_coneDensity_integralPA15.superior, ...
+%                            singleMeridian_coneDensity_integralPA15.temporal, ...
+%                            singleMeridian_coneDensity_integralPA15.inferior];
 
 % Print asymmetries 
 fprintf('\nCone density from %s, 1-6 deg eccen, +/- 15 deg polar angle wedge \n', dataSet)
