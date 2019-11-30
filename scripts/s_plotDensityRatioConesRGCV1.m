@@ -97,29 +97,33 @@ end
 eccDeg = 0:0.05:40; % deg
 
 % Get CMF from HCP:
-v1CMFMeridiansIntegral15 = getV1CMFHCP;
+v1CMF = getV1CMFHCP;
 
 % Compute HVA and VMA for different wedge sizes
-CMFV1_HCP = struct();
+asymV1CMF = struct();
 
-for ii = 1:size(v1CMFMeridiansIntegral15.individualSubjects.eccen0_35,1)
-    CMFV1_HCP.hvaAll035(ii) = hva(v1CMFMeridiansIntegral15.individualSubjects.eccen0_35(ii,:));
-    CMFV1_HCP.vmaAll035(ii) = vma(v1CMFMeridiansIntegral15.individualSubjects.eccen0_35(ii,:));
+fn = fieldnames(v1CMF.individualSubjects);
 
-    CMFV1_HCP.hvaAll16(ii) = hva(v1CMFMeridiansIntegral15.individualSubjects.eccen1_6(ii,:));
-    CMFV1_HCP.vmaAll16(ii) = vma(v1CMFMeridiansIntegral15.individualSubjects.eccen1_6(ii,:));
-
-    CMFV1_HCP.hvaAll357(ii) = hva(v1CMFMeridiansIntegral15.individualSubjects.eccen35_7(ii,:));
-    CMFV1_HCP.vmaAll357(ii) = vma(v1CMFMeridiansIntegral15.individualSubjects.eccen35_7(ii,:));
+for ii = 1:numel(fn)
+    
+    theseData = v1CMF.individualSubjects.(fn{ii});
+    
+    horz = mean([theseData(1:181,1), theseData(182:end,1)],2);
+    vert = mean([theseData(1:181,2), theseData(182:end,2)],2);
+    upr  = mean([theseData(1:181,3), theseData(182:end,3)],2);
+    lowr = mean([theseData(1:181,4), theseData(182:end,4)],2);
+    
+    asymV1CMF.(['hvaAll' fn{ii}]) = 100.* ((horz - vert) ./ mean([horz,vert],2));
+    asymV1CMF.(['vmaAll' fn{ii}]) = 100.* ((lowr - upr) ./ mean([upr,lowr],2));
 end
 
 % Get CMF from & Hoyt (1991)
 CMF_HH91 = HortonHoytCMF(eccDeg);
 % Get CMF from Rovamo & Virsu (1979)
 CMF_RV79 = RovamuVirsuCMF(eccDeg);
-meridianDataCMF_RV79 = [CMF_RV79.nasalR; CMF_RV79.superiorR; CMF_RV79.temporalR; CMF_RV79.inferiorR];
+meridCMF_RV79 = [CMF_RV79.nasalR; CMF_RV79.superiorR; CMF_RV79.temporalR; CMF_RV79.inferiorR];
 
 
-[fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
-                CMF_HH91, eccDeg, fH12, saveFigures, figureDir);
+[fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(asymV1CMF, meridCMF_RV79, ...
+                CMF_HH91, eccDeg, saveFigures, figureDir);
 
