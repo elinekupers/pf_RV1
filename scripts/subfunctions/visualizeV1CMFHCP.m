@@ -1,5 +1,5 @@
 function [fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
-                CMF_HH91, eccDeg, saveFigures, figureDir)
+                CMF_HH91, eccDeg, fH10, saveFigures, figureDir)
 
 % ------------ Plot CMF vs eccen for Rovamo & Virsu vs Horton & Hoyt model ------------
 
@@ -28,50 +28,73 @@ fH14 = plotHVAandVMA(meridianDataCMF_RV79, eccDeg, titleStr, figureDir, saveFigu
 
 % ------------ Plot HVA and VMA vs eccen for HCP mean subject -----------
 fH15 = figure(); clf; hold all;
-eccen = mean([1, 6; 0, 3.5; 3.5, 7; ...
-              0.5, 1; 1, 2; 2, 4; ...
-              4, 6;  4,8; 6,8],2);
+eccen = mean([1, 6; ... 1,2 -> 3.5 deg    (5 degree)
+              0, 3.5;... 3,4 -> 1.75 deg  (3.5 degree)
+              3.5, 7; ... 5,6 -> 5.25 deg (3.5 degree)
+              0.5, 1; ... 7,8 -> 0.75 deg (0.5 degree) DATA ARE TOO NOISY
+              1, 2; ... 9,10 -> 1.5 deg   (1 degree)   DATA ARE TOO NOISY
+              2, 4; ... 11,12 -> 3 deg    (2 degree)
+              4, 6; ... 13,14 -> 5 deg    (2 degree)
+              4,8; ...  15,16 -> 6 deg    (4 degree)
+              6,8],2); % 17,18 -> 7 deg   (2 degree)
 fn = fieldnames(CMFV1_HCP);
 
 allEccen = NaN(1,length(eccen)*2);
 allEccen(1:2:end) = eccen;
 allEccen(2:2:end) = eccen;
 
-colors = {'c', 'm'};
+ 
+
+colors = [255, 165, 0]./255; lw = 2;
 % Plot HCP integral data points
 for ii =  1:length(allEccen)
-    if any(ii==[1:6,15,16])
-        lw = 4;
-    else lw = 1;
-    end
-    plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), colors{mod(ii-1,2)+1}, 'Marker', 'o', 'LineWidth', lw);
-    errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181), colors{mod(ii-1,2)+1}, 'LineWidth', lw);
+    if any(ii==[1:6,11:18])
+        if mod(ii,2)
+            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', colors, 'MarkerEdgeColor', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
+            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
+        else
+            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', [1 1 1], 'Color', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
+            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
+        end
+    end         
 end
+legend({'HVA','', 'VMA'}, 'Location', 'NorthWest'); 
 
-% Plot 0 line
-plot(0:8, zeros(1,9), 'k')
-
-xlim([0, 8])
-ylim([-80, 80])
-set(gca,'FontSize', 14,'TickDir', 'out')
-
-ylabel('more vert/lower VF <- Asymmetry (%) -> more horz/upper VF')
-xlabel('Eccentricity (deg)')
-titleStr = 'HVA VMA V1 CMF HCP mean subject';
-title(titleStr);
-
-legend({'HCP HVA integral +/- 15', '', ...
-    'HCP VMA integral +/- 15'}, 'Location', 'SouthEast');
+plot([0 40],[0 0], 'k')
 legend boxoff;
 
+ylabel('more vertical/upper VF <- Asymmetry (%) -> more horizontal/lower VF')
+xlabel('Eccentricity (deg)')
+title(titleStr)
+set(gca', 'xlim', [0 8], 'ylim', [-80,80], 'TickDir', 'out', 'FontSize', 14)
 
-if saveFigures
-    % Save matlab fig and pdf
-    figName = strrep(titleStr,' ','_');
-    savefig(fH15, fullfile(figureDir, figName))
-    print(fullfile(figureDir, figName), '-dpdf', '-fillpage')
-    
+
+figure(fH10); hold on;
+for ii =  1:length(allEccen)
+    if any(ii==[1:6,11:18])
+        if mod(ii,2)
+            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', colors, 'MarkerEdgeColor', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
+            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
+        else
+            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', [1 1 1], 'Color', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
+            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
+        end
+    end         
 end
+
+obj = findobj(gca,'Type','Line');
+legend(obj([21,20,18,17,16,15,12,11]), {'HVA mRGCf density Watson 2014 - ISETBIO', 'VMA mRGCf density Watson 2014 - ISETBIO', ...
+                    'HVA Cones Curcio et al 1990 - rgcDisplacementMap', 'VMA Cones Curcio et al 1990 - rgcDisplacementMap', ...        
+                    'HVA mRGC Curcio & Allen 1990 - rgcDisplacementMap', 'VMA mRGC Curcio & Allen 1990 - rgcDisplacementMap', ...
+                    'HVA V1/V2 cortex', 'VMA V1/V2 cortex'}, 'Location', 'SouthEast');
+
+
+
+ylabel('more vertical/upper VF <- Asymmetry (%) -> more horizontal/lower VF')
+xlabel('Eccentricity (deg)')
+title('Cones vs mRGC RF vs V1 cortex : HVA VMA')
+savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_vs_mRGC_RF__vs_V1_CMF'))
+print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_vs_mRGC_RF__vs_V1_CMF'), '-dpdf', '-fillpage')
 
 
 % ------------ Plot HVA and VMA vs eccen for HCP mean subject and RGC and Cones and Watson -----------

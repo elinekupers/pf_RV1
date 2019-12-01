@@ -31,7 +31,7 @@ for ii = 1:length(cardinalMeridianAngles)
 end
 
 [fH1, fH2, fH3, fH4] = visualizeConeDensityVsEccenIsetbio(conesCurcioIsetbio, conesSongIsetbioYoung, ...
-                       conesSongIsetbioOld, meridianIdx, eccDeg, saveFigures);
+                       conesSongIsetbioOld, meridianIdx, eccDeg, figureDir, saveFigures);
 
 %% ------------------------------------------------------------
 %  --------- (Not yet implemented) RGC from ISETBIO -----------
@@ -76,7 +76,7 @@ end
 % figure; surf(x,x,log10(allMaps{3}.data))
 
 [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
-                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, fH4, saveFigures);
+                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, fH4, figureDir, saveFigures);
 
                         
                         
@@ -85,11 +85,10 @@ end
 %  -----------------------------------------------------------------
 
 % Get data
-[conesSong, coneDataMeridiansIntegral15] = getConesSong;
-[rgcWatson, rgcDataMeridiansIntegral15]  = getMRGCRFWatson;
+rgcWatson  = getMRGCRFWatson(eccDeg);
 
-[fH9, fH10, fH11, fH12] = visualizeConeAndRGCDensitySFNPoster(conesSong, ...
-                rgcWatson, coneDataMeridiansIntegral15, rgcDataMeridiansIntegral15, fH7, saveFigures);
+[fH9, fH10] = visualizeRGCDensityWatson(rgcWatson, eccDeg, fH7, figureDir, saveFigures);
+
 
 % ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
 
@@ -125,5 +124,5 @@ meridCMF_RV79 = [CMF_RV79.nasalR; CMF_RV79.superiorR; CMF_RV79.temporalR; CMF_RV
 
 
 [fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(asymV1CMF, meridCMF_RV79, ...
-                CMF_HH91, eccDeg, saveFigures, figureDir);
+                CMF_HH91, eccDeg, fH10, saveFigures, figureDir);
 

@@ -23,7 +23,7 @@ polang              = T1.angle_delta_deg==30; % deg
 
 cmfData = T1.surface_area_mm2;
 
-% TO CHECK
+% preallocate space
 horizontalVF = zeros(size(T1,1),1);
 verticalVF   = horizontalVF;
 upperVF      = horizontalVF;
@@ -46,9 +46,9 @@ for jj = 1:numel(fn)
     thisEccenMask = allMasks.(fn{jj});
     
     horz    = cmfData(horizontalVF & thisEccenMask & polang);
-    vert = cmfData(verticalVF & thisEccenMask & polang);
-    upr = cmfData(upperVF & thisEccenMask & polang);
-    lowr = cmfData(lowerVF & thisEccenMask & polang);
+    vert    = cmfData(verticalVF & thisEccenMask & polang);
+    upr     = cmfData(upperVF & thisEccenMask & polang);
+    lowr    = cmfData(lowerVF & thisEccenMask & polang);
        
     dataMeridians.individualSubjects.(fn{jj})   = cat(3, [horz, vert, upr, lowr]);
 

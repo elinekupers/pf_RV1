@@ -5,18 +5,18 @@ yl = [1e2, 3e4];
 
             
 % ------------ Visualize meridan vs eccentricity ------------
-titleStr = 'Cone density Song et al 2011 - SfN Poster';
-meridianData.conesSong = [conesSong.nasal; conesSong.superior; conesSong.temporal; conesSong.inferior];
-fH9 = plotMeridiansVsEccen(meridianData.conesSong, conesSong.eccentricity, titleStr, yl, saveFigures);
+% titleStr = 'Cone density Song et al 2011 - SfN Poster';
+% meridianData.conesSong = [conesSong.nasal; conesSong.superior; conesSong.temporal; conesSong.inferior];
+% fH9 = plotMeridiansVsEccen(meridianData.conesSong, conesSong.eccentricity, titleStr, yl, saveFigures);
 
 titleStr = 'mRGC RF density Watson 2014 - SfN Poster';
 meridianData.rgcWatson = [rgcWatson.nasal; rgcWatson.superior; rgcWatson.temporal; rgcWatson.inferior];
 fH10 = plotMeridiansVsEccen(meridianData.rgcWatson, rgcWatson.eccentricity, titleStr, [], saveFigures);
 
 
-% ------------ Plot HVA and VMA vs eccen for cones and mRGC RF ------------
-titleStr = 'HVA VMA cone density Song et al 2011 - SfN Poster';
-fH11 = plotHVAandVMA(meridianData.conesSong, conesSong.eccentricity, titleStr, saveFigures);
+% % ------------ Plot HVA and VMA vs eccen for cones and mRGC RF ------------
+% titleStr = 'HVA VMA cone density Song et al 2011 - SfN Poster';
+% fH11 = plotHVAandVMA(meridianData.conesSong, conesSong.eccentricity, titleStr, saveFigures);
 
 
 titleStr = 'HVA VMA mRGC RF density Watson 2014 - SfN Poster';
