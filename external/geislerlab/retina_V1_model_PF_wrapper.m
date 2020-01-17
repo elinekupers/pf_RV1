@@ -1,16 +1,24 @@
-function out = retina_V1_model_PF_wrapper(tx,ty)
-
+function out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg)
+%
 % Modification of retina_V1_model_inputs, a function that calls
 % retina_V1_model with a set of example inputs.
 %
 % In this case, we change the polar angle of the Gabor path at iso-eccentric
 % locations to see if the Retina-V1 model makes a different prediction in
-% contrast thresholds 
+% contrast thresholds.
+%
+% Wrapper INPUTS:
+% [tx,ty]           :   (int or vector) target x,y center coordinates in visual field (deg)
+% backgroundType    :   (string) define what background should be loaded
+%                           choose from 'uniform' or '1f' for mean
+%                           luminance or 1/f noise
+% pixperdeg         :   (int) number of pixels per degree
 
 
+%% Original function
 %REQUIRED INPUTS:
-%target = grayscale target image, range: [-127,127]. Note that the target is defined as a contrast image that can be 
-%         added to the background, which has a range of [0,255]. When added to the background, [-127,127] maps to 
+%target = grayscale target image, range: [-127,127]. Note that the target is defined as a contrast image that can be
+%         added to the background, which has a range of [0,255]. When added to the background, [-127,127] maps to
 %         [1,255]. Thus, zero maps to 128.
 %background = grayscale background image, range: [0,255].
 %tx = x coordinate (in degrees) of target image center relative to center of background.
@@ -23,7 +31,7 @@ function out = retina_V1_model_PF_wrapper(tx,ty)
 %             For example: X = retina_V1_model(target,background,tx,ty,fx,fy,[],Stacks)
 %Stacks = a structure whose fields consist of all the multi-resolution stacks used by the RV1 model. To create all
 %         multi-resolution stacks, use the function: multi_resolution_stacks. retina_V1_model will create all necessary
-%         multi-resolution stacks if 'Stacks' is not specified and the input is []. 
+%         multi-resolution stacks if 'Stacks' is not specified and the input is [].
 %         For example: X = retina_V1_model(target,background,tx,ty,fx,fy,Parameters,[])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -35,9 +43,40 @@ target = cast(target,'double'); %cast to doubles
 target = target - 128; %make range to [-127 127]
 
 %A background image whose range is [0 255] at 120 pixels per degree (comment out for desired background)
-background = 128*ones(4000); %uniform background
-%load background_1f; background = background_1f; %1/f noise background 
-%load background_natural; background = background_natural; %natural scene background 
+switch backgroundType
+    case 'uniform'
+        background = 128*ones(4000); %uniform background
+        
+    case '1f_default'
+        load background_1f; background = background_1f; %1/f noise background
+        
+    case '1f_recomputed'
+        tmp = noiseonf(4000, 1);
+        tmp = tmp + abs(min(tmp(:)));
+        background = (tmp./max(tmp(:)));
+        contrastBounds = prctile(background(:),[2.5, 97.5]);
+        background(background<contrastBounds(1)) = contrastBounds(1);
+        background(background>contrastBounds(2)) = contrastBounds(2);
+        
+        background = background-min(background(:));
+        background = 256.*(background./max(background(:)));
+        
+    case 'natural'
+        load background_natural; background = background_natural; %natural scene background
+end
+
+% Plot target on background
+figure; clf; 
+imagesc(background); hold all; colormap gray;
+[w, h] = size(background);
+wC = round(w/2);
+hC = round(h/2);
+for ii = 1:length(tx)
+    plot(wC+(tx(ii).*pixperdeg),hC+(ty(ii).*pixperdeg), 'ko',  'MarkerSize',15, 'LineWidth', 3)
+end
+title('Stimulus locations');
+xlabel('Pixels'); ylabel('Pixels'); box off;
+set(gca, 'TickDir', 'out', 'FontSize', 12)
 
 %Fixation coordinate vectors in degrees assuming (0,0) is at center of background.
 fx = zeros(size(tx));
@@ -58,7 +97,7 @@ Parameters.ro = 2.4; %Range: p0 > 0
 Parameters.p0 = 0.0014; %0.0014 for ModelFest, 0.00045 for our yes-no experiment
 Parameters.dp_crit = 1.8009; %corresponds to 0.5+0.5*(1-exp(-1)) = 81.61 percent
 
-%Multi-resolution stacks 
+%Multi-resolution stacks
 Stacks = multi_resolution_stacks(target, background, Parameters);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,6 +107,6 @@ Stacks = multi_resolution_stacks(target, background, Parameters);
 %out = retina_V1_model(target, background, tx, ty, fx, fy, [], []);
 
 %Using required and optional inputs:
-out = retina_V1_model_PF(target, background, tx, ty, fx, fy, Parameters, Stacks);
+out = retina_V1_model_PF(target, background, tx, ty, fx, fy, pixperdeg, Parameters, Stacks);
 
 

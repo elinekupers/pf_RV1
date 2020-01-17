@@ -1,4 +1,4 @@
-function out = retina_V1_model(target, background, tx, ty, fx, fy, Parameters, Stacks)
+function out = retina_V1_model_PF(target, background, tx, ty, fx, fy, ppd, Parameters, Stacks)
 
 %retina_V1_model predicts the contrast detection threshold of a target in a background. The location of the target is at
 %(tx,ty) degrees from the center of the background, and the fixation point is at (fx,fy) degrees from the center of the
@@ -52,8 +52,8 @@ function out = retina_V1_model(target, background, tx, ty, fx, fy, Parameters, S
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %DEFAULT PARAMETERS
 
-%Default pixels per degree
-ppd = 120;
+%Default = 120 pixels per degree
+% ppd = 40;
 
 %Default ganglion cell spacing at fovea
 s0 = spacing_fn(0,0);

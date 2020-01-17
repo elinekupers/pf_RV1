@@ -2,12 +2,17 @@
 
 %% Define target locations (we assume uniform gray background)
 % Coordinate vectors of target in degrees assuming (0,0) is at the center of the background.
-eccentricities   = 1:1:12; % deg
+eccentricities   = 1:9; % deg
 
 locLabels =  {'EAST', 'NORTHEAST', 'NORTH', 'NORTHWEST', 'WEST', 'SOUTHWEST',  'SOUTH', 'SOUTHEAST'};
 theta   = 0:pi/4:2*pi; % every 45 degrees, in radians
 
-% sensitivity = NaN(length(eccentricities),length(theta));
+backgroundType = 'uniform'; % choose from '1f_default', '1f_recomputed' or 'uniform'
+pixperdeg = 40; % pixels per 1 degree
+
+% Plotting params
+figureDir = fullfile(pfRV1rootPath, 'figures');
+cmap = hsv(length(eccentricities));
 
 for ii = 1:length(eccentricities)
     
@@ -16,62 +21,57 @@ for ii = 1:length(eccentricities)
 
     [tx, ty] = pol2cart(theta, rho);
 
+    %% Run model
+    out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg);
+
+    %% Convert thresholds to sensitivity
+    sensitivity(:,ii) = 1./out.threshold;
+    
     %% Debug: plot locations of stimuli
     % figure(1); clf; set(gcf,'Color', 'w');
     % p = polarplot(theta, rho, 'ko-','LineWidth', 3);
     % title('Stimulus locations');
     % set(gca, 'FontSize', 14)
-
-    %% Run model
-    out = retina_V1_model_PF_wrapper(tx,ty);
-
-    %% Convert thresholds to sensitivity
-    sensitivity(ii,:) = 1./out.threshold;
-
 end
-
 
 
 %% Visualize results
 
-figureDir = fullfile(pfRV1rootPath, 'figures');
-cmap = hsv(length(eccentricities));
- figure; clf; set(gcf,'Color', 'w');
-for jj = length(eccentricities):-1:2
+figure; clf; set(gcf,'Color', 'w');
+for jj = 1:length(eccentricities)
    
     eccen = eccentricities(jj);
-    sens  = sensitivity(jj,:);
+    sens  = sensitivity(:,jj);
     
     polarplot(theta, sens, 'o-', 'Color', cmap(jj,:), 'LineWidth', 3); hold on;
-    title('Predicted performance (contrast sensitivity) at 2-12 deg eccen');
-    rlim([0 25])
+    
+    locLabels{jj} = sprintf('Eccen %1.0f deg', eccen);
+end
+title('Predicted performance (contrast sensitivity)');
+legend(locLabels); legend boxoff
+
+maxr = round(max(sensitivity(:)))+1;
+allRTicks = [0:10:maxr];
+rlim([0 maxr])
+rticks(allRTicks)
+rticklabels(sprintfc('%1.0f dB',allRTicks))
     set(gca, 'FontSize', 14)
 
     fprintf('Bradley, Abrams, Geisler (2014) Retina-V1 model predictions:\n')
     fprintf('Predicted Horizontal-Vertical Asymmetry (sensitivity):\t %1.0f%%\n', hva(sens(1:8)))
     fprintf('Predicted Vertical-Meridian Asymmetry (sensitivity):  \t %1.0f%%\n', vma(sens(1:8)))
-    
-    Labels{length(eccentricities)-jj+1} = sprintf('Eccen %1.0f', eccen);
-end
-legend(Labels); legend boxoff
 
 % Save matlab fig and pdf
-figName = sprintf('sensitivity_Bradley_et_al_2014_eccen2-12deg');
+figName = sprintf('PolarPlot_Sensitivity_Bradley_et_al_2014_eccen%d-%ddeg_%s_%dppd', eccentricities(1), eccentricities(end), backgroundType, pixperdeg);
 savefig(fullfile(figureDir, figName))
-print(fullfile(figureDir, figName), '-dpdf', '-fillpage')
+print(fullfile(figureDir, figName), '-depsc')
+print(fullfile(figureDir, figName), '-dpng')
 
-
-% Resave sensitivity on cardinals as if they were retinal coords, not visual record:
-sensitivityRetina = NaN(4,length(eccentricities)); % nasal, superior, temporal, inferior RETINA)
-sensitivityRetina(1,:) = sensitivity(:,rad2deg(theta) == 0);   % 1. nasal
-sensitivityRetina(2,:) = sensitivity(:,rad2deg(theta) == 270); % 2. superior (flip inferior to superior)
-sensitivityRetina(3,:) = sensitivity(:,rad2deg(theta) == 180); % 3. temporal
-sensitivityRetina(4,:) = sensitivity(:,rad2deg(theta) == 90);  % 4. inferior (flip superior to inferior)
-
-
-titleStr = 'HVA VMA sensitivity in retinal coords Bradley et al 2014 - Retina V1 Model';
-fH1 = plotHVAandVMA(sensitivityRetina, eccentricities, titleStr, true);
-
+%% Plot VMA and HVA
+titleStr = sprintf('Asymmetries of sensitivity (Visual field) - Retina V1 Model %s %dppd', backgroundType, pixperdeg);
+visualFieldFlag = true;
+saveFigs = true;
+fH1 = plotHVAandVMA(sensitivity(1:8,:), eccentricities, visualFieldFlag, titleStr, figureDir, saveFigs);
 
 
 % % Print out RGC spacing
@@ -88,6 +88,8 @@ fH1 = plotHVAandVMA(sensitivityRetina, eccentricities, titleStr, true);
 % fprintf('Vertical-Meridian Asymmetry (RGC density):  \t %1.0f%%\n', vma(rgcDensity))
 
 
+
+return
 
 
 %% RGC spacing HVA, VMA vs eccen
