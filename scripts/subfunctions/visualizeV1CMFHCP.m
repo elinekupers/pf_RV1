@@ -1,4 +1,4 @@
-function [fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
+function [fH13, fH14, fH15] = visualizeV1CMFHCP(CMFV1_HCP, meridianDataCMF_RV79, ...
                 CMF_HH91, eccDeg, fH10, saveFigures, figureDir)
 
 % ------------ Plot CMF vs eccen for Rovamo & Virsu vs Horton & Hoyt model ------------
@@ -26,75 +26,67 @@ titleStr = 'HVA VMA CMF Rovamo Virsu 1979 - in retinal coords';
 fH14 = plotHVAandVMA(meridianDataCMF_RV79, eccDeg, titleStr, figureDir, saveFigures);
 
 
+
+
 % ------------ Plot HVA and VMA vs eccen for HCP mean subject -----------
-fH15 = figure(); clf; hold all;
-eccen = mean([1, 6; ... 1,2 -> 3.5 deg    (5 degree)
-              0, 3.5;... 3,4 -> 1.75 deg  (3.5 degree)
-              3.5, 7; ... 5,6 -> 5.25 deg (3.5 degree)
-              0.5, 1; ... 7,8 -> 0.75 deg (0.5 degree) DATA ARE TOO NOISY
-              1, 2; ... 9,10 -> 1.5 deg   (1 degree)   DATA ARE TOO NOISY
-              2, 4; ... 11,12 -> 3 deg    (2 degree)
-              4, 6; ... 13,14 -> 5 deg    (2 degree)
-              4,8; ...  15,16 -> 6 deg    (4 degree)
-              6,8],2); % 17,18 -> 7 deg   (2 degree)
+fH15 = figure(); clf; set(gcf, 'Color', 'w', 'Position', [ 788   676   754   669]); hold all;
+
 fn = fieldnames(CMFV1_HCP);
+eccen = mean([0, 1; ... (0.5 degree)
+    1, 2; ... (1.5 degree)
+    2, 3; ... (2.5 degree)
+    3, 4; ... (3.5 degree)
+    4, 5; ... (4.5 degree)
+    5, 6; ... (5.5 degree)
+    6, 7; ... (6.5 degree)
+    7, 8],2); % (7.5 degree)
 
 allEccen = NaN(1,length(eccen)*2);
 allEccen(1:2:end) = eccen;
 allEccen(2:2:end) = eccen;
 
- 
+lw = 1;
+nboot = 1000;
 
-colors = [255, 165, 0]./255; lw = 2;
-% Plot HCP integral data points
-for ii =  1:length(allEccen)
-    if any(ii==[1:6,11:18])
-        if mod(ii,2)
-            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', colors, 'MarkerEdgeColor', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
-            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
-        else
-            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', [1 1 1], 'Color', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
-            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
-        end
-    end         
+bootData = NaN(length(fn), nboot);
+for f = 1:length(fn)
+    bootData(f,:) = bootstrp(nboot, @(x) nanmean(x), CMFV1_HCP.(fn{f}));
 end
-legend({'HVA','', 'VMA'}, 'Location', 'NorthWest'); 
+
+% Plot HCP integral data points
+for ii =  3:length(allEccen)-4
+    mdAsym = nanmedian(bootData(ii,:));
+    stdAsym = std(bootData(ii,:), 'omitnan');
+    
+    if mod(ii,2)
+        subplot(2,1,1); hold on;
+        plot(allEccen(ii), mdAsym, 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k', 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 12);
+        errorbar(allEccen(ii), mdAsym, stdAsym,'Color', 'k', 'LineWidth', lw+1);
+    else
+        subplot(2,1,2); hold on;
+        plot(allEccen(ii), mdAsym, 'MarkerFaceColor', 'k', 'Color', 'k', 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 12);
+        errorbar(allEccen(ii), mdAsym, stdAsym, 'Color', 'k', 'LineWidth', lw+1);
+    end
+end
+
 
 plot([0 40],[0 0], 'k')
 legend boxoff;
 
-ylabel('more vertical/upper VF <- Asymmetry (%) -> more horizontal/lower VF')
-xlabel('Eccentricity (deg)')
-title(titleStr)
-set(gca', 'xlim', [0 8], 'ylim', [-80,80], 'TickDir', 'out', 'FontSize', 14)
+axes(fH15.Children(2)); 
+ylabel('Asymmetry (%)')
+xlabel('Eccentricity (deg)')  
+set(gca', 'xlim', [0 max(eccDeg)], 'ylim', [-20,130], 'TickDir', 'out', 'FontSize', 14)
+title('HVA V1/V2 surface area')
 
+axes(fH15.Children(3)); 
+ylabel('Asymmetry (%)')
+xlabel('Eccentricity (deg)')  
+set(gca', 'xlim', [0 max(eccDeg)], 'ylim', [-20,130], 'TickDir', 'out', 'FontSize', 14)
+title('VMA V1/V2 surface area')
 
-figure(fH10); hold on;
-for ii =  1:length(allEccen)
-    if any(ii==[1:6,11:18])
-        if mod(ii,2)
-            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', colors, 'MarkerEdgeColor', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
-            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
-        else
-            plot(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), 'MarkerFaceColor', [1 1 1], 'Color', colors, 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 15);
-            errorbar(allEccen(ii), mean(CMFV1_HCP.(fn{ii})), std(CMFV1_HCP.(fn{ii}))/sqrt(181),'Color', 'k', 'LineWidth', lw+1);
-        end
-    end         
-end
-
-obj = findobj(gca,'Type','Line');
-legend(obj([21,20,18,17,16,15,12,11]), {'HVA mRGCf density Watson 2014 - ISETBIO', 'VMA mRGCf density Watson 2014 - ISETBIO', ...
-                    'HVA Cones Curcio et al 1990 - rgcDisplacementMap', 'VMA Cones Curcio et al 1990 - rgcDisplacementMap', ...        
-                    'HVA mRGC Curcio & Allen 1990 - rgcDisplacementMap', 'VMA mRGC Curcio & Allen 1990 - rgcDisplacementMap', ...
-                    'HVA V1/V2 cortex', 'VMA V1/V2 cortex'}, 'Location', 'SouthEast');
-
-
-
-ylabel('more vertical/upper VF <- Asymmetry (%) -> more horizontal/lower VF')
-xlabel('Eccentricity (deg)')
-title('Cones vs mRGC RF vs V1 cortex : HVA VMA')
-savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_vs_mRGC_RF__vs_V1_CMF'))
-print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_Cone_vs_mRGC_RF__vs_V1_CMF'), '-dpdf', '-fillpage')
+savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_V1_CMF'))
+print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_V1_CMF'), '-dpdf', '-fillpage')
 
 
 % ------------ Plot HVA and VMA vs eccen for HCP mean subject and RGC and Cones and Watson -----------

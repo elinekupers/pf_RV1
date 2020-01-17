@@ -8,7 +8,7 @@ saveFigures = true;
 loadDataFromServer = true;
 
 % Make figure dir if doesnt exist
-figureDir = fullfile(pfRV1rootPath, 'figures');
+figureDir = fullfile(pfRV1rootPath, 'figures', 'NatureNeuro', 'Figure3_supplement');
 if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
 
@@ -17,7 +17,7 @@ if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 %  ----------------------------------------
 
 % Eccentricity range
-eccDeg = 0:0.05:40; % deg
+eccDeg = 0:0.05:60; % deg
 
 % Polar angle range
 angDeg = [(0:5:360), 0];  % deg
@@ -84,16 +84,18 @@ end
 %  ------------ CONES, RGCs & V1 from Noah's SFN poster --------------
 %  -----------------------------------------------------------------
 
-% Get data
-rgcWatson  = getMRGCRFWatson(eccDeg);
-
-[fH9, fH10] = visualizeRGCDensityWatson(rgcWatson, eccDeg, fH7, figureDir, saveFigures);
-
-
-% ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
 
 % Eccentricity range
 eccDeg = 0:0.05:40; % deg
+
+
+% Get data
+rgcWatson  = getMRGCRFWatson(eccDeg);
+
+[fH9, fH10] = visualizeRGCDensityWatson(rgcWatson, eccDeg, fH8, figureDir, saveFigures);
+
+
+% ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
 
 % Get CMF from HCP:
 v1CMF = getV1CMFHCP;

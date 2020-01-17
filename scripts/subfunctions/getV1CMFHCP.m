@@ -5,21 +5,31 @@ function dataMeridians = getV1CMFHCP()
 
 %% V1 CMF
 % T1 = readtable(fullfile(pfRV1rootPath, 'external', 'data', 'distance-ROI-data_angle-stepsize=10.csv'));
-T1 = readtable(fullfile(pfRV1rootPath, 'external', 'data', 'distance-ROI-data_angle-stepsize=10_full.csv'));
+% T1 = readtable(fullfile(pfRV1rootPath, 'external', 'data', 'distance-ROI-data_angle-stepsize=10_full.csv'));
+T1 = readtable(fullfile(pfRV1rootPath, 'external', 'data', 'distance-ROI-data_angle-stepsize=5_eccen-stepsize=1.csv'));
 
 
-allMasks.eccen1_6   = (T1.min_eccentricity_deg==1 & T1.max_eccentricity_deg==6); % deg
-allMasks.eccen0_35  = T1.min_eccentricity_deg==0; % deg
-allMasks.eccen35_7  = T1.min_eccentricity_deg==3.5; % deg
-allMasks.eccen05_1  = T1.min_eccentricity_deg==0.5; % deg
+
+% allMasks.eccen1_6   = (T1.min_eccentricity_deg==1 & T1.max_eccentricity_deg==6); % deg
+% allMasks.eccen0_35  = T1.min_eccentricity_deg==0; % deg
+% allMasks.eccen35_7  = T1.min_eccentricity_deg==3.5; % deg
+% allMasks.eccen05_1  = T1.min_eccentricity_deg==0.5; % deg
+% allMasks.eccen1_2   = (T1.min_eccentricity_deg==1 & T1.max_eccentricity_deg==2); % deg
+% allMasks.eccen2_4   = (T1.min_eccentricity_deg==2 & T1.max_eccentricity_deg==4); % deg
+% allMasks.eccen4_6   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==6); % deg
+% allMasks.eccen4_8   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==8); % deg
+% allMasks.eccen6_8   = (T1.min_eccentricity_deg==6 & T1.max_eccentricity_deg==8); % deg
+
+allMasks.eccen0_1   = (T1.min_eccentricity_deg==0 & T1.max_eccentricity_deg==1); % deg
 allMasks.eccen1_2   = (T1.min_eccentricity_deg==1 & T1.max_eccentricity_deg==2); % deg
-allMasks.eccen2_4   = (T1.min_eccentricity_deg==2 & T1.max_eccentricity_deg==4); % deg
-allMasks.eccen4_6   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==6); % deg
-allMasks.eccen4_8   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==8); % deg
-allMasks.eccen6_8   = (T1.min_eccentricity_deg==6 & T1.max_eccentricity_deg==8); % deg
+allMasks.eccen2_3   = (T1.min_eccentricity_deg==2 & T1.max_eccentricity_deg==3); % deg
+allMasks.eccen3_4   = (T1.min_eccentricity_deg==3 & T1.max_eccentricity_deg==4); % deg
+allMasks.eccen4_5   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==5); % deg
+allMasks.eccen5_6   = (T1.min_eccentricity_deg==5 & T1.max_eccentricity_deg==6); % deg
+allMasks.eccen6_7   = (T1.min_eccentricity_deg==6 & T1.max_eccentricity_deg==7); % deg
+allMasks.eccen7_8   = (T1.min_eccentricity_deg==7 & T1.max_eccentricity_deg==8); % deg
 
-
-polang              = T1.angle_delta_deg==30; % deg
+polang              = T1.angle_delta_deg==5; % deg
 
 cmfData = T1.surface_area_mm2;
 
