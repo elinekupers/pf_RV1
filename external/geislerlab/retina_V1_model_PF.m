@@ -1,4 +1,4 @@
-function out = retina_V1_model_PF(target, background, tx, ty, fx, fy, ppd, Parameters, Stacks)
+function out = retina_V1_model_PF(target, background, tx, ty, fx, fy, ppd, Parameters, Stacks, verbose)
 
 %retina_V1_model predicts the contrast detection threshold of a target in a background. The location of the target is at
 %(tx,ty) degrees from the center of the background, and the fixation point is at (fx,fy) degrees from the center of the
@@ -161,7 +161,9 @@ for qq = 1:length(fx)
     %Pooled target responses
     % T_pool = (sum(sum(abs(SAMP_cut_T.*DT_fov).^P.ro_mod))).^(1./P.ro_mod);
     T_pool = (sum(sum(abs(SAMP_cut_T.*DT_fov).^P.ro))).^(1./P.ro);
-    fprintf('For location [x,y] = [%1.1f, %1.1f], target pool response = %1.3f\n', tx(qq), ty(qq), T_pool)
+    if verbose
+        fprintf('For location [x,y] = [%1.1f, %1.1f], target pool response = %1.3f\n', tx(qq), ty(qq), T_pool)
+    end
     
     %Broadband power
     BB = sum(sum(E_samp.*(DB_fov.^2)));
@@ -173,9 +175,10 @@ for qq = 1:length(fx)
     R_nb = abs(real(fftshift(ifft2(NF_ip.*fft_BZ)))); %Apply narrowband filter to background in Fourier space
     NB = sum(sum(E_samp.*(R_nb.^2))); %Narrowband power
     
-    fprintf('For location [x,y] = [%1.1f, %1.1f], Broadband power response = %1.3f\n', tx(qq), ty(qq), BB)
-    fprintf('For location [x,y] = [%1.1f, %1.1f], Narrowband power response = %1.3f\n', tx(qq), ty(qq), NB)
-
+    if verbose
+        fprintf('For location [x,y] = [%1.1f, %1.1f], Broadband power response = %1.3f\n', tx(qq), ty(qq), BB)
+        fprintf('For location [x,y] = [%1.1f, %1.1f], Narrowband power response = %1.3f\n', tx(qq), ty(qq), NB)
+    end
     %Effective background noise    
     N_eff = sqrt(P.p0 + P.kb.*P.wb.*NB + P.kb.*(1-P.wb).*BB);
     
@@ -197,4 +200,9 @@ out.fy = fy;
 out.Parameters = P;
 out.threshold = C;
 out.decibel_threshold = C_db;
+out.T_pool = T_pool;
+out.NB = NB;
+out.BB = BB;
+
+
 

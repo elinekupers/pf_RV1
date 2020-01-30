@@ -1,4 +1,4 @@
-function out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg)
+function out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg, verbose)
 %
 % Modification of retina_V1_model_inputs, a function that calls
 % retina_V1_model with a set of example inputs.
@@ -65,19 +65,22 @@ switch backgroundType
         load background_natural; background = background_natural; %natural scene background
 end
 
-% Plot target on background
-figure; clf; 
-imagesc(background); hold all; colormap gray;
-[w, h] = size(background);
-wC = round(w/2);
-hC = round(h/2);
-for ii = 1:length(tx)
-    plot(wC+(tx(ii).*pixperdeg),hC+(ty(ii).*pixperdeg), 'ko',  'MarkerSize',15, 'LineWidth', 3)
-end
-title('Stimulus locations');
-xlabel('Pixels'); ylabel('Pixels'); box off;
-set(gca, 'TickDir', 'out', 'FontSize', 12)
 
+if verbose;
+    % Plot target on background
+    figure; clf; 
+    imagesc(background); hold all; colormap gray;
+    [w, h] = size(background);
+    wC = round(w/2);
+    hC = round(h/2);
+    for ii = 1:length(tx)
+        plot(wC+(tx(ii).*pixperdeg),hC+(ty(ii).*pixperdeg), 'ko',  'MarkerSize',15, 'LineWidth', 3)
+    end
+    title('Stimulus locations');
+    xlabel('Pixels'); ylabel('Pixels'); box off;
+    set(gca, 'TickDir', 'out', 'FontSize', 12)
+end
+    
 %Fixation coordinate vectors in degrees assuming (0,0) is at center of background.
 fx = zeros(size(tx));
 fy = zeros(size(ty));
@@ -107,6 +110,6 @@ Stacks = multi_resolution_stacks(target, background, Parameters);
 %out = retina_V1_model(target, background, tx, ty, fx, fy, [], []);
 
 %Using required and optional inputs:
-out = retina_V1_model_PF(target, background, tx, ty, fx, fy, pixperdeg, Parameters, Stacks);
+out = retina_V1_model_PF(target, background, tx, ty, fx, fy, pixperdeg, Parameters, Stacks, verbose);
 
 

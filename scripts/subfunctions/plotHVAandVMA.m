@@ -1,5 +1,5 @@
-function fH = plotHVAandVMA(meridianData, regularSupportPosDegVisual, visualFieldFlag, titleStr, figureDir, saveFigures)
-% Function to plot HVA and VMA as a function of eccentricity. 
+function fH = plotHVAandVMA(meridianData, confidenceIntervals, regularSupportPosDegVisual, visualFieldFlag, titleStr, figureDir, saveFigures)
+% Function to plot HVA and VMA as a function of eccentricity.
 %
 % INPUT:
 %   meridianData         : cardinal meridian data (polar angle x eccen),
@@ -8,16 +8,18 @@ function fH = plotHVAandVMA(meridianData, regularSupportPosDegVisual, visualFiel
 %                           (2) NORTH (superior retina)
 %                           (3) WEST (nasal/temporal retina, depending on eye)
 %                           (4) SOUTH (inferior retina)
-%                           
+%
 %                           or if both cardinal and off-cardinals in the order:
 %                           (1) EAST  (nasal/temporal retina, depending on eye)
-%                           (2) NORTHEAST 
-%                           (3) NORTH (superior retina) 
+%                           (2) NORTHEAST
+%                           (3) NORTH (superior retina)
 %                           (4) NORTHWEST,
-%                           (5) WEST  (nasal/temporal retina, depending on eye) 
-%                           (6) SOUTHWEST, 
+%                           (5) WEST  (nasal/temporal retina, depending on eye)
+%                           (6) SOUTHWEST,
 %                           (7) SOUTH (inferior retina)
 %                           (8) SOUTHEAST
+%   confidenceIntervals : 2xeccen matrix with error for HVA and VMA, per
+%                               eccentricity. Will be plotted as errorbars
 %   regularSupportPosDegVisual : vector with eccentricity in deg of visual
 %                                angle.
 %   [visualFieldFlag]   : boolean to note if coordinates are not in
@@ -31,6 +33,10 @@ function fH = plotHVAandVMA(meridianData, regularSupportPosDegVisual, visualFiel
 %   fH                  : figure handle
 
 % Check inputs
+if isempty(confidenceIntervals) || ~exist('confidenceIntervals', 'var')
+    confidenceIntervals = [];
+end
+
 if isempty(visualFieldFlag) || ~exist('visualFieldFlag', 'var')
     visualFieldFlag = false;
 end
@@ -53,28 +59,28 @@ if visualFieldFlag
         
         % Flip East and West
         meridianDataVisualField(1,:) = meridianData(3,:);
-        meridianDataVisualField(3,:) = meridianData(1,:); 
+        meridianDataVisualField(3,:) = meridianData(1,:);
         
         % Flip North and South
         meridianDataVisualField(2,:) = meridianData(4,:);
-        meridianDataVisualField(4,:) = meridianData(2,:); 
-    
+        meridianDataVisualField(4,:) = meridianData(2,:);
+        
     elseif size(meridianData,1)==8
         meridianDataVisualField = NaN(size(meridianData));
         
         % Flip East and West
         meridianDataVisualField(1,:) = meridianData(5,:);
-        meridianDataVisualField(5,:) = meridianData(1,:); 
+        meridianDataVisualField(5,:) = meridianData(1,:);
         
         % Flip North and South
         meridianDataVisualField(3,:) = meridianData(7,:);
-        meridianDataVisualField(7,:) = meridianData(3,:); 
+        meridianDataVisualField(7,:) = meridianData(3,:);
         
         % Flip off-cardinals
         meridianDataVisualField(2,:) = meridianData(6,:);
         meridianDataVisualField(6,:) = meridianData(2,:);
         meridianDataVisualField(4,:) = meridianData(8,:);
-        meridianDataVisualField(8,:) = meridianData(4,:); 
+        meridianDataVisualField(8,:) = meridianData(4,:);
         
     end
     
@@ -84,7 +90,7 @@ if visualFieldFlag
     
 else
     yLabelHVA = 'more vertical retina <- Asymmetry (%) -> more horizontal retina';
-    yLabelVMA = 'more inf retina <- Asymmetry (%) -> more sup retina';   
+    yLabelVMA = 'more inf retina <- Asymmetry (%) -> more sup retina';
 end
 
 
@@ -106,33 +112,39 @@ end
 
 
 % Go plot
-yl     = [-80,80]; %[-1 1] * max(abs([HVAvsEccen, VMAvsEccen]));
+yl     = [-20,110]; %[-1 1] * max(abs([HVAvsEccen, VMAvsEccen]));
 
 fH = figure; clf; set(gcf, 'Color', 'w', 'Position', [418, 269, 1905, 872]); hold all;
 subplot(121);
-plot(regularSupportPosDegVisual,HVAvsEccen, 'ko-', 'LineWidth',3); hold on;
-plot(regularSupportPosDegVisual, zeros(size(regularSupportPosDegVisual)), 'k')
+plot(regularSupportPosDegVisual,HVAvsEccen, 'k-', 'LineWidth',3); hold on;
+plot([0 regularSupportPosDegVisual], zeros(1, length(regularSupportPosDegVisual)+1), 'k')
+if ~isempty(confidenceIntervals(:))
+    errorbar(regularSupportPosDegVisual, HVAvsEccen, confidenceIntervals(1,:), 'k');
+end
 grid on; axis square; box off;
 ylabel(yLabelHVA)
 xlabel('Eccentricity (deg)')
 title(['HVA ' titleStr])
-set(gca', 'xlim', [0 max(regularSupportPosDegVisual)], ...
+set(gca', 'xlim', [0 max(regularSupportPosDegVisual)+1], ...
     'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
 
 subplot(122);
-plot(regularSupportPosDegVisual,VMAvsEccen, 'ko-', 'LineWidth',3); hold on;
-plot(regularSupportPosDegVisual, zeros(size(regularSupportPosDegVisual)), 'k')
+plot(regularSupportPosDegVisual,VMAvsEccen, 'k-', 'LineWidth',3); hold on;
+plot([0 regularSupportPosDegVisual], zeros(1, length(regularSupportPosDegVisual)+1), 'k')
+if ~isempty(confidenceIntervals(:))
+    errorbar(regularSupportPosDegVisual, VMAvsEccen, confidenceIntervals(2,:), 'k');
+end
 grid on; axis square; box off;
 ylabel(yLabelVMA)
 xlabel('Eccentricity (deg)')
 title(['VMA ' titleStr])
-set(gca', 'xlim', [0 max(regularSupportPosDegVisual)], ...
+set(gca', 'xlim', [0 max(regularSupportPosDegVisual)+1], ...
     'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
 
 if saveFigures
     % Make figure dir if doesnt exist
     if ~exist(figureDir, 'dir'); mkdir(figureDir); end
-
+    
     % Save matlab fig and pdf
     figName = strrep(titleStr,' ','_');
     savefig(fH, fullfile(figureDir, sprintf('%s', figName)))
