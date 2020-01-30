@@ -29,7 +29,7 @@ allMasks.eccen5_6   = (T1.min_eccentricity_deg==5 & T1.max_eccentricity_deg==6);
 allMasks.eccen6_7   = (T1.min_eccentricity_deg==6 & T1.max_eccentricity_deg==7); % deg
 allMasks.eccen7_8   = (T1.min_eccentricity_deg==7 & T1.max_eccentricity_deg==8); % deg
 
-polang              = T1.angle_delta_deg==5; % deg
+polang              = T1.angle_delta_deg==10; % deg
 
 cmfData = T1.surface_area_mm2;
 
