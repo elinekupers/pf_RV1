@@ -55,9 +55,9 @@ meridianData.conesCurcioIsetbio = coneDensity(meridians,eccenLimits)';
 
 
 % ------ Visualize HVA and VMA ------
-
 titleStr = sprintf('Cone density %s - ISETBIO left eye', dataSet);
-fH1 = plotHVAandVMA(meridianData.conesCurcioIsetbio', eccDeg, titleStr, figureDir, saveFigures);
+visualFieldFlag = false;
+fH1 = plotHVAandVMA(meridianData.conesCurcioIsetbio', [], eccDeg, visualFieldFlag, titleStr, figureDir, saveFigures);
 
 %% -----------------------------------------------------------------
 %  -------------- mRGC from Watson 2015 using ISETBIO --------------
@@ -77,7 +77,8 @@ end
 % ------ Visualize density and HVA vs VMA ------
 
 titleStr = 'mRGCf density Watson 2014 - ISETBIO';
-fH2 = plotHVAandVMA(Watson_mRGCRFDensityPerDeg2, eccDeg, titleStr, figureDir, saveFigures);
+visualFieldFlag = false;
+fH2 = plotHVAandVMA(Watson_mRGCRFDensityPerDeg2, [], eccDeg, visualFieldFlag, titleStr, figureDir, saveFigures);
 
 labels = {{'HVA Cones Curcio et al (1991)', '','HVA mRGC Watson (2014)'}, ...
     {'VMA Cones Curcio et al (1991)','','VMA mRGC Watson (2014)'}};
@@ -111,10 +112,11 @@ asymV1CMF = struct();
 fn = fieldnames(v1CMF.individualSubjects);
 
 asymPrct = @(x1, x2) 100.*((x1-x2)./nanmean([x1,x2],2));
-
+allData = [];
 for ii = 1:numel(fn)
     
     theseData = v1CMF.individualSubjects.(fn{ii});
+    allData = cat(3,allData,theseData);
     
     horz = nanmean([theseData(1:181,1), theseData(182:end,1)],2);
     vert = nanmean([theseData(1:181,2), theseData(182:end,2)],2);
@@ -202,5 +204,5 @@ title('VMA')
 
 
 
-savefig(fullfile(figureDir, 'Figure3_ConesRGCV1_delta5deg_poly2'))
-print(fullfile(figureDir, 'Figure3_ConesRGCV1_delta5deg_poly2'), '-depsc')
+savefig(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'))
+print(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'), '-depsc')
