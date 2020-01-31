@@ -75,8 +75,9 @@ for ii = 1:length(eccentricities)
         %         t2_reshaped = reshape(t2,length(tx),nIter, []);
         
         for s = 1:length(tx)
-            template = log( squeeze(nanmean(t1(s,:,:,:),2)) ./ squeeze(nanmean(t2(s,:,:,:),2)) );
-
+            template = log( squeeze(nanmedian(t1(s,:,:,:),2)) ./  squeeze(nanmedian(t2(s,:,:,:),2)) );
+            template(isnan(template)) = 0;
+            
             for iter = 1:nIter
                 stim1Response(iter,:) = squeeze(t1(s,iter,:))' * template(:);
                 stim2Response(iter,:) = squeeze(t2(s,iter,:))' * template(:);
