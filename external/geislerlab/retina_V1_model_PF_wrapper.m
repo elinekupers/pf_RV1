@@ -1,4 +1,4 @@
-function out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg, verbose)
+function out = retina_V1_model_PF_wrapper(tx,ty, task, backgroundType, pixperdeg, verbose)
 %
 % Modification of retina_V1_model_inputs, a function that calls
 % retina_V1_model with a set of example inputs.
@@ -38,9 +38,9 @@ function out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg, verb
 %REQUIRED INPUTS
 
 %A target image whose range is [-127 127] at 120 pixels per degree
-target = imread('GaborPatch12.tif'); %range at this stage is [1 255]
-target = cast(target,'double'); %cast to doubles
-target = target - 128; %make range to [-127 127]
+target{1} = imread('GaborPatch12.tif'); %range at this stage is [1 255]
+target{1} = cast(target{1},'double'); %cast to doubles
+target{1} = target{1} - 128; %make range to [-127 127]
 
 %A background image whose range is [0 255] at 120 pixels per degree (comment out for desired background)
 switch backgroundType
@@ -65,8 +65,33 @@ switch backgroundType
         load background_natural; background = background_natural; %natural scene background
 end
 
+if strcmp(task, '2AFC')   
+    % rotate image this hacky way. Future computation should recompute
+    % Gabor with params below
+    
+    CCW = imrotate(target{1}, -15, 'bilinear','crop');
+    CW  = imrotate(target{1}, 15, 'bilinear','crop');
+    
+    target{1} = CCW;
+    target{2} = CW;
+    
+%     stimparams.row = 64;
+%     stimparams.col = 64;
+%     stimparams.contrast = 1;
+%     stimparams.ph = pi / 1;
+%     stimparams.freq = 4;
+%     stimparams.ang = pi/2 - (pi/6);
+%     stimparams.GaborFlag = 0.15;
+%     [img, p] = imageHarmonic(stimparams);
+%     figure;
+%     imagesc(img);
+%     colormap(gray);
+%     axis image
+    
+end
+    
 
-if verbose;
+if verbose
     % Plot target on background
     figure; clf; 
     imagesc(background); hold all; colormap gray;
@@ -101,7 +126,12 @@ Parameters.p0 = 0.0014; %0.0014 for ModelFest, 0.00045 for our yes-no experiment
 Parameters.dp_crit = 1.8009; %corresponds to 0.5+0.5*(1-exp(-1)) = 81.61 percent
 
 %Multi-resolution stacks
-Stacks = multi_resolution_stacks(target, background, Parameters);
+if strcmp(task, '2AFC')
+    Stacks{1}  = multi_resolution_stacks(target{1}, background, Parameters);
+    Stacks{2}  = multi_resolution_stacks(target{2}, background, Parameters);
+else
+    Stacks{1} = multi_resolution_stacks(target, background, Parameters);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %OUTPUT (use one of the following)
@@ -110,6 +140,6 @@ Stacks = multi_resolution_stacks(target, background, Parameters);
 %out = retina_V1_model(target, background, tx, ty, fx, fy, [], []);
 
 %Using required and optional inputs:
-out = retina_V1_model_PF(target, background, tx, ty, fx, fy, pixperdeg, Parameters, Stacks, verbose);
+out = retina_V1_model_PF(target, background, task, tx, ty, fx, fy, pixperdeg, Parameters, Stacks, verbose);
 
 
