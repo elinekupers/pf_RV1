@@ -19,10 +19,11 @@ eccentricities   = 1:9; % deg
 locLabels        = {'EAST', 'NORTHEAST', 'NORTH', 'NORTHWEST', 'WEST', 'SOUTHWEST',  'SOUTH', 'SOUTHEAST'};
 theta            = 0:pi/4:2*pi; % every 45 degrees, in radians
 
-backgroundType   = '1f_recomputed'; % choose from '1f_default', '1f_recomputed' or 'uniform'
+backgroundType   = 'uniform'; %'1f_recomputed'; % choose from '1f_default', '1f_recomputed' or 'uniform'
 pixperdeg        = 40;              % pixels per 1 degree (lower numbers ~= higher SF)
-nIter            = 100;             % number of simulation iterations 
+nIter            = 10;             % number of simulation iterations 
 verbose          = false;           % print masking coefficients or not
+task             = '2AFC';           % choose from 'detection', '2AFC'
 
 % Plotting params
 figureDir       = fullfile(pfRV1rootPath, 'figures');
@@ -46,7 +47,7 @@ for ii = 1:length(eccentricities)
     for iter = 1:nIter
         
         %% Run model
-        out = retina_V1_model_PF_wrapper(tx,ty, backgroundType, pixperdeg, verbose);
+        out = retina_V1_model_PF_wrapper(tx,ty, task, backgroundType, pixperdeg, verbose);
         
         %% Convert thresholds to sensitivity
         sensitivity(:,ii, iter) = 1./out.threshold;
@@ -55,6 +56,7 @@ for ii = 1:length(eccentricities)
         T_pool(:,ii, iter) = out.T_pool;
         NB(:,ii, iter) = out.NB;
         BB(:,ii, iter) = out.BB;
+        T_pool_stim(:,:,:,:,ii, iter) = out.T_pool_stim; % x,y, target locations, target eccen
         
         %% Debug: plot locations of stimuli
         % figure(1); clf; set(gcf,'Color', 'w');
@@ -62,8 +64,40 @@ for ii = 1:length(eccentricities)
         % title('Stimulus locations');
         % set(gca, 'FontSize', 14)
     end
+   
     
-end
+    if strcmp(task, '2AFC')
+        
+        t1 = permute(squeeze(T_pool_stim(:,:,:,1,ii,:)), [3,4,1,2]); % target locations, eccen, x,y
+        t2 = permute(squeeze(T_pool_stim(:,:,:,2,ii,:)), [3,4,1,2]); % target locations, eccen, x,y
+        
+        %         t1_reshaped = reshape(t1,length(tx),nIter, []);
+        %         t2_reshaped = reshape(t2,length(tx),nIter, []);
+        
+        for s = 1:length(tx)
+            template = log( squeeze(nanmean(t1(s,:,:,:),2)) ./ squeeze(nanmean(t2(s,:,:,:),2)) );
+
+            for iter = 1:nIter
+                stim1Response(iter,:) = squeeze(t1(s,iter,:))' * template(:);
+                stim2Response(iter,:) = squeeze(t2(s,iter,:))' * template(:);
+            end
+            
+            stim1ResponseMean = nanmean(stim1Response);
+            stim2ResponseMean = nanmean(stim2Response);
+            stim1ResponseVar = var(stim1Response);
+            stim2ResponseVar = var(stim2Response);
+            
+            numerator = (stim1ResponseMean - stim2ResponseMean);
+            denominator = sqrt(0.5 * (stim1ResponseVar + stim2ResponseVar));
+            
+            dPrime(s,ii) = squeeze(numerator./denominator);
+            
+            sensitivity(s,ii) =  1./dPrime(s,ii);
+        end
+    end
+end    
+    
+
 
 %% COMPUTE MEDIAN AND STD ACROSS ITERATIONS
 
@@ -76,14 +110,23 @@ for iter = 1:nIter
 end
 
 % Take mean and std across iterations
-mdSensitivityHVA = mean(hva_tmp,1);
-mdSensitivityVMA = mean(vma_tmp,1);
+if nIter >1
+    mdSensitivity = mean(sensitivity,3);
+    
+    mdSensitivityHVA = mean(hva_tmp,1);
+    mdSensitivityVMA = mean(vma_tmp,1);
 
-sdSensitivityHVA = std(hva_tmp);
-sdSensitivityVMA = std(vma_tmp);
+    sdSensitivityHVA = std(hva_tmp);
+    sdSensitivityVMA = std(vma_tmp);
 
-% Concatenate std errors for plotting
-stdError =  vertcat(sdSensitivityHVA,sdSensitivityVMA);
+    % Concatenate std errors for plotting
+    stdError =  vertcat(sdSensitivityHVA,sdSensitivityVMA);
+else
+    mdSensitivity = sensitivity;
+    mdSensitivityHVA = hva_tmp;
+    mdSensitivityVMA = vma_tmp;
+    stdError = [];
+end
 
 %% VISUALIZE RESULTS
 
@@ -109,21 +152,21 @@ title('Predicted performance (contrast sensitivity)');
 legend(locLabels); legend boxoff
 
 maxr = round(max(mdSensitivity(:)))+1;
-allRTicks = [0:5:maxr];
+allRTicks = linspace(0,maxr,3);
 rlim([0 maxr])
 rticks(allRTicks)
-rticklabels(sprintfc('%1.0f dB',allRTicks))
+rticklabels(sprintfc('%1.0f%%',allRTicks))
 set(gca, 'FontSize', 14)
 
 % Save matlab fig and pdf
-figName = sprintf('PolarPlot_Sensitivity_Bradley_et_al_2014_eccen%d-%ddeg_%s_%dppd_iter%d', eccentricities(1), eccentricities(end), backgroundType, pixperdeg, nIter);
+figName = sprintf('PolarPlot_Sensitivity_Bradley_et_al_2014_eccen%d-%ddeg_%s_%dppd_iter%d_task%s', eccentricities(1), eccentricities(end), backgroundType, pixperdeg, nIter, task);
 savefig(fullfile(figureDir, figName))
 print(fullfile(figureDir, figName), '-depsc')
 print(fullfile(figureDir, figName), '-dpng')
 
 
 %% PLOT VMA and HVA vs ECCENTRICITY
-titleStr        = sprintf('Asymmetries of sensitivity (Visual field) - Retina V1 Model %s %dppd', backgroundType, pixperdeg);
+titleStr        = sprintf('Asymmetries of sensitivity (Visual field) - Retina V1 Model %s %dppd %s', backgroundType, pixperdeg, task);
 visualFieldFlag = true; % locations are in visual field coordinates, not retinal coordinates
 saveFigs        = true;
 
