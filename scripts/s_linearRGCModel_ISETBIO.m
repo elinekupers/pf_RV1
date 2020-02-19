@@ -71,29 +71,32 @@ spacingCountsPerDeg = sqrt(coneDensityCountsPerDeg2)/coneDensityCountsPerDeg2;
 % Take several cone 2 RGC density ratio's
 
 cone2RGCRatios = [1,2,4,8,9]; %[1,2,4,8,9,16,18];
+cone2RGCRatios = 1:5; % linear ratio
 
 % Nr of cones in mosaic
 sz    = size(img); 
-cx    = sz(1);      % #cones on x-axis
-cy    = sz(2);      % #cones on y-axis
+crows    = sz(1);      % #cones on y-axis
+ccols    = sz(2);      % #cones on x-axis
 
-[X,Y] = meshgrid(1:cx,1:cy);
+[X,Y] = meshgrid(1:crows,1:ccols);
 
 % DoG Params 
 kc = 1;    % Gauss center sigma. (as in Bradley et al. 2014 paper)
-ks = 2;    % Gauss surround sigma. Range: ks > kc. Note: Bradley paper uses 10.1, seems very large to us 
+ks = 10.1;    % Gauss surround sigma. Range: ks > kc. Note: Bradley paper uses 10.1, seems very large to us 
 
 wc = 0.53; % DoG center Gauss weight. Range: [0,1]. Currently not used
 ws = 1-wc; % DoG surround Gauss weight.  Currently not used
 
 % Preallocate space
-filteredConeCurrent = NaN(length(cone2RGCRatios), cx, cy);
+filteredConeCurrent = NaN(length(cone2RGCRatios), crows, ccols);
 rgcResampled        = cell(size(cone2RGCRatios));
 
 % Set subplots
 figure(1); clf; set(gcf, 'Position', [244,46,2316,1299], 'Color', 'w');
 cols    = length(cone2RGCRatios);
 rows    = 3;
+
+conearray = zeros(crows, ccols);
 
 
 for ii = 1:length(cone2RGCRatios)
@@ -108,29 +111,38 @@ for ii = 1:length(cone2RGCRatios)
     sigma.ratio = sigma.surround/sigma.center;
     
     % ratio of the surround volume to the center volume
-    vol.ratio = 1;
+    vol.ratio = ws/wc;
     
     % Create RGC grid by resampling with cone2RGC ratio.
-    rgc = getRGCMosaic(cx, cy, cone2RGCRatios(ii));
-    rgcMask = logical(rgc);
+    % rgc = getRGCMosaic(crows, ccols, cone2RGCRatios(ii));
+    %     rgcMask = logical(rgc);
+    %     rx = max(sum(rgcMask, 1));
+    %     ry = max(sum(rgcMask, 2));
+    rowIndices = 1:cone2RGCRatios(ii):crows;
+    colIndices = 1:cone2RGCRatios(ii):ccols;
     
-    [f,xx,yy] = makedog2d(cx,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+    sampledarray = conearray;
+    sampledarray(rowIndices, colIndices) = 1;
+    
+    [f,xx,yy] = makedog2d(crows,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
     
     % Convolve image with DoG filter
     filteredConeCurrent(ii,:,:) = conv2(img, f, 'same');
     
     % Resample RGC image
-    tmpIm = squeeze(filteredConeCurrent(ii, :, :));
-    rgcIm = rgc;
-    rgcIm(rgcMask) = tmpIm(rgcMask);
-    rgcResampled{ii} = reshape(rgcIm, cx, cy);
+%     tmpIm = squeeze(filteredConeCurrent(ii, :, :));
+%     rgcIm = tmpIm(rowIndices, colIndices);
+%     rgcResampled{ii} = rgcIm;
     
+    rgcResampled{ii} = squeeze(filteredConeCurrent(ii, rowIndices, colIndices));
+
     % Plot mosaics
     figure(1); hold all;
-    subplot(rows, cols, ii); 
-    plot(X, Y, 'ko'); hold on;
-    plot(X(logical(rgc)), Y(logical(rgc)), 'r.'); 
-    xlim([20 60]); ylim([20 60]); axis square; box off;
+    subplot(rows, cols, ii);
+    %     plot(X, Y, 'ko'); hold on;
+    %     plot(X(logical(rgc)), Y(logical(rgc)), 'r.');
+    %     xlim([20 60]); ylim([20 60]); axis square; box off;
+    imshow(sampledarray);
     title(sprintf('Sub sampling, Cones:RGCs=1:%d', cone2RGCRatios(ii)));
     xlabel('# cones');
     ylabel('# cones');
