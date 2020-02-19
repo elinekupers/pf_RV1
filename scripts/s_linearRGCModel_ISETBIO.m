@@ -147,7 +147,7 @@ for ii = 1:length(cone2RGCRatios)
     
     subplot(rows, cols, (ii+(cols*2)));
     imagesc(rgcResampled{ii}); colormap gray; colorbar; axis square; box off;
-    title(sprintf('Filtered cone response 1:%d', cone2RGCRatios(ii)));
+    title(sprintf('Filtered cone current (pA) 1:%d', cone2RGCRatios(ii)));
     xlabel('# cones (x)');
     ylabel('# cones (y)');
     set(gca, 'TickDir', 'out', 'FontSize', 12);
