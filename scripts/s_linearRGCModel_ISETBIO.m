@@ -26,147 +26,75 @@ subFolder = 'conecurrentRV1';
 expName   = 'defaultnophaseshift';
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
 
+% Load cone current
 fName     = 'current_OGconeOutputs_contrast1.0000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-0.60.30.1.mat';
 load(fullfile(baseFolder, 'data', expName, subFolder, fName));
 
-% Take one trial, one orientation, one phase, and mean across time points
-img      = squeeze(mean(current(1,:,:,:,1),4));
+% Plot cone current if requested
+if expParams.verbose
+    % Take one trial, one orientation, one phase, and mean across time points
+    img = squeeze(mean(current(1,:,:,:,1),4));
 
-% Plot cone current retinal image
-figure(1); clf; imagesc(img); 
-axis square; colormap gray; set(gca, 'CLim', [min(img(:)),0], 'TickDir', 'out')
-title('Cone current, 1 trial, average across time points'); colorbar;
-xlabel('X cones'); ylabel('Y cones'); 
+    % Plot cone current retinal image
+    figure(1); clf; imagesc(img); 
+    axis square; colormap gray; set(gca, 'CLim', [min(img(:)),0], 'TickDir', 'out')
+    title('Cone current, 1 trial, average across time points'); colorbar;
+    xlabel('X cones'); ylabel('Y cones'); 
+end
 
+%% Get RGC layer params
 
-%% OBSOLETE: Get cone density and spacing of photoreceptors
-
- % Convertion deg to m
-deg2m    = 0.3 * 0.001; % .3 deg per mm, .001 mm per meter
-
-% Compute x,y position in m of center of retinal patch from ecc and angle
-whichEye = 'left'; 
-[x, y] = pol2cart(cparams.polarAngle, cparams.eccentricity);
-x = x * deg2m;  y = y * deg2m;
-cMosaic = coneMosaic('center', [x, y], 'whichEye', whichEye);
-
-% Set the field of view (degrees)
-cMosaic.setSizeToFOV(cparams.cmFOV);
-
-% Get cone density from eccentricity stored in cMosaic object.
-coneDensityCountsPerDeg2 = eccen2density(cMosaic, 'deg');
-
-% Convert cone density (counts/deg2) to cone spacing (count/deg
-spacingCountsPerDeg = sqrt(coneDensityCountsPerDeg2)/coneDensityCountsPerDeg2;
-
-%% Get cone to RGC ratio
-
-% OBSOLETE: RGC ratio from Watson (2014) model
-% WatsonRGCCalc       = WatsonRGCModel('generateAllFigures', false);
-% [xPos, yPos]        = pol2cart(cparams.polarAngle, cparams.eccentricity);
-% eccXYDegs           = [xPos(:) yPos(:); 0 0];
-% mRGCRFtoConesRatios = WatsonRGCCalc.ratioOfMidgetRGCsToCones(eccXYDegs, 'left');
-% mRGCspacing         = (1/mRGCRFtoConesRatios(1)) * spacingCountsPerDeg;
-
-% Take several cone 2 RGC density ratio's
-
-cone2RGCRatios = [1,2,4,8,9]; %[1,2,4,8,9,16,18];
+% Take several cone:RGC density ratio's (for subsampling)
 cone2RGCRatios = 1:5; % linear ratio
 
-% Nr of cones in mosaic
-sz    = size(img); 
-crows    = sz(1);      % #cones on y-axis
-ccols    = sz(2);      % #cones on x-axis
+% Define general RGC params
+rgcParams = struct();
+rgcParams.verbose    = expParams.verbose; % print figures or not
+rgcParams.saveFigs   = true; 
 
-[X,Y] = meshgrid(1:crows,1:ccols);
+% Define dimensions of cone mosaic
+sz = size(current); 
+rgcParams.nTrials    = sz(1);      % #trials per stim orientation and phase
+rgcParams.cRows      = sz(2);      % #cones on y-axis
+rgcParams.cCols      = sz(3);      % #cones on x-axis
+rgcParams.timePoints = sz(4);      % ms
 
-% DoG Params 
-kc = 1;    % Gauss center sigma. (as in Bradley et al. 2014 paper)
-ks = 10.1;    % Gauss surround sigma. Range: ks > kc. Note: Bradley paper uses 10.1, seems very large to us 
+% Define DoG Params 
+rgcParams.DoG.kc     = 1;                  % Gauss center sigma. (as in Bradley et al. 2014 paper)
+rgcParams.DoG.ks     = 10.1;               % Gauss surround sigma. Range: ks > kc. (as in Bradley et al. 2014 paper, but seems very large to us)
+rgcParams.DoG.wc     = 0.53;               % DoG center Gauss weight. Range: [0,1].
+rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
 
-wc = 0.53; % DoG center Gauss weight. Range: [0,1]. Currently not used
-ws = 1-wc; % DoG surround Gauss weight.  Currently not used
+%% Compute RGC responses from linear layer
 
-% Preallocate space
-filteredConeCurrent = NaN(length(cone2RGCRatios), crows, ccols);
-rgcResampled        = cell(size(cone2RGCRatios));
-
-% Set subplots
-figure(1); clf; set(gcf, 'Position', [244,46,2316,1299], 'Color', 'w');
-cols    = length(cone2RGCRatios);
-rows    = 3;
-
-conearray = zeros(crows, ccols);
-
+% preallocate space
+allRGCResponses = cell(1,length(cone2RGCRatios));
 
 for ii = 1:length(cone2RGCRatios)
     
-    % Center Gauss RGC
-    sigma.center = cone2RGCRatios(ii);
-    
-    % Surround Gauss RGC
-    sigma.surround = sigma.center*ks;
-    
-    % ratio center surround
-    sigma.ratio = sigma.surround/sigma.center;
-    
-    % ratio of the surround volume to the center volume
-    vol.ratio = ws/wc;
-    
-    % Create RGC grid by resampling with cone2RGC ratio.
-    % rgc = getRGCMosaic(crows, ccols, cone2RGCRatios(ii));
-    %     rgcMask = logical(rgc);
-    %     rx = max(sum(rgcMask, 1));
-    %     ry = max(sum(rgcMask, 2));
-    rowIndices = 1:cone2RGCRatios(ii):crows;
-    colIndices = 1:cone2RGCRatios(ii):ccols;
-    
-    sampledarray = conearray;
-    sampledarray(rowIndices, colIndices) = 1;
-    
-    [f,xx,yy] = makedog2d(crows,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
-    
-    % Convolve image with DoG filter
-    filteredConeCurrent(ii,:,:) = conv2(img, f, 'same');
-    
-    % Resample RGC image
-%     tmpIm = squeeze(filteredConeCurrent(ii, :, :));
-%     rgcIm = tmpIm(rowIndices, colIndices);
-%     rgcResampled{ii} = rgcIm;
-    
-    rgcResampled{ii} = squeeze(filteredConeCurrent(ii, rowIndices, colIndices));
+    % Subsampling ratio
+    rgcParams.cone2RGCRatio = cone2RGCRatios(ii);
 
-    % Plot mosaics
-    figure(1); hold all;
-    subplot(rows, cols, ii);
-    %     plot(X, Y, 'ko'); hold on;
-    %     plot(X(logical(rgc)), Y(logical(rgc)), 'r.');
-    %     xlim([20 60]); ylim([20 60]); axis square; box off;
-    imshow(sampledarray);
-    title(sprintf('Sub sampling, Cones:RGCs=1:%d', cone2RGCRatios(ii)));
-    xlabel('# cones');
-    ylabel('# cones');
-    set(gca, 'TickDir', 'out', 'FontSize', 12);
-    
-    subplot(rows, cols, (ii+cols));
-    %imagesc(f, [-1 1]);  colorbar;
-    mesh(xx,yy,f); axis square; box off; view([0 0]);
-    title(sprintf('DoG filter 1:%d', cone2RGCRatios(ii)));
-    xlabel('x-axis');
-    ylabel('y-axis');
-    zlabel('normalized response')
-    set(gca, 'TickDir', 'out', 'FontSize', 12);
-    
-    subplot(rows, cols, (ii+(cols*2)));
-    imagesc(rgcResampled{ii}); colormap gray; colorbar; axis square; box off;
-    title(sprintf('Filtered cone current (pA) 1:%d', cone2RGCRatios(ii)));
-    xlabel('# cones (x)');
-    ylabel('# cones (y)');
-    set(gca, 'TickDir', 'out', 'FontSize', 12);
+    % Do it!
+    [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(current, rgcParams);
+
+    % Accumulate RGC responses
+    allRGCResponses{ii} = rgcResponse;
     
 end
 
-%% Get cone to retinal ganglion cell ratio to do subsampling
+%% Get 2-AFC SVM Linear Classifier accuracy
 
+% preallocate space
+P = NaN(length(cone2RGCRatios),expParams.nTrials);
 
+for ii = 1:length(cone2RGCRatios)
+    
+    % get RGC responses one ratio at a time
+    dataIn = allRGCResponses{ii};
+
+    % Save percent correct
+    P(ii,:) = getClassifierAccuracy(dataIn);
+    
+end
 
