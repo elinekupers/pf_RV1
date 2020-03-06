@@ -27,7 +27,7 @@ expName   = 'defaultnophaseshift';
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
 contrasts = expParams.contrastLevelsPC;
 
-saveData = false;
+saveData = true;
 saveFigs = true;
 
 % Get RGC layer params
@@ -93,8 +93,8 @@ for ii = 1:length(cone2RGCRatios)
     end
     
     if saveData
-        rgcResponseToSave = allRGCResponses{ii,:};
-        save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d.mat', ii)), 'rgcResponseToSave', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
+        rgcResponses = allRGCResponses{ii,:};
+        save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d.mat', ii)), 'rgcResponses', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
     end
     
 end
@@ -117,22 +117,31 @@ for ii = 1:length(cone2RGCRatios)
     end
     
     if saveData
-        save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_ratio%d.mat', ii)), 'P', 'rgcParams', 'expParams', '-v7.3')
+        save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_Cones2RGC%d.mat', ii)), 'P', 'rgcParams', 'expParams', '-v7.3')
     end
 end
 
 %% Plot accuracy
 
 % load accuracy for cone current and absorptions
-rgcP = load(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_ratio1.mat')));
+rgcP = load(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_Cones2RGC1.mat')));
 
 currentClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', 'conecurrentRV1', sprintf('current_*.mat')));
 currentP = load(fullfile(currentClassifyData.folder, currentClassifyData.name));
 
 absorptionP = load('/Volumes/server/Projects/PerformanceFieldsIsetBio/data/classification/defaultnophaseshift/run1/Classify_coneOutputs_contrast0.1000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-0.60.30.1.mat');
 
-figure; hold all;
-plot(rgcP.expParams.contrastLevelsPC, rgcP.P, 'o-');
-plot(currentP.expParams.contrastLevelsPC, currentP.accuracy, 'o-');
-plot(currentP.expParams.contrastLevels, absorptionP.accuracy, 'o-');
-legend({'RGC', 'Cone current', 'Cone absorptions'});
+figure(2); clf; hold all;
+% plot(rgcP.expParams.contrastLevelsPC, rgcP.P, 'bo-');
+plot(currentP.expParams.contrastLevelsPC, currentP.accuracy, 'ko-', 'lineWidth',2);
+plot(currentP.expParams.contrastLevels, absorptionP.accuracy, 'ro-', 'lineWidth',2);
+xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
+title('2AFC SVM classification performance')
+set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
+
+legend({'RGC','Cone current', 'Cone absorptions'}, 'Location', 'Best'); legend boxoff
+
+if saveFigs
+    hgexport(gcf, fullfile(pfRV1rootPath, 'figures', 'Performance_SVMClassifier_RGC_vs_Cones'))
+end
+
