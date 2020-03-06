@@ -15,39 +15,45 @@
 
 % Define target locations (we assume uniform gray background)
 % Coordinate vectors of target in degrees assuming (0,0) is at the center of the background.
-eccentricities   = 1:9; % deg
-locLabels        = {'EAST', 'NORTHEAST', 'NORTH', 'NORTHWEST', 'WEST', 'SOUTHWEST',  'SOUTH', 'SOUTHEAST'};
-theta            = 0:pi/4:2*pi; % every 45 degrees, in radians
+params.eccentricities   = 1:9; % deg
+params.locLabels        = {'EAST', 'NORTHEAST', 'NORTH', 'NORTHWEST', 'WEST', 'SOUTHWEST',  'SOUTH', 'SOUTHEAST'};
+params.theta            = 0:pi/4:2*pi; % every 45 degrees, in radians
+params.backgroundType   = 'uniform'; %'1f_recomputed'; % choose from '1f_default', '1f_recomputed' or 'uniform'
+params.pixperdeg        = 40;              % pixels per 1 degree (lower numbers ~= higher SF)
+params.nIter            = 10;             % number of simulation iterations 
+params.verbose          = false;           % print masking coefficients or not
+params.task             = '2AFC';           % choose from 'detection', '2AFC'
 
-backgroundType   = 'uniform'; %'1f_recomputed'; % choose from '1f_default', '1f_recomputed' or 'uniform'
-pixperdeg        = 40;              % pixels per 1 degree (lower numbers ~= higher SF)
-nIter            = 10;             % number of simulation iterations 
-verbose          = false;           % print masking coefficients or not
-task             = '2AFC';           % choose from 'detection', '2AFC'
+% Set directories
+saveDir         = fullfile(pfRV1rootPath, 'data');
+figureDir       = fullfile(pfRV1rootPath, 'figures');
 
 % Plotting params
-figureDir       = fullfile(pfRV1rootPath, 'figures');
-cmap            = hsv(length(eccentricities));
+cmap            = hsv(length(params.eccentricities));
+
+% Set booleans
+saveData        = true;
+
 
 %% RUN BRADLEY MODEL
 
 % Preallocate space
-sensitivity =  NaN(length(theta), length(eccentricities), nIter);
+sensitivity =  NaN(length(params.theta), length(params.eccentricities), params.nIter);
 T_pool      = sensitivity; % target pool response
 NB          = sensitivity; % narrowband masking response
 BB          = sensitivity; % broadband masking response
 
-for ii = 1:length(eccentricities)
+for ii = 1:length(params.eccentricities)
     
-    eccen   = eccentricities(ii);       % deg
-    rho     = ones(size(theta))*eccen;  % deg
+    eccen   = params.eccentricities(ii);       % deg
+    rho     = ones(size(params.theta))*eccen;  % deg
     
-    [tx, ty] = pol2cart(theta, rho);    % deg 
+    [tx, ty] = pol2cart(params.theta, rho);    % deg 
     
-    for iter = 1:nIter
+    for iter = 1:params.nIter
         
         %% Run model
-        out = retina_V1_model_PF_wrapper(tx,ty, task, backgroundType, pixperdeg, verbose);
+        out = retina_V1_model_PF_wrapper(tx,ty, params.task, params.backgroundType, params.pixperdeg, params.verbose);
         
         %% Convert thresholds to sensitivity
         sensitivity(:,ii, iter) = 1./out.threshold;
@@ -56,7 +62,7 @@ for ii = 1:length(eccentricities)
         T_pool(:,ii, iter) = out.T_pool;
         NB(:,ii, iter) = out.NB;
         BB(:,ii, iter) = out.BB;
-        T_pool_stim(:,:,:,:,ii, iter) = out.T_pool_stim; % x,y, target locations, target eccen
+        T_pool_stim(:,:,:,:,ii, iter) = out.T_pool_stim; % rows, cols, target locations, target orientation, target eccen, trials
         
         %% Debug: plot locations of stimuli
         % figure(1); clf; set(gcf,'Color', 'w');
@@ -64,41 +70,13 @@ for ii = 1:length(eccentricities)
         % title('Stimulus locations');
         % set(gca, 'FontSize', 14)
     end
-   
-    
-    if strcmp(task, '2AFC')
-        
-        t1 = permute(squeeze(T_pool_stim(:,:,:,1,ii,:)), [3,4,1,2]); % target locations, eccen, x,y
-        t2 = permute(squeeze(T_pool_stim(:,:,:,2,ii,:)), [3,4,1,2]); % target locations, eccen, x,y
-        
-        %         t1_reshaped = reshape(t1,length(tx),nIter, []);
-        %         t2_reshaped = reshape(t2,length(tx),nIter, []);
-        
-        for s = 1:length(tx)
-            template = log( squeeze(nanmedian(t1(s,:,:,:),2)) ./  squeeze(nanmedian(t2(s,:,:,:),2)) );
-%             template(isnan(template)) = 0;
-            
-            for iter = 1:nIter
-                stim1Response(iter,:) = squeeze(t1(s,iter,:))' * template(:);
-                stim2Response(iter,:) = squeeze(t2(s,iter,:))' * template(:);
-            end
-            
-            stim1ResponseMean = nanmean(stim1Response);
-            stim2ResponseMean = nanmean(stim2Response);
-            stim1ResponseVar = var(stim1Response);
-            stim2ResponseVar = var(stim2Response);
-            
-            numerator = (stim1ResponseMean - stim2ResponseMean);
-            denominator = sqrt(0.5 * (stim1ResponseVar + stim2ResponseVar));
-            
-            dPrime(s,ii) = squeeze(numerator./denominator);
-            
-            sensitivity(s,ii) =  1./dPrime(s,ii);
-        end
-    end
 end    
-    
 
+if saveData
+    save(fullfile(saveDir, 'T_pool_stim'), 'T_pool_stim', 'params','tx', 'ty', '-v7.3');
+end
+
+P = classifyBradleyRGCResponse(T_pool_stim, saveDir, saveData);
 
 %% COMPUTE MEDIAN AND STD ACROSS ITERATIONS
 
