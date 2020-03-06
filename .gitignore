@@ -3,3 +3,4 @@
 *.m~
 figures/*
 external/data/*
+data/*
