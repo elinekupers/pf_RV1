@@ -79,7 +79,7 @@ rgcResponse = permute(rgcResponse, [4, 1, 2, 3, 5]);
 if rgcParams.verbose
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
     rgcResponse_mn = squeeze(mean(mean(rgcResponse(:,:,:,:,1),1),4));
-    figure(99); clf; set(gcf, 'Position', [244,680,2316,665], 'Color', 'w');
+    fH = figure(99); clf; set(gcf, 'Position', [244,680,2316,665], 'Color', 'w');
     
     % Plot mosaics
     subplot(1, 3, 1); hold all;
@@ -108,7 +108,7 @@ if rgcParams.verbose
     h = colorbar; ylabel(h, 'current (pA)')
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     if rgcParams.saveFigs
-        hgexport(99, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d',rgcParams.cone2RGCRatio)));
+        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d',rgcParams.cone2RGCRatio)));
     end
 end
 
