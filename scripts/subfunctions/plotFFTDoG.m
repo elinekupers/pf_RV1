@@ -3,6 +3,7 @@ function [] = plotFFTDoG(DoGfilter,  rgcParams, expParams, saveFigs)
 
 
 fftAmpsDoG = abs(fft2(DoGfilter));
+fftAmpsDoG_normalized = fftAmpsDoG./max(fftAmpsDoG(:))';
 
 midpoint = ceil(size(fftAmpsDoG,1)/2);
 quarterpoint = midpoint/2;
@@ -25,7 +26,7 @@ plot([1,size(fftAmpsDoG,1)],[midpoint+sfOfStim, midpoint+sfOfStim],  'r:', 'line
 
 colormap gray; colorbar; axis square;
 
-title(sprintf('FFT of DoG filter %d',rgcParams.cone2RGCRatio), 'FontSize',17);
+title(sprintf('Normalized FFT amps DoG filter %d',rgcParams.cone2RGCRatio), 'FontSize',17);
 set(gca,'CLim', [0 max(fftAmpsDoG(:))], ...
     'FontSize', 17, 'TickDir', 'out', ...
     'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
