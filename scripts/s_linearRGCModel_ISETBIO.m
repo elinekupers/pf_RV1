@@ -68,7 +68,7 @@ for ii = 1:length(cone2RGCRatios)
     rgcParams.cone2RGCRatio = cone2RGCRatios(ii);
     
     % Load cone responses (current or absorption rates)
-    for c = length(contrasts)
+    for c = [1:10:length(contrasts), length(contrasts)]
         
         % get filename, load cone responses
         d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*.mat', preFix, contrasts(c))));
@@ -119,7 +119,7 @@ for ii = 1:length(cone2RGCRatios)
     if saveData
         if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'rgc')); end
         save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'rgcResponse', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
-        save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcDoGFilrer_Cones2RGC%d_%s.mat', ii, inputType)), 'DoGfilter', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
+        save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', ii, inputType)), 'DoGfilter', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
         save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcArray_Cones2RGC%d_%s.mat', ii, inputType)), 'rgcarray', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
     end
 end
