@@ -1,4 +1,4 @@
-function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneData, rgcParams, contrast)
+function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneData, rgcParams, expParams, contrast)
 % Function that represents a simple RGC layer with linear-nonlinear cascade:
 % RGC layer takes as input the cone current from our previous ISETBIO
 % computational observer model.
