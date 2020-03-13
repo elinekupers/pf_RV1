@@ -80,7 +80,7 @@ rgcResponse = permute(rgcResponse, [4, 1, 2, 3, 5]);
 if rgcParams.verbose
     
     % Plot fft amps of filter
-    plotFFTDoG(DoGfilter,  rgcParams, expParams, saveFigs)
+    plotFFTDoG(DoGfilter,  rgcParams, expParams, rgcParams.saveFigs)
     
     % Plot array, filter and response
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
