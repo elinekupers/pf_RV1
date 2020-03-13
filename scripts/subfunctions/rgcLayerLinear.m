@@ -99,15 +99,15 @@ if rgcParams.verbose
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
     subplot(1, 4, 2);
-    imagesc(DoGfilter, [-1 1]);  colorbar;
-    title(sprintf('Top view: DoG filter, size center:surround=%2.2f:%2.2f',sigma.center,sigma.surround));
+    imagesc(DoGfilter, [-0.2, 1]);  colorbar; colormap gray;
+    title(sprintf('Top view DoG, size center:surround=%2.2f:%2.2f',sigma.center,sigma.surround));
     xlabel('rows (# cones)'); ylabel('cols (# cones)');
     set(gca, 'TickDir', 'out', 'FontSize', 12); axis square; box off;
 
     subplot(1, 4, 3);
     surf(xx,yy,DoGfilter); axis square; box off; view([0 0]);
     
-    title(sprintf('DoG filter, size center:surround=%2.2f:%2.2f',sigma.center,sigma.surround));
+    title(sprintf('Side view DoG, size center:surround=%2.2f:%2.2f',sigma.center,sigma.surround));
     xlabel('x-axis (# cones)');
     ylabel('y-axis (# cones)');
     zlabel('normalized response')
@@ -127,7 +127,7 @@ if rgcParams.verbose
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
     if rgcParams.saveFigs
-        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d_contrast%1.4f_%s',rgcParams.cone2RGCRatio, rgcParams.c, rgcParams.inputType)));
+        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d_contrast%1.4f_%s.eps',rgcParams.cone2RGCRatio, rgcParams.c, rgcParams.inputType)));
     end
     
 end
