@@ -1,4 +1,4 @@
-function out = retina_V1_model_PF_wrapper(tx,ty, task, backgroundType, pixperdeg, verbose)
+function out = retina_V1_model_PF_wrapper(tx,ty, contrast, sparams)
 %
 % Modification of retina_V1_model_inputs, a function that calls
 % retina_V1_model with a set of example inputs.
@@ -9,10 +9,14 @@ function out = retina_V1_model_PF_wrapper(tx,ty, task, backgroundType, pixperdeg
 %
 % Wrapper INPUTS:
 % [tx,ty]           :   (int or vector) target x,y center coordinates in visual field (deg)
-% backgroundType    :   (string) define what background should be loaded
-%                           choose from 'uniform' or '1f' for mean
-%                           luminance or 1/f noise
-% pixperdeg         :   (int) number of pixels per degree
+% contrast          :   (double) target contrast level in % between [0,1]
+% sparams           :   (struct) with stimulus variables, for example:
+%                         - backgroundType: (string) define what background should be loaded
+%                                       choose from 'uniform' or '1f' for mean
+%                                       luminance or 1/f noise
+%                         - pixperdeg:  (int) number of pixels per degree
+%                         - task:       (string) definition of
+%                                       psychophysical task 
 
 
 %% Original function
@@ -36,14 +40,46 @@ function out = retina_V1_model_PF_wrapper(tx,ty, task, backgroundType, pixperdeg
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %REQUIRED INPUTS
+if ~exist('contrast', 'var') || isempty(contrast)
+    contrast = 1;
+end
 
-%A target image whose range is [-127 127] at 120 pixels per degree
-target{1} = imread('GaborPatch12.tif'); %range at this stage is [1 255]
-target{1} = cast(target{1},'double'); %cast to doubles
-target{1} = target{1} - 128; %make range to [-127 127]
+switch sparams.stimType
+    case 'Gabor_default'
+        %A target image whose range is [-127 127] at 120 pixels per degree
+        target{1} = imread('GaborPatch12.tif'); %range at this stage is [1 255]
+        target{1} = cast(target{1},'double'); %cast to doubles
+        target{1} = target{1} - 128; %make range to [-127 127]
+        
+        if strcmp(sparams.task, '2AFC')
+            % rotate image this hacky way. Future computation should recompute
+            % Gabor with params below
+            CCW = imrotate(target{1}, (90-15), 'bilinear','crop');
+            CW  = imrotate(target{1}, (90+15), 'bilinear','crop');
+            target{1} = CCW;
+            target{2} = CW;
+        end
+    case 'Gabor_observermodel'
+        load(fullfile(sparams.stimDir, sprintf('stimulus_contrast%1.4f_pa0_eccen4.50_defocus0.00_sf4.00.mat',contrast)), 'scenes');
+        stim      = scenes{1}{2}.data.photons(:,:,1);
+        stimNorm  = stim./max(stim(:));
+        target{1} = 256.*(stimNorm-prctile(stimNorm(:),50));
+        target{1} = cast(target{1},'double'); %cast to doubles
+        
+        if strcmp(sparams.task, '2AFC')
+            CW        = target{1};
+            stim      = scenes{3}{2}.data.photons(:,:,1);
+            stimNorm  = stim./max(stim(:));
+            CCW       = 256.*(stimNorm-prctile(stimNorm(:),50));
+            CCW       = cast(CCW,'double'); %cast to doubles
+            
+            target{1} = CCW;
+            target{2} = CW;
+        end
+end
 
 %A background image whose range is [0 255] at 120 pixels per degree (comment out for desired background)
-switch backgroundType
+switch sparams.backgroundType
     case 'uniform'
         background = 128*ones(4000); %uniform background
         
@@ -65,47 +101,26 @@ switch backgroundType
         load background_natural; background = background_natural; %natural scene background
 end
 
-if strcmp(task, '2AFC')   
-    % rotate image this hacky way. Future computation should recompute
-    % Gabor with params below
-    
-    CCW = imrotate(target{1}, -15, 'bilinear','crop');
-    CW  = imrotate(target{1}, 15, 'bilinear','crop');
-    
-    target{1} = CCW;
-    target{2} = CW;
-    
-%     stimparams.row = 64;
-%     stimparams.col = 64;
-%     stimparams.contrast = 1;
-%     stimparams.ph = pi / 1;
-%     stimparams.freq = 4;
-%     stimparams.ang = pi/2 - (pi/6);
-%     stimparams.GaborFlag = 0.15;
-%     [img, p] = imageHarmonic(stimparams);
-%     figure;
-%     imagesc(img);
-%     colormap(gray);
-%     axis image
-    
-end
-    
 
-if verbose
+
+if sparams.verbose
     % Plot target on background
-    figure; clf; 
-    imagesc(background); hold all; colormap gray;
+    figure; clf; colormap gray; colorbar;
     [w, h] = size(background);
     wC = round(w/2);
     hC = round(h/2);
+    tmp = background;
     for ii = 1:length(tx)
-        plot(wC+(tx(ii).*pixperdeg),hC+(ty(ii).*pixperdeg), 'ko',  'MarkerSize',15, 'LineWidth', 3)
+        stimrows = (wC + round(tx(ii).*sparams.pixperdeg)) : ((wC + round(tx(ii).*sparams.pixperdeg))+ size(target{1},2)-1);
+        stimcols = (hC + round(ty(ii).*sparams.pixperdeg)) : ((hC + round(ty(ii).*sparams.pixperdeg))+ size(target{1},1)-1);
+        tmp(stimrows,stimcols) = tmp(stimrows,stimcols)+target{1};
     end
+    imagesc(tmp)
     title('Stimulus locations');
     xlabel('Pixels'); ylabel('Pixels'); box off;
     set(gca, 'TickDir', 'out', 'FontSize', 12)
 end
-    
+
 %Fixation coordinate vectors in degrees assuming (0,0) is at center of background.
 fx = zeros(size(tx));
 fy = zeros(size(ty));
@@ -126,7 +141,7 @@ Parameters.p0 = 0.0014; %0.0014 for ModelFest, 0.00045 for our yes-no experiment
 Parameters.dp_crit = 1.8009; %corresponds to 0.5+0.5*(1-exp(-1)) = 81.61 percent
 
 %Multi-resolution stacks
-if strcmp(task, '2AFC')
+if strcmp(sparams.task, '2AFC')
     Stacks{1}  = multi_resolution_stacks(target{1}, background, Parameters);
     Stacks{2}  = multi_resolution_stacks(target{2}, background, Parameters);
 else
@@ -140,6 +155,6 @@ end
 %out = retina_V1_model(target, background, tx, ty, fx, fy, [], []);
 
 %Using required and optional inputs:
-out = retina_V1_model_PF(target, background, task, tx, ty, fx, fy, pixperdeg, Parameters, Stacks, verbose);
+out = retina_V1_model_PF(target, background, sparams.task, tx, ty, fx, fy, sparams.pixperdeg, Parameters, Stacks, sparams.verbose);
 
 

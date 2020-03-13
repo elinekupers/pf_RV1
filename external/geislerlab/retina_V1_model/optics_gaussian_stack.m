@@ -23,7 +23,7 @@ function out = optics_gaussian_stack(img, optics, max_level)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %DEFAULT PARAMETERS
 
-ppd = 120; %Pixels per degree
+ppd = 32; %Pixels per degree
 g_stds = (2.^(0:11))./ppd; %standard deviations of Gaussian kernels for different stack levels
 
 %Maximum number of levels

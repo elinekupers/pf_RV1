@@ -12,17 +12,21 @@
 
 
 %% PARAMETERS TO CHANGE:
+baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
 
 % Define target locations (we assume uniform gray background)
 % Coordinate vectors of target in degrees assuming (0,0) is at the center of the background.
-params.eccentricities   = 1:9; % deg
+params.eccentricities   = 4.5;                   % deg
 params.locLabels        = {'EAST', 'NORTHEAST', 'NORTH', 'NORTHWEST', 'WEST', 'SOUTHWEST',  'SOUTH', 'SOUTHEAST'};
-params.theta            = 0:pi/4:2*pi; % every 45 degrees, in radians
-params.backgroundType   = 'uniform'; %'1f_recomputed'; % choose from '1f_default', '1f_recomputed' or 'uniform'
-params.pixperdeg        = 40;              % pixels per 1 degree (lower numbers ~= higher SF)
-params.nIter            = 10;             % number of simulation iterations 
-params.verbose          = false;           % print masking coefficients or not
-params.task             = '2AFC';           % choose from 'detection', '2AFC'
+params.theta            = 0:pi/4:2*pi;           % every 45 degrees, in radians
+params.backgroundType   = 'uniform';             % choose from '1f_default', '1f_recomputed' or 'uniform'
+params.pixperdeg        = 32;                    % pixels per 1 degree (lower numbers ~= higher SF)
+params.nIter            = 100;                   % number of simulation iterations 
+params.verbose          = false;                 % print figures and text or not
+params.task             = '2AFC';                % choose from 'detection', '2AFC'
+params.stimType         = 'Gabor_observermodel'; % choose from ''Gabor_default' or 'Gabor_observermodel'
+params.stimDir          = fullfile(baseFolder, 'data', 'defaultnophaseshift', 'conecurrentRV1', 'stimulus');
+params.allContrasts     = 0.1;                   % [0.0001:0.0001:0.001, 0.002:0.001:0.01, 0.02:0.01:0.1];
 
 % Set directories
 saveDir         = fullfile(pfRV1rootPath, 'data');
@@ -31,7 +35,7 @@ figureDir       = fullfile(pfRV1rootPath, 'figures');
 % Plotting params
 cmap            = hsv(length(params.eccentricities));
 
-% Set booleans
+% Set other booleans
 saveData        = true;
 
 
@@ -45,30 +49,32 @@ BB          = sensitivity; % broadband masking response
 
 for ii = 1:length(params.eccentricities)
     
-    eccen   = params.eccentricities(ii);       % deg
-    rho     = ones(size(params.theta))*eccen;  % deg
-    
-    [tx, ty] = pol2cart(params.theta, rho);    % deg 
+    eccen    = params.eccentricities(ii);       % deg
+    rho      = ones(size(params.theta))*eccen;  % deg    
+    [tx, ty] = pol2cart(params.theta, rho);     % deg 
     
     for iter = 1:params.nIter
         
-        %% Run model
-        out = retina_V1_model_PF_wrapper(tx,ty, params.task, params.backgroundType, params.pixperdeg, params.verbose);
+        for c = 1:length(params.allContrasts)
         
-        %% Convert thresholds to sensitivity
-        sensitivity(:,ii, iter) = 1./out.threshold;
+            %% Run model
+            out = retina_V1_model_PF_wrapper(tx,ty, params.allContrasts(c), params);
         
-        %% Same pooling response for target, and the narrow band/ broadband/ baseline pooling resposnes
-        T_pool(:,ii, iter) = out.T_pool;
-        NB(:,ii, iter) = out.NB;
-        BB(:,ii, iter) = out.BB;
-        T_pool_stim(:,:,:,:,ii, iter) = out.T_pool_stim; % rows, cols, target locations, target orientation, target eccen, trials
+            %% Convert thresholds to sensitivity
+            sensitivity(:, ii, c, iter) = 1./out.threshold;
         
-        %% Debug: plot locations of stimuli
-        % figure(1); clf; set(gcf,'Color', 'w');
-        % p = polarplot(theta, rho, 'ko-','LineWidth', 3);
-        % title('Stimulus locations');
-        % set(gca, 'FontSize', 14)
+            %% Same pooling response for target, and the narrow band/ broadband/ baseline pooling resposnes
+            T_pool(:,ii, c, iter) = out.T_pool;
+            NB(:,ii, c, iter) = out.NB;
+            BB(:,ii, c, iter) = out.BB;
+            T_pool_stim(:,:,:,:,ii, c, iter) = out.T_pool_stim; % rows, cols, target locations, target orientation, target eccen, target contrast, trials
+        
+            %% Debug: plot locations of stimuli
+            % figure(1); clf; set(gcf,'Color', 'w');
+            % p = polarplot(theta, rho, 'ko-','LineWidth', 3);
+            % title('Stimulus locations');
+            % set(gca, 'FontSize', 14)
+        end
     end
 end    
 
@@ -76,20 +82,38 @@ if saveData
     save(fullfile(saveDir, 'T_pool_stim'), 'T_pool_stim', 'params','tx', 'ty', '-v7.3');
 end
 
-P = classifyBradleyRGCResponse(T_pool_stim, saveDir, saveData);
 
-%% COMPUTE MEDIAN AND STD ACROSS ITERATIONS
+%% CLASSIFY TARGET RGC RESPONSES
+P = [];
+for tl = 1:length(params.locLabels)
+    for te = 1:length(params.eccentricities)
+        for c = 1:length(params.allContrasts)
+            tmpData = squeeze(T_pool_stim(:,:,tl,:,te,c, :));        
+            P(c, te, tl) = classifyBradleyRGCResponse(tmpData);
+        end
+    end
+end
+
+if saveData
+    if ~exist(fullfile(saveDir, 'classification', 'rgcBradley'), 'dir')
+        mkdir(fullfile(saveDir, 'classification', 'rgcBradley'));
+    end
+    save(fullfile(saveDir, 'classification', 'rgcBradley', 'classify_rgcResponse_Bradley_eccen4.5_contrast.mat'), 'P', 'params','-v7.3')
+end
+
+
+%% COMPUTE MEDIAN AND STD SENSITIVITY ACROSS ITERATIONS
 
 % Compute HVA and VMA for each eccentricity and each iteration
-for iter = 1:nIter
-    for ecc = 1:length(eccentricities)
+for iter = 1:params.nIter
+    for ecc = 1:length(params.eccentricities)
         hva_tmp(iter,ecc) = hva(sensitivity(1:8,ecc,iter));
         vma_tmp(iter,ecc) = vma(sensitivity(1:8,ecc,iter));
     end
 end
 
 % Take mean and std across iterations
-if nIter >1
+if params.nIter >1
     mdSensitivity = mean(sensitivity,3);
     
     mdSensitivityHVA = mean(hva_tmp,1);
@@ -111,12 +135,12 @@ end
 
 % Make polar plots
 figure; clf; set(gcf,'Color', 'w');
-for jj = 1:length(eccentricities)
+for jj = 1:length(params.eccentricities)
     
-    eccen = eccentricities(jj);
+    eccen = params.eccentricities(jj);
     sens  = mdSensitivity(:,jj);
     
-    polarplot(theta, sens, 'o-', 'Color', cmap(jj,:), 'LineWidth', 3); hold on;
+    polarplot(params.theta, sens, 'o-', 'Color', cmap(jj,:), 'LineWidth', 3); hold on;
     
     locLabels{jj} = sprintf('Eccen %1.0f deg', eccen);
     
@@ -152,59 +176,59 @@ saveFigs        = true;
 fH1 = plotHVAandVMA(mdSensitivity(1:8,:), stdError, eccentricities, visualFieldFlag, titleStr, figureDir, saveFigs);
 
 
-%% Plot out RGC spacing
-% t0 = spacing_fn(tx,ty); % RGC spacing at target center location (in deg)
-%
-% for ii = 1:length(tx)-1
-%     fprintf('RGC spacing at %s: %1.3f deg\n', locLabels{ii}, t0(ii))
-% end
-%
-% % RGC spacing HVA, VMA
-% rgcDensity = (1./t0).^2;
-%
-% fprintf('Horizontal-Vertical Asymmetry (RGC density):\t %1.0f%%\n', hva(rgcDensity))
-% fprintf('Vertical-Meridian Asymmetry (RGC density):  \t %1.0f%%\n', vma(rgcDensity))
-
-
-
 return
 
 
-%% RGC spacing HVA, VMA vs eccen
-clear spacingVisualField rgcDensityVisualField
-for ii = 1:length(eccentricities)
-    
-    eccen   = eccentricities(ii); % deg
-    rho     = ones(size(theta))*eccen; % deg
-    
-    [tx, ty] = pol2cart(theta, rho);
-    
-    % Print out RGC spacing
-    spacingVisualField(ii,:) = spacing_fn(tx,ty); % RGC spacing at target center location (1/sqrt(density)
-    % relative to the fovea (in deg) in
-    % visual field coords
-    
-    rgcDensityVisualField(ii,:) = (1./spacingVisualField(ii,:)).^2; % visual field coords
-    
-end
 
-% Resave cardinals into retinal coords:
-spacingRetina = NaN(4,length(eccentricities)); % nasal, superior, temporal, inferior RETINA)
-spacingRetina(1,:) = spacingVisualField(:,rad2deg(theta) == 0);   % 1. nasal
-spacingRetina(2,:) = spacingVisualField(:,rad2deg(theta) == 270); % 2. superior (flip inferior to superior)
-spacingRetina(3,:) = spacingVisualField(:,rad2deg(theta) == 180); % 3. temporal
-spacingRetina(4,:) = spacingVisualField(:,rad2deg(theta) == 90);  % 4. inferior (flip superior to inferior)
-
-rgcDensityRetina = (1./spacingRetina).^2;
-
-titleStr = 'RGC RF spacing Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
-plotMeridiansVsEccen(spacingRetina, eccentricities, titleStr, [], true);
-
-titleStr = 'RGC RF density Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
-plotMeridiansVsEccen(rgcDensityRetina, eccentricities, titleStr, [], true);
-
-titleStr = 'HVA VMA RGC RF spacing Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
-plotHVAandVMA(spacingRetina, eccentricities, titleStr, true);
-
-titleStr = 'HVA VMA RGC density Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
-plotHVAandVMA(rgcDensityRetina, eccentricities, titleStr, true);
+% %% Plot out RGC spacing
+% t0 = spacing_fn(tx,ty); % RGC spacing at target center location (in deg)
+% 
+% for ii = 1:length(tx)-1
+%     fprintf('RGC spacing at %s: %1.3f deg\n', locLabels{ii}, t0(ii))
+% end
+% 
+% % RGC spacing HVA, VMA
+% rgcDensity = (1./t0).^2;
+% 
+% fprintf('Horizontal-Vertical Asymmetry (RGC density):\t %1.0f%%\n', hva(rgcDensity))
+% fprintf('Vertical-Meridian Asymmetry (RGC density):  \t %1.0f%%\n', vma(rgcDensity))
+% 
+% 
+% %% RGC spacing HVA, VMA vs eccen
+% clear spacingVisualField rgcDensityVisualField
+% for ii = 1:length(eccentricities)
+%     
+%     eccen   = eccentricities(ii); % deg
+%     rho     = ones(size(theta))*eccen; % deg
+%     
+%     [tx, ty] = pol2cart(theta, rho);
+%     
+%     % Print out RGC spacing
+%     spacingVisualField(ii,:) = spacing_fn(tx,ty); % RGC spacing at target center location (1/sqrt(density)
+%     % relative to the fovea (in deg) in
+%     % visual field coords
+%     
+%     rgcDensityVisualField(ii,:) = (1./spacingVisualField(ii,:)).^2; % visual field coords
+%     
+% end
+% 
+% % Resave cardinals into retinal coords:
+% spacingRetina = NaN(4,length(eccentricities)); % nasal, superior, temporal, inferior RETINA)
+% spacingRetina(1,:) = spacingVisualField(:,rad2deg(theta) == 0);   % 1. nasal
+% spacingRetina(2,:) = spacingVisualField(:,rad2deg(theta) == 270); % 2. superior (flip inferior to superior)
+% spacingRetina(3,:) = spacingVisualField(:,rad2deg(theta) == 180); % 3. temporal
+% spacingRetina(4,:) = spacingVisualField(:,rad2deg(theta) == 90);  % 4. inferior (flip superior to inferior)
+% 
+% rgcDensityRetina = (1./spacingRetina).^2;
+% 
+% titleStr = 'RGC RF spacing Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+% plotMeridiansVsEccen(spacingRetina, eccentricities, titleStr, [], true);
+% 
+% titleStr = 'RGC RF density Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+% plotMeridiansVsEccen(rgcDensityRetina, eccentricities, titleStr, [], true);
+% 
+% titleStr = 'HVA VMA RGC RF spacing Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+% plotHVAandVMA(spacingRetina, eccentricities, titleStr, true);
+% 
+% titleStr = 'HVA VMA RGC density Drasdo 2007 in retinal coords - Bradley et al 2014 - Retina V1 Model';
+% plotHVAandVMA(rgcDensityRetina, eccentricities, titleStr, true);
