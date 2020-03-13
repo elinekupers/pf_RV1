@@ -84,7 +84,12 @@ if rgcParams.verbose
     
     % Plot array, filter and response
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
-    rgcResponse_mn = squeeze(mean(mean(rgcResponse(:,:,:,:,1),1),4));
+    if strcmp(rgcParams.inputType, 'current')
+        timepointsToAverage = 1:size(rgcResponse,4);
+    else
+        timepointsToAverage = 1:28;
+    end
+    rgcResponse_mn = squeeze(mean(mean(rgcResponse(:,:,:,timepointsToAverage,1),1),4));
     
     fH = figure(99); clf; set(gcf, 'Position', [244,680,2316,665], 'Color', 'w');
     
