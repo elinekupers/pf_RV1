@@ -1,4 +1,4 @@
-function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneData, rgcParams, expParams, contrast)
+function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneData, rgcParams)
 % Function that represents a simple RGC layer with linear-nonlinear cascade:
 % RGC layer takes as input the cone current from our previous ISETBIO
 % computational observer model.
@@ -80,7 +80,7 @@ rgcResponse = permute(rgcResponse, [4, 1, 2, 3, 5]);
 if rgcParams.verbose
     
     % Plot fft amps of filter
-    plotFFTDoG(DoGfilter,  rgcParams, expParams, rgcParams.saveFigs)
+    plotFFTDoG(DoGfilter,  rgcParams)
     
     % Plot array, filter and response
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
@@ -89,7 +89,7 @@ if rgcParams.verbose
     fH = figure(99); clf; set(gcf, 'Position', [244,680,2316,665], 'Color', 'w');
     
     % Plot mosaics
-    subplot(1, 3, 1); hold all;
+    subplot(1, 4, 1); hold all;
     plot(X,Y, 'k.', 'MarkerSize',9); hold on;
     plot(X(logical(rgcarray)),Y(logical(rgcarray)), 'r.');
     axis square
@@ -98,9 +98,14 @@ if rgcParams.verbose
     ylabel('# cones (cols)');
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
-    subplot(1, 3, 2);
-    imagesc(rgcarray, [-1 1]);  colorbar;
-    surf(xx,yy,rgcarray); axis square; box off; view([0 0]);
+    subplot(1, 4, 2);
+    imagesc(DoGfilter, [-1 1]);  colorbar;
+    title(sprintf('Top view: DoG filter, size center:surround=%2.2f:%2.2f',sigma.center,sigma.surround));
+    xlabel('rows (# cones)'); ylabel('cols (# cones)');
+    set(gca, 'TickDir', 'out', 'FontSize', 12); axis square; box off;
+
+    subplot(1, 4, 3);
+    surf(xx,yy,DoGfilter); axis square; box off; view([0 0]);
     
     title(sprintf('DoG filter, size center:surround=%2.2f:%2.2f',sigma.center,sigma.surround));
     xlabel('x-axis (# cones)');
@@ -108,7 +113,7 @@ if rgcParams.verbose
     zlabel('normalized response')
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
-    subplot(1, 3, 3); % we divide by 2, because the time sampling is at 2 ms.
+    subplot(1, 4, 4); % we divide by 2, because the time sampling is at 2 ms.
     imagesc(rgcResponse_mn./2); colormap gray; axis square; box off;
     title('Mean RGC response across trials and time');
     xlabel('# cones (rows)');
@@ -122,7 +127,7 @@ if rgcParams.verbose
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
     if rgcParams.saveFigs
-        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d_contrast%1.4f_%s',rgcParams.cone2RGCRatio, contrast, rgcParams.inputType)));
+        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d_contrast%1.4f_%s',rgcParams.cone2RGCRatio, rgcParams.c, rgcParams.inputType)));
     end
     
 end
