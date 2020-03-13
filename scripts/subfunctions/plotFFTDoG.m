@@ -1,4 +1,4 @@
-function [] = plotFFTDoG(DoGfilter,  rgcParams, expParams, saveFigs)
+function [] = plotFFTDoG(DoGfilter,  rgcParams)
 
 fftAmpsDoG = abs(fft2(DoGfilter));
 fftAmpsDoG_normalized = fftAmpsDoG./max(fftAmpsDoG(:))';
@@ -7,7 +7,7 @@ midpoint = ceil(size(fftAmpsDoG,1)/2);
 quarterpoint = midpoint/2;
 
 % get stim sf and get coords to draw circle
-sfOfStim = expParams.spatFreq * rgcParams.fov;
+sfOfStim = rgcParams.stimSF * rgcParams.fov;
 
 th = 0:pi/50:2*pi;
 xvals = sfOfStim * cos(th) + midpoint;
@@ -34,10 +34,10 @@ set(gca,'CLim', [0 max(fftAmpsDoG_normalized(:))], ...
     'XTickLabel',{num2str(-quarterpoint/rgcParams.fov), '0', num2str(quarterpoint/rgcParams.fov)}, ...
     'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
     'YTickLabel',{num2str(-quarterpoint/rgcParams.fov), '0', num2str(quarterpoint/rgcParams.fov)});
-xlabel('cycles/deg'); box off;
+    xlabel('cycles/deg'); box off;
 
 
-if saveFigs
+if rgcParams.saveFigs
     figure(fH);
     hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgcDoGFilter_ratio%d', rgcParams.cone2RGCRatio)))
 end
