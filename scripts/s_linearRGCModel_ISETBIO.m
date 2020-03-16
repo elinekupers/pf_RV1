@@ -68,7 +68,7 @@ for ii = 1:length(cone2RGCRatios)
     rgcParams.cone2RGCRatio = cone2RGCRatios(ii);
     
     % Load cone responses (current or absorption rates)
-    for c = [1:10:length(contrasts), length(contrasts)]
+    for c = 1:length(contrasts)
         
         % get filename, load cone responses
         d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*.mat', preFix, contrasts(c))));
@@ -135,7 +135,7 @@ P = NaN(length(cone2RGCRatios),length(contrasts));
 
 for ii = 1:length(cone2RGCRatios)
     
-    for c = 1:size(allRGCResponses,2)
+    for c = 1:length(contrasts)
         
         % get RGC responses one ratio at a time
         dataIn = allRGCResponses{ii,c};
@@ -146,6 +146,7 @@ for ii = 1:length(cone2RGCRatios)
     end
     
     if saveData
+        if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
         save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P', 'rgcParams', 'expParams', '-v7.3')
     end
 end
@@ -163,8 +164,8 @@ absorptionP = load(fullfile(absorptionClassifyData.folder, absorptionClassifyDat
 
 figure(2); clf; hold all;
 plot(rgcP.expParams.contrastLevelsPC, rgcP.P, 'bo-');
-plot(currentP.expParams.contrastLevelsPC, currentP.accuracy, 'ko-', 'lineWidth',2);
-plot(currentP.expParams.contrastLevelsPC, absorptionP.accuracy, 'ro-', 'lineWidth',2);
+plot(currentP.expParams.contrastLevelsPC, currentP.accuracy, 'ko--', 'lineWidth',4);
+plot(currentP.expParams.contrastLevelsPC, absorptionP.accuracy, 'ro--', 'lineWidth',4);
 xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
 title('2AFC SVM classification performance')
 set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
