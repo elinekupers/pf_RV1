@@ -1,7 +1,7 @@
 function [] = plotFFTDoG(DoGfilter,  rgcParams)
 
+% take fft, get amplitudes
 fftAmpsDoG = abs(fft2(DoGfilter));
-fftAmpsDoG_normalized = fftAmpsDoG./max(fftAmpsDoG(:))';
 
 midpoint = ceil(size(fftAmpsDoG,1)/2);
 quarterpoint = midpoint/2;
@@ -15,20 +15,22 @@ yvals = sfOfStim * sin(th) + midpoint;
 
 
 % Visualize fft amps
-fH = figure(1); clf;
-imagesc(fftshift(fftAmpsDoG_normalized)); hold all;
+fH = figure(1); clf; set(gcf, 'Position', [397, 748, 1163, 590], 'Color', 'w');
+
+subplot(121)
+imagesc(fftshift(fftAmpsDoG)); hold all;
 
 % draw center cross
-plot([midpoint, midpoint], [1,size(fftAmpsDoG,1)], 'w:');
-plot([1,size(fftAmpsDoG,1)],[midpoint, midpoint],  'w:');
+plot([midpoint, midpoint], [1,size(fftAmpsDoG,1)], ':', 'Color', [0.7, 0.7, 0.7], 'LineWidth',4);
+plot([1,size(fftAmpsDoG,1)],[midpoint, midpoint],  ':', 'Color', [0.7, 0.7, 0.7], 'LineWidth',4);
 
 % draw stim sf cross
 plot(xvals, yvals, 'r:', 'lineWidth',3);
 
 % Make figure pretty
 colormap gray; colorbar; axis square;
-title(sprintf('Normalized FFT amps DoG filter %d',rgcParams.cone2RGCRatio), 'FontSize',17);
-set(gca,'CLim', [0 max(fftAmpsDoG_normalized(:))], ...
+title(sprintf('FFT amps DoG filter %d',rgcParams.cone2RGCRatio), 'FontSize',17);
+set(gca,'CLim', [0 max(fftAmpsDoG(:))], ...
     'FontSize', 17, 'TickDir', 'out', ...
     'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
     'XTickLabel',{num2str(-quarterpoint/rgcParams.fov), '0', num2str(quarterpoint/rgcParams.fov)}, ...
@@ -36,6 +38,20 @@ set(gca,'CLim', [0 max(fftAmpsDoG_normalized(:))], ...
     'YTickLabel',{num2str(-quarterpoint/rgcParams.fov), '0', num2str(quarterpoint/rgcParams.fov)});
     xlabel('cycles/deg'); box off;
 
+    
+% Get 1D representation
+ncones = size(fftAmpsDoG,1);
+x      = (0:ncones-1)/ncones*rgcParams.fov; % degrees
+fs     = (0:ncones-1)/2;
+G      = fftshift(fftAmpsDoG);
+
+subplot(122); cla;
+plot(fs-(max(fs)/2), G(:,midpoint)', 'k', 'LineWidth', 4); xlim([0 max(fs)/2])
+hold on
+plot(rgcParams.stimSF * [1 1], [0 1.2], 'r:', 'LineWidth', 4);
+xlabel('Spatial frequency (cycles/deg)'); 
+ylabel('Modulation Transfer Function'); 
+set(gca, 'TickDir','out', 'FontSize', 17); box off;
 
 if rgcParams.saveFigs
     figure(fH);
