@@ -1,7 +1,8 @@
 function [] = plotFFTDoG(DoGfilter,  rgcParams)
 
+
 % take fft, get amplitudes
-fftAmpsDoG = abs(fft2(DoGfilter));
+fftAmpsDoG = abs(fft2(DoGfilter./sum(abs(DoGfilter(:)))));
 
 midpoint = ceil(size(fftAmpsDoG,1)/2);
 quarterpoint = midpoint/2;
@@ -48,9 +49,9 @@ G      = fftshift(fftAmpsDoG);
 subplot(122); cla;
 plot(fs-(max(fs)/2), G(:,midpoint)', 'k', 'LineWidth', 4); xlim([0 max(fs)/2])
 hold on
-plot(rgcParams.stimSF * [1 1], [0 1.2], 'r:', 'LineWidth', 4);
+plot(rgcParams.stimSF * [1 1], [0 1], 'r:', 'LineWidth', 4);
 xlabel('Spatial frequency (cycles/deg)'); 
-ylabel('Modulation Transfer Function'); 
+ylabel('Normalized Modulation (a.u.)'); 
 set(gca, 'TickDir','out', 'FontSize', 17); box off;
 
 if rgcParams.saveFigs
