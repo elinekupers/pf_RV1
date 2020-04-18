@@ -19,24 +19,30 @@
 
 %% 0. Define params
 
+% Base folder for data and figures
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/'; % can also be ogRootPath if rerunning model
 
+saveData = true;
+saveFigs = true;
+
 % Get experimental params
-subFolder = 'conecurrentRV1';
-expName   = 'default';
+subFolder = 'onlyL_noeyemov';
+expName   = 'defaultnophaseshift';
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
-contrasts = expParams.contrastLevelsPC;
 inputType = 'absorptionrate'; % could also be 'current'
-eccentricity = 4.5; % deg
+if strcmp(inputType, 'absorptionrate')
+    contrasts = expParams.contrastLevels;
+elseif strcmp(inputType, 'current')
+    contrasts = expParams.contrastLevelsPC; % PC stands for photocurrent
+end
+
+eccentricity = expParams.eccentricities; % deg (should be 4.5 deg)
 
 if strcmp(inputType, 'current')
     preFix = 'current_';
 else
     preFix = '';
 end
-
-saveData = true;
-saveFigs = true;
 
 % Get RGC layer params
 % Take several cone:RGC density ratio's (for subsampling)
@@ -49,8 +55,8 @@ rgcParams.saveFigs   = true;
 
 % Define DoG Params
 rgcParams.DoG.kc     = 1/3;                % Gauss center sigma. (Bradley et al. 2014 paper has kc =1)
-rgcParams.DoG.ks     = 10.1/3;             % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10)
-rgcParams.DoG.wc     = 0.53;               % DoG center Gauss weight. Range: [0,1].
+rgcParams.DoG.ks     = gcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10.1)
+rgcParams.DoG.wc     = 0.64;               % DoG center Gauss weight. Range: [0,1]. (Bradley et al. 2014 paper has ws = 0.53)
 rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
 rgcParams.inputType  = inputType;          % are we dealing with cone absorptions or current?
 
@@ -74,7 +80,11 @@ for ii = 1:length(cone2RGCRatios)
         d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*.mat', preFix, contrasts(c))));
         tmp   = load(fullfile(d.folder, d.name));
         fn    = fieldnames(tmp);
-        coneResponse = tmp.(fn{strcmpi(fn,'absorptions')});
+        if strcmp(inputType, 'absorptionrate')
+            coneResponse = tmp.(fn{strcmpi(fn,'absorptions')});
+        else
+            coneResponse = tmp.(fn{strcmpi(fn,'current')});
+        end
         sparams      = tmp.(fn{strcmpi(fn,'sparams')});
         
         % Define dimensions of cone mosaic and other params of stim
@@ -156,10 +166,10 @@ end
 % load accuracy for cone current and absorptions
 rgcP = load(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_Cones2RGC1_%s.mat', inputType)));
 
-currentClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', 'conecurrentRV1', sprintf('current_*.mat')));
+currentClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', subFolder, sprintf('current_*.mat')));
 currentP = load(fullfile(currentClassifyData.folder, currentClassifyData.name));
 
-absorptionClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', 'conecurrentRV1', sprintf('Classify*.mat')));
+absorptionClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', subFolder, sprintf('Classify*.mat')));
 absorptionP = load(fullfile(absorptionClassifyData.folder, absorptionClassifyData.name));
 
 figure(2); clf; hold all;
