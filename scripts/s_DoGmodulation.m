@@ -1,8 +1,9 @@
 %% Effect of DoG filters on Gabor stimulus
 
 % Mosaic params
-ncones = 79;
-fov = 2; % degrees
+ncones    = 79;
+conearray = zeros(ncones, ncones);
+fov       = 2; % degrees
 x = (0.5:ncones-.5)/ncones*fov; % degrees
 
 % RGC params kaplan
@@ -26,19 +27,21 @@ coneresp2D  = mean(noisyImage,3);
 midpoint    = ceil(size(stim2D,1)/2);
 
 figure(100); set(gcf, 'Position', [16 487 1641 461]); clf;
-subplot(131); imagesc(stim2D); colormap gray; 
+subplot(131); imagesc(stim2D); colormap gray; axis square;
 hold on; plot([1 size(stim2D,1)],[midpoint, midpoint],  'r-', 'LineWidth',3); set(gca, 'TickDir', 'out', 'FontSize', 14)
-xlabel('Cone (columns)'), xlabel('Cone (rows)'); box off;
+xlabel('Cone (columns)'), xlabel('Cone (rows)'); box off; colorbar;
 title('Stimulus (L-cone only - contrast: 1% - sf: 4 cpd - fov: 2 deg')
 
-subplot(132); imagesc(noise2D); colormap gray; set(gca, 'TickDir', 'out', 'FontSize', 14)
+subplot(132); imagesc(noise2D); colormap gray; axis square;
+set(gca, 'TickDir', 'out', 'FontSize', 14)
 hold on; plot([1 size(stim2D,1)],[midpoint, midpoint],  'r-', 'LineWidth',3);
-xlabel('Cone (columns)'), xlabel('Cone (rows)'); box off;
+xlabel('Cone (columns)'), xlabel('Cone (rows)'); box off; colorbar;
 title('Noise')
 
-subplot(133); imagesc(coneresp2D); colormap gray; set(gca, 'TickDir', 'out', 'FontSize', 14)
+subplot(133); imagesc(coneresp2D); colormap gray; axis square;
+set(gca, 'TickDir', 'out', 'FontSize', 14)
 hold on; plot( [1 size(stim2D,1)],[midpoint, midpoint], 'r-', 'LineWidth',3);
-xlabel('Cone (columns)'), xlabel('Cone (rows)'); box off;
+xlabel('Cone (columns)'), xlabel('Cone (rows)'); box off; colorbar;
 title('Cone absorptions (stim+noise)')
 
 print(gcf, fullfile(saveDir, 'Stim_Noise_ConeResp'), '-dpng')
@@ -49,6 +52,12 @@ stim        = stim2D(midpoint,:)';
 noise       = noise2D(midpoint,:)';
 coneresp    = coneresp2D(midpoint,:)';
 
+% Get snr
+snr_stim     = snr(stim);
+snr_noise    = snr(noise);
+snr_coneresp = snr(coneresp);
+
+% Stim params
 stimfreq      = 4; % cpd
 sigmastim     = .5; % degrees
 %
@@ -60,11 +69,6 @@ sigmastim     = .5; % degrees
 % noise         = randn(ncones,1) * 0.01 * ones(1,5);
 % coneresp  = noise + stim';
 
-% Stim and noise in FFT
-STIM     = abs(fft(stim(:)));
-CONERESP = abs(fft(coneresp(:)));
-NOISE    = abs(fft(noise(:)));
-
 hc = NaN(size(coneresp));
 hs = NaN(size(coneresp));
 
@@ -74,46 +78,78 @@ cmap = lines(numC2RGCratios);
 
 for ii = 1:numC2RGCratios
     
+    % Create resampling vector with cone2RGC ratio.
+    rowIndices{ii} = 1:ii:ncones;
+    
+    % Get cone spacing
     conespacing = 1/ncones*fov;
     
+    % Set RGC center and surround sizes
     sigmac = ii/3 * conespacing;
-    
     sigmas = sigmac * szratio;
-    
     
     % Get DoG center, and surround
     gc = 1/(sqrt(2*pi)*sigmac) * exp(-(x-fov/2).^2 ./ (2*sigmac^2));
-    
     gs = 1/(sqrt(2*pi)*sigmas) * exp(-(x-fov/2).^2 ./ (2*(sigmas).^2));
     
-    gc = gc/sum(gc);
-    
+    % Normalize area
+    gc = gc/sum(gc); 
     gs = gs/sum(gs);
     
+    % Weight center/surround 
     hc(:,ii) = 2*wc*gc;
     hs(:,ii) = 2*ws*gs;
-    labels{ii} = sprintf('Cone:RGC=1:%d',ii);
+    
+    % Get labels for plots
+    labels{ii} = sprintf('RGC:Cones=1:%d',ii);
 end
 
+% Get filter by subtracting center and surround gaussian
 f  = hc - hs;
 
-rgcc = conv2(coneresp, hc, 'same');
-rgcs = conv2(coneresp, hs, 'same');
-rgcresp = rgcc - rgcs; % conv(coneresp, f, 'same');
+for ii = 1:numC2RGCratios
+    
+    % Convolve cone response with center, surround and DoG filter
+%     rgcc = conv2(coneresp, hc(:,ii), 'same');
+%     rgcs = conv2(coneresp, hs(:,ii), 'same');
+    
+    rgcresp(:,ii) = conv2(coneresp, f(:,ii), 'same'); % rgcc - rgcs;
+    rgcstim(:,ii) = conv2(stim, f(:,ii), 'same');
+    rgcnoise(:,ii) = conv2(noise, f(:,ii), 'same');
 
+    % Subsample
+    rgcresp_sub{ii}  = rgcresp(rowIndices{ii},ii);
+    rgcstim_sub{ii}  = rgcstim(rowIndices{ii},ii);
+    rgcnoise_sub{ii} = rgcnoise(rowIndices{ii},ii);
+    
+    CONESOUTPUT{ii} = abs(fft(rgcresp_sub{ii}));
+    STIMOUTPUT{ii}  = abs(fft(rgcstim_sub{ii}));
+    NOISEOUTPUT{ii} = abs(fft(rgcnoise_sub{ii}));
+end
 
+% Stim and noise in FFT
+STIM     = abs(fft(stim(:)));
+CONERESP = abs(fft(coneresp(:)));
+NOISE    = abs(fft(noise(:)));
+
+% Get FFT amplitudes of Gaussian filters 
 Gc = abs(fft(hc));
 Gs = abs(fft(hs));
 G  = abs(fft(f));
 
-CONESOUTPUT = bsxfun(@times, G, CONERESP);
-STIMOUTPUT  = bsxfun(@times, G, STIM);
-NOISEOUTPUT = bsxfun(@times, G, NOISE);
+% % Multiply with FFT of cone/stim/noise responses
+% CONESOUTPUT = bsxfun(@times, G, CONERESP);
+% STIMOUTPUT  = bsxfun(@times, G, STIM);
+% NOISEOUTPUT = bsxfun(@times, G, NOISE);
 
+
+
+% FFT ampl x-axis
 fs = (0:ncones-1)/2;
 
-figure(1), clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
 
+%% Visualize filters in visual and fft domain
+figure(1), clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
 
 subplot(4,2,1)
 plot(x, hc, 'LineWidth', 4); 
@@ -135,9 +171,9 @@ box off; set(gca, 'TickDir', 'out', 'FontSize', 14)
 ylabel('modulation (a.u.)'); 
 
 subplot(4,2,7)
-plot(x, stim-min(stim), 'k-', x, noise-min(noise), 'k--', 'LineWidth',2); 
+plot(x, stim, 'k-', x, noise, 'k--', 'LineWidth',2); 
 set(gca, 'TickDir', 'out', 'FontSize', 14)
-title ('Stim + noise (scaled)'); 
+title ('Stim + noise'); 
 box off; legend({'Stimulus', 'Noise'}); legend boxoff;
 ylabel('absorption (count)'); xlabel('Visual field (deg)')
 
@@ -161,55 +197,83 @@ title ('DoG'); box off; set(gca, 'TickDir', 'out', 'FontSize', 14)
 ylabel('Amplitude')
 
 subplot(4,2,8)
-plot(fs, STIM-min(STIM), 'k-', fs, NOISE-min(NOISE), 'k--', 'LineWidth', 2);
+plot(fs, STIM, 'k-', fs, NOISE, 'k--', 'LineWidth', 2);
 xlim([0 max(fs)/2]); ylim([0 50]); 
-title ('Stim + Noise (scaled)'); 
+title ('Stim + Noise'); 
 legend({'Stimulus', 'Noise'}); legend boxoff; 
 set(gca, 'TickDir', 'out', 'FontSize', 14)
 xlabel('Spatial frequency (cpd)'); ylabel('Amplitude'); box off;
 
 print(gcf, fullfile(saveDir, 'DoG1D_filter_stim'), '-dpng')
 
+%% Visualize inputs (noise, stim, noise+stim) as snr
+figure(2), clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
 
+subplot(3,1,1)
+plot(x, stim, 'k', 'LineWidth',2); 
+set(gca, 'TickDir', 'out', 'FontSize', 14); box off;
+title(sprintf('Stimulus absorptions SNR: %2.2f', snr_stim)); 
+ylabel('absorption (count)'); xlabel('Visual field (deg)')
 
-figure(2);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+subplot(3,1,2)
+plot(x, noise, 'k', 'LineWidth',2); 
+set(gca, 'TickDir', 'out', 'FontSize', 14); box off;
+title(sprintf('Noise absorptions SNR: %2.2f', snr_noise)); 
+ylabel('absorption (count)'); xlabel('Visual field (deg)')
+
+subplot(3,1,3)
+plot(x, coneresp, 'k', 'LineWidth',2); 
+set(gca, 'TickDir', 'out', 'FontSize', 14); box off;
+title(sprintf('Total absorptions SNR: %2.2f', snr_coneresp)); 
+ylabel('absorption (count)'); xlabel('Visual field (deg)')
+
+print(gcf, fullfile(saveDir, 'DoG1D_SNR_stim_noise'), '-dpng')
+
+%% 
+
+figure(3);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
 for ii = 1:numC2RGCratios
-    
+    fs = (0:length(STIMOUTPUT{ii})-1)/2;
+
     % Stim (no noise)
     subplot(311); title('FFT RGC outputs for STIM');
-    plot(fs, STIMOUTPUT(:,ii), '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
-    xlim([0 max(fs)/2]); ylim([0 50]); set(gca, 'TickDir', 'out', 'FontSize', 14);
+    plot(fs, STIMOUTPUT{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
+    ylim([0 400]); set(gca, 'TickDir', 'out', 'FontSize', 14);
     legend(labels); legend boxoff; ylabel('Amplitude')
-    box off;
+    box off; 
+    if ii==1; xlim([0 max(fs)/2]); end
     
     % Noise
     subplot(312); title('FFT RGC outputs for NOISE');
-    plot(fs, NOISEOUTPUT(:,ii), '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
-    xlim([0 max(fs)/2]); ylim([0 50]); set(gca, 'TickDir', 'out', 'FontSize', 14)
+    plot(fs, NOISEOUTPUT{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
+    ylim([0 50]); set(gca, 'TickDir', 'out', 'FontSize', 14)
     box off; ylabel('Amplitude')
+    if ii==1; xlim([0 max(fs)/2]); end
     
     % Cones (stim+noise)
     subplot(313); title('FFT RGC outputs for CONES (stim+noise)');
-    xlim([0 max(fs)/2]); ylim([0 50]);
-    plot(fs, CONESOUTPUT(:,ii), '-','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
+    ylim([0 400]);
+    plot(fs, CONESOUTPUT{ii}, '-','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
     xlabel('Spatial frequency (cpd)'); set(gca, 'TickDir', 'out', 'FontSize', 14);
-    box off; ylabel('Amplitude')
+    box off; ylabel('Amplitude');
+    if ii==1; xlim([0 max(fs)/2]); end
 end
 
 print(gcf, fullfile(saveDir, 'DoG1D_RGCOUTPUT_individual'), '-dpng')
 
-
-figure(3);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+%%
+figure(4);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
 for ii = 1:numC2RGCratios
-    
+    fs = (0:length(STIMOUTPUT{ii})-1)/2;
+
     % Stim (no noise)
     title('FFT RGC outputs');
-    plot(fs, STIMOUTPUT(:,ii), '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
-    plot(fs, NOISEOUTPUT(:,ii), '--', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
-    plot(fs, CONESOUTPUT(:,ii), ':','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
+    plot(fs, STIMOUTPUT{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
+    plot(fs, NOISEOUTPUT{ii}, '--', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
+    plot(fs, CONESOUTPUT{ii}, ':','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
 end
 
-xlim([0 max(fs)/2]); ylim([0 50]); set(gca, 'TickDir', 'out', 'FontSize', 14);
+xlim([0 18]); ylim([0 200]); set(gca, 'TickDir', 'out', 'FontSize', 14);
 legend({'Stim', 'Noise', 'Cones'}); legend boxoff;
 ylabel('Amplitude')
 xlabel('Spatial frequency (cpd)');
