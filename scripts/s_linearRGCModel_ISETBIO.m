@@ -55,7 +55,7 @@ rgcParams.saveFigs   = true;
 
 % Define DoG Params
 rgcParams.DoG.kc     = 1/3;                % Gauss center sigma. (Bradley et al. 2014 paper has kc =1)
-rgcParams.DoG.ks     = gcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10.1)
+rgcParams.DoG.ks     = rgcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10.1)
 rgcParams.DoG.wc     = 0.64;               % DoG center Gauss weight. Range: [0,1]. (Bradley et al. 2014 paper has ws = 0.53)
 rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
 rgcParams.inputType  = inputType;          % are we dealing with cone absorptions or current?
@@ -172,17 +172,25 @@ currentP = load(fullfile(currentClassifyData.folder, currentClassifyData.name));
 absorptionClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', subFolder, sprintf('Classify*.mat')));
 absorptionP = load(fullfile(absorptionClassifyData.folder, absorptionClassifyData.name));
 
+lineColors = lines(size(P,1));
 figure(2); clf; hold all;
-plot(rgcP.expParams.contrastLevelsPC, rgcP.P, 'bo-');
+for ii = 1:size(P,1)
+    plot(rgcP.expParams.contrastLevelsPC, P(ii,:),  'o-','color', lineColors(ii,:), 'lineWidth',4);
+end
 plot(currentP.expParams.contrastLevelsPC, currentP.accuracy, 'ko--', 'lineWidth',4);
-plot(currentP.expParams.contrastLevelsPC, absorptionP.accuracy, 'ro--', 'lineWidth',4);
+plot(currentP.expParams.contrastLevelsPC, absorptionP.accuracy, 'ko:', 'lineWidth',4);
 xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
 title('2AFC SVM classification performance')
 set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
 
-legend({'RGC','Cone current', 'Cone absorptions'}, 'Location', 'Best'); legend boxoff
+legend({'RGC:Cones=1:1',...
+    'RGC:Cones=1:2', ...
+    'RGC:Cones=1:3', ...
+    'RGC:Cones=1:4', ...
+    'RGC:Cones=1:5', ...
+    'Cone current', 'Cone absorptions'}, 'Location', 'Best'); legend boxoff
 
 if saveFigs
-    hgexport(gcf, fullfile(pfRV1rootPath, 'figures', 'Performance_SVMClassifier_RGC_vs_Cones'))
+    hgexport(gcf, fullfile(pfRV1rootPath, 'figures', 'Performance_SVMClassifier_RGC-absorptions_vs_Cones'))
 end
 
