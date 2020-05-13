@@ -132,7 +132,9 @@ if rgcParams.verbose
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
     if rgcParams.saveFigs
-        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('rgclayerresponse_%d_contrast%1.4f_%s.eps',rgcParams.cone2RGCRatio, rgcParams.c, rgcParams.inputType)));
+        if ~exist(fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder), 'dir')),
+            mkdir(fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder))); end
+        hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder), sprintf('rgclayerresponse_%d_contrast%1.4f_%s.eps',rgcParams.cone2RGCRatio, rgcParams.c, rgcParams.inputType)));
     end
     
 end
