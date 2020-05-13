@@ -22,18 +22,21 @@
 % Base folder for data and figures
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/'; % can also be ogRootPath if rerunning model
 
+
 saveData = true;
 saveFigs = true;
 
 % Get experimental params
-subFolder = 'onlyL_noeyemov';
-expName   = 'defaultnophaseshift';
+subFolder = 'onlyL_noeyemov'; %'onlyL'
+expName   = 'defaultnophaseshift'; %'idealobserver'; %'defaultnophaseshift'
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
 inputType = 'absorptionrate'; % could also be 'current'
 if strcmp(inputType, 'absorptionrate')
     contrasts = expParams.contrastLevels;
+    selectTimePoints = 1:28;
 elseif strcmp(inputType, 'current')
     contrasts = expParams.contrastLevelsPC; % PC stands for photocurrent
+    selectTimePoints = 51:78; % photocurrent responses are temporally delayed
 end
 
 eccentricity = expParams.eccentricities; % deg (should be 4.5 deg)
@@ -52,6 +55,8 @@ cone2RGCRatios = 1:5; % linear ratio
 rgcParams = struct();
 rgcParams.verbose    = expParams.verbose; % print figures or not
 rgcParams.saveFigs   = true;
+rgcParams.expName    = expName;
+rgcParams.subFolder  = subFolder;
 
 % Define DoG Params
 rgcParams.DoG.kc     = 1/3;                % Gauss center sigma. (Bradley et al. 2014 paper has kc =1)
@@ -62,20 +67,25 @@ rgcParams.inputType  = inputType;          % are we dealing with cone absorption
 
 %% Compute RGC responses from linear layer
 
+if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir')
+    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc')); 
+end
+
 % preallocate space for all conditions
 allRGCResponses = cell(length(cone2RGCRatios), length(contrasts));
 
-for ii = 1:length(cone2RGCRatios)
-    
+for ii = 2:length(cone2RGCRatios)
+    fprintf('Ratio %d:1\n', ii)
+
     % preallocate space for current ratio
     thisRatioRGCResponses = cell(1, length(contrasts));
-
+    
     % Subsampling ratio
     rgcParams.cone2RGCRatio = cone2RGCRatios(ii);
     
     % Load cone responses (current or absorption rates)
     for c = 1:length(contrasts)
-        
+        fprintf('Contrast %1.4f\n', contrasts(c))
         % get filename, load cone responses
         d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*.mat', preFix, contrasts(c))));
         tmp   = load(fullfile(d.folder, d.name));
@@ -95,18 +105,19 @@ for ii = 1:length(cone2RGCRatios)
         rgcParams.timePoints = sz(4);      % ms
         
         rgcParams.fov        = sparams.sceneFOV;   % deg
-        rgcParams.c          = contrasts(c);       % contrast of stim % Michelson 
+        rgcParams.c          = contrasts(c);       % contrast of stim % Michelson
         rgcParams.stimSF     = expParams.spatFreq; % cpd
         
         % Plot cone current if requested
         if expParams.verbose
             % Take one trial, one orientation, one phase, and mean across time points
-            img = squeeze(mean(coneResponse(1,:,:,:,1),4));
+            img = squeeze(mean(coneResponse(1,:,:,selectTimePoints,1),4));
             if strcmp(inputType, 'current')
                 clims = [min(img(:)),0];
             else
                 clims = [0,max(img(:))];
             end
+            
             % Plot cone current retinal image
             figure(1); clf; imagesc(img);
             axis square; colormap gray; set(gca, 'CLim', clims, 'TickDir', 'out')
@@ -116,6 +127,10 @@ for ii = 1:length(cone2RGCRatios)
         
         % Do it!
         [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
+        
+        if saveData
+            save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', ii,  contrasts(c), inputType)), 'rgcResponse', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
+        end
         
         % Accumulate RGC responses
         thisRatioRGCResponses{c} = rgcResponse;
@@ -127,8 +142,6 @@ for ii = 1:length(cone2RGCRatios)
     allArrays{ii} = rgcarray;
     
     if saveData
-        if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'rgc')); end
-        save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'rgcResponse', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
         save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', ii, inputType)), 'DoGfilter', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
         save(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcArray_Cones2RGC%d_%s.mat', ii, inputType)), 'rgcarray', 'rgcParams', 'contrasts', 'expParams', '-v7.3');
     end
@@ -140,26 +153,72 @@ end
 
 %% Get 2-AFC SVM Linear Classifier accuracy
 
-% preallocate space
-P = NaN(length(cone2RGCRatios),length(contrasts));
 
-for ii = 1:length(cone2RGCRatios)
+switch expName
     
-    for c = 1:length(contrasts)
+    case 'idealobserver'
+        % Preallocate space
+        P_ideal = NaN(length(cone2RGCRatios),length(contrasts));
         
-        % get RGC responses one ratio at a time
-        dataIn = allRGCResponses{ii,c};
+        % Loop over ratios
+        for ii = 1:length(cone2RGCRatios)
+            dataIn = allRGCResponses(ii,:);
+            P_ideal(ii,:) = getIdealObserverAccuracy(dataIn, expName, subFolder, baseFolder, ii);
+        end
         
-        % Save percent correct
-        P(ii,c) = getClassifierAccuracy(dataIn);
+        % Save classification results
+        if saveData
+            if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
+            save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifyIdeal_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_ideal', 'rgcParams', 'expParams', '-v7.3')
+        end
         
-    end
-    
-    if saveData
-        if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
-        save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P', 'rgcParams', 'expParams', '-v7.3')
-    end
+    case 'defaultnostimphase'
+        % Preallocate space
+        P_svm = NaN(length(cone2RGCRatios),length(contrasts));
+        P_snr = NaN(length(cone2RGCRatios),length(contrasts));
+
+        for ii = 1:length(cone2RGCRatios)
+            for c = 1:length(contrasts)
+                % get RGC responses one ratio at a time
+                dataIn = allRGCResponses(ii,c);
+                
+                % Get SVM classifier performance in percent correct
+                P_svm(ii,c) = getClassifierAccuracy(dataIn);
+            end
+        end
+        
+        % Get SNR classifier performance in percent correct
+        for ii = 1:length(cone2RGCRatios)
+            dataIn = allRGCResponses(ii,:);
+            P_snr(ii,:) = getSNRAccuracy(dataIn,expParams,inputType, ii,baseFolder);
+        end
+        
+        
+        % Save classification results
+        if saveData
+            if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
+            save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifySNR_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_snr', 'rgcParams', 'expParams', '-v7.3')
+        end    
 end
+
+%% Visualize outcome
+lineColors = lines(size(P_snr,1));
+figure(2); clf; hold all;
+for ii = 1:size(P_snr,1)
+    plot(5e-5, P_snr(ii,1), 'o','color', lineColors(ii,:), 'lineWidth',4);
+    plot(contrasts(2:end), P_snr(ii,2:end),  'o-','color', lineColors(ii,:), 'lineWidth',4);
+end
+
+xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
+title('2AFC SVM classification performance'); box off;
+set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
+set(gca, 'XLim', [4e-5 max(contrasts)], 'YLim', [0.4 1]);
+legend({'', 'RGC:Cones=1:1',...
+    '', 'RGC:Cones=1:2', ...
+    '', 'RGC:Cones=1:3', ...
+    '', 'RGC:Cones=1:4', ...
+    '', 'RGC:Cones=1:5'}, 'Location', 'Best'); legend boxoff;
+
 
 %% Plot accuracy
 
