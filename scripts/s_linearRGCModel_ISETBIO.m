@@ -27,8 +27,8 @@ saveData = true;
 saveFigs = true;
 
 % Get experimental params
-subFolder = 'onlyL_noeyemov'; %'onlyL'
-expName   = 'defaultnophaseshift'; %'idealobserver'; %'defaultnophaseshift'
+subFolder = 'onlyL_highcontrasts'; %'onlyL'
+expName   = 'defaultnophaseshift'; %'idealobserver'; 
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
 inputType = 'absorptionrate'; % could also be 'current'
 if strcmp(inputType, 'absorptionrate')
@@ -74,7 +74,7 @@ end
 % preallocate space for all conditions
 allRGCResponses = cell(length(cone2RGCRatios), length(contrasts));
 
-for ii = 2:length(cone2RGCRatios)
+for ii = 1:length(cone2RGCRatios)
     fprintf('Ratio %d:1\n', ii)
 
     % preallocate space for current ratio
@@ -172,7 +172,7 @@ switch expName
             save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifyIdeal_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_ideal', 'rgcParams', 'expParams', '-v7.3')
         end
         
-    case 'defaultnostimphase'
+    case 'defaultnophaseshift'
         % Preallocate space
         P_svm = NaN(length(cone2RGCRatios),length(contrasts));
         P_snr = NaN(length(cone2RGCRatios),length(contrasts));
@@ -198,6 +198,7 @@ switch expName
         if saveData
             if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
             save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifySNR_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_snr', 'rgcParams', 'expParams', '-v7.3')
+            save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_svm', 'rgcParams', 'expParams', '-v7.3')
         end    
 end
 
