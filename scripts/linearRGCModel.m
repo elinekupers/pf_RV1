@@ -91,7 +91,7 @@ for ii = 1:length(cone2RGCRatios)
         for c = 1:length(contrasts)
             fprintf('Contrast %1.4f\n', contrasts(c))
             % get filename, load cone responses
-            d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*eccen%2.2f*.mat', preFix, contrasts(c), eccentricities(eccen))));
+            d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('OGconeOutputs_contrast%1.4f_*eccen%2.2f*.mat', contrasts(c), eccentricities(eccen))));
             tmp   = load(fullfile(d.folder, d.name));
             fn    = fieldnames(tmp);
             if strcmp(inputType, 'absorptionrate')
