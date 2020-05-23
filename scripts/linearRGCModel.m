@@ -21,6 +21,7 @@ function []=linearRGCModel(baseFolder, subFolder, expName, seed)
 
 % Base folder for data and figures
 % baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/'; % can also be ogRootPath if rerunning model
+baseFolder = '/scratch/ek99/pf_RV1';
 
 rng(seed);
 
@@ -91,7 +92,7 @@ for ii = 1:length(cone2RGCRatios)
         for c = 1:length(contrasts)
             fprintf('Contrast %1.4f\n', contrasts(c))
             % get filename, load cone responses
-            d = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('OGconeOutputs_contrast%1.4f_*eccen%2.2f*.mat', contrasts(c), eccentricities(eccen))));
+            d= dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
             tmp   = load(fullfile(d.folder, d.name));
             fn    = fieldnames(tmp);
             if strcmp(inputType, 'absorptionrate')
