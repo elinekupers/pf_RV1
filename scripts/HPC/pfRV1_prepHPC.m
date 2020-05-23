@@ -1,4 +1,4 @@
-function [expName, subFolder, seed] = prepHPC(taskID)
+function [expName, subFolder, seed] = pfRV1_prepHPC(taskID)
 
 % function to run different experiments with different seeds on NYU's HPC
 
