@@ -74,12 +74,12 @@ if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir')
 end
 
 fprintf('Ratio %d:1\n', cone2RGCRatio)
-    
+
 % preallocate space for current ratio
 allRGCResponses = cell(1, length(contrasts));
-    
+
 % Subsampling ratio
-    
+
 for eccen = 1:length(eccentricities)
     fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
     
@@ -134,9 +134,8 @@ switch expName
         P_ideal = NaN(1,length(contrasts));
         
         % Loop over ratios
-            dataIn = allRGCResponses{:};
-            P_ideal = getIdealObserverAccuracy(dataIn, expName, subFolder, baseFolder, allRGCResponses);
-        end
+        dataIn = allRGCResponses{:};
+        P_ideal = getIdealObserverAccuracy(dataIn, expName, subFolder, baseFolder, allRGCResponses);
         
         % Save classification results
         if saveData
@@ -148,22 +147,23 @@ switch expName
         % Preallocate space
         P_svm = NaN(1,length(contrasts));
         
-            for c = 1:length(contrasts)                
-                dataIn = allRGCResponses{c};
-
-                % Get SVM classifier performance in percent correct
-                P_svm(c) = getClassifierAccuracy(dataIn);
-            end
-
+        for c = 1:length(contrasts)
+            dataIn = allRGCResponses{c};
+            
+            % Get SVM classifier performance in percent correct
+            P_svm(c) = getClassifierAccuracy(dataIn);
+            fprintf('%s\n',P_svm(c))
+        end
+        
         % Save classification results
         if saveData
             if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder)); end
             parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
-        end  
+        end
 end
-         
- 
 
 return
+
+
 
 

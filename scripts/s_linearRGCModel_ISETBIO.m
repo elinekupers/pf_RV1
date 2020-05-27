@@ -27,8 +27,8 @@ saveData = true;
 saveFigs = true;
 
 % Get experimental params
-subFolder = 'onlyL_highcontrasts'; %'onlyL'
-expName   = 'defaultnophaseshift'; %'idealobserver'; 
+subFolder = 'onlyL'; %'onlyL'
+expName   = 'defaultnophaseshift'; %'idealobserver'; defaultnophaseshift
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
 inputType = 'absorptionrate'; % could also be 'current'
 if strcmp(inputType, 'absorptionrate')
@@ -68,7 +68,7 @@ rgcParams.inputType  = inputType;          % are we dealing with cone absorption
 %% Compute RGC responses from linear layer
 
 if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir')
-    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc')); 
+    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc'));
 end
 
 % preallocate space for all conditions
@@ -76,7 +76,7 @@ allRGCResponses = cell(length(cone2RGCRatios), length(contrasts));
 
 for ii = 1:length(cone2RGCRatios)
     fprintf('Ratio %d:1\n', ii)
-
+    
     % preallocate space for current ratio
     thisRatioRGCResponses = cell(1, length(contrasts));
     
@@ -176,9 +176,12 @@ switch expName
         % Preallocate space
         P_svm = NaN(length(cone2RGCRatios),length(contrasts));
         P_snr = NaN(length(cone2RGCRatios),length(contrasts));
-
+        
         for ii = 1:length(cone2RGCRatios)
             for c = 1:length(contrasts)
+                
+                load(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', ii,  contrasts(c), inputType)), 'rgcResponse');
+                
                 % get RGC responses one ratio at a time
                 dataIn = allRGCResponses(ii,c);
                 
@@ -187,19 +190,25 @@ switch expName
             end
         end
         
+        
+        
         % Get SNR classifier performance in percent correct
         for ii = 1:length(cone2RGCRatios)
-            dataIn = allRGCResponses(ii,:);
-            P_snr(ii,:) = getSNRAccuracy(dataIn,expParams,inputType, ii,baseFolder);
+            for c = 1:length(contrasts)
+                load(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', ii,  contrasts(c), inputType)), 'rgcResponse');
+
+                dataIn = rgcResponse;
+                %             dataIn = allRGCResponses(ii,:);
+                P_snr(ii,c) = getSNRAccuracy(dataIn,expParams,inputType, ii, c, baseFolder);
+            end
         end
-        
         
         % Save classification results
         if saveData
             if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
             save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifySNR_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_snr', 'rgcParams', 'expParams', '-v7.3')
             save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s.mat', ii, inputType)), 'P_svm', 'rgcParams', 'expParams', '-v7.3')
-        end    
+        end
 end
 
 %% Visualize outcome
@@ -211,7 +220,7 @@ for ii = 1:size(P_snr,1)
 end
 
 xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
-title('2AFC SVM classification performance'); box off;
+title('2AFC SNR classification performance'); box off;
 set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
 set(gca, 'XLim', [4e-5 max(contrasts)], 'YLim', [0.4 1]);
 legend({'', 'RGC:Cones=1:1',...
@@ -220,6 +229,8 @@ legend({'', 'RGC:Cones=1:1',...
     '', 'RGC:Cones=1:4', ...
     '', 'RGC:Cones=1:5'}, 'Location', 'Best'); legend boxoff;
 
+    hgexport(gcf, fullfile(pfRV1rootPath, 'figures', 'SNR_ClassifierPerformance_RGC-absorptions_defaultnophaseshift'))
+    print(fullfile(pfRV1rootPath, 'figures', 'SNR_ClassifierPerformance_RGC-absorptions_defaultnophaseshift'), '-dpng')
 
 %% Plot accuracy
 

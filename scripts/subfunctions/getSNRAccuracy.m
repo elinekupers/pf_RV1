@@ -1,4 +1,4 @@
-function snr_prctCorrect = getSNRAccuracy(data, expParams, inputType, cone2RGCRatio, baseFolder)
+function snr_prctCorrect = getSNRAccuracy(data, expParams, inputType, cone2RGCRatio, c, baseFolder)
 
 % Check inputs
 if strcmp(inputType, 'absorptionrate')
@@ -13,17 +13,17 @@ end
 idealObserverDir = fullfile(baseFolder, 'data', 'idealobserver', 'rgc');
 
 % preallocate space
-snr_dB      = NaN(size(expParams.contrastLevels));
-snr_power    = NaN(size(expParams.contrastLevels));
-snr_prctCorrect = NaN(size(expParams.contrastLevels));
+% snr_dB      = NaN(size(expParams.contrastLevels));
+% snr_power    = NaN(size(expParams.contrastLevels));
+% snr_prctCorrect = NaN(size(expParams.contrastLevels));
 
-for c = 1:length(expParams.contrastLevels)
+% for c = 1:length(expParams.contrastLevels)
     
     idealObserverFile = sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio, contrasts(c), inputType);
     
     templateNoiseless = load(fullfile(idealObserverDir, idealObserverFile));
     theSignal = templateNoiseless.rgcResponse;
-    theNoise  = data{c} - theSignal;
+    theNoise  = data - theSignal;
     
     % Get the trials and samples (should be the data for all data sets though
     nStimuli = size(theNoise,5);
@@ -56,17 +56,17 @@ for c = 1:length(expParams.contrastLevels)
     theNoiseCW = theNoiseCW(:);
     
     % Get SNR
-    snr_dB(c) = snr(theSignalDiff, theNoiseCW);
+    snr_dB = snr(theSignalDiff, theNoiseCW);
     
     % Convert SNR dB to dprime / power
-    snr_power(c) = db2mag(snr_dB(c));
+    snr_power = db2mag(snr_dB);
     
     % Convert SNR dprime / power to percent correct
-    snr_prctCorrect(c) = normcdf(snr_power(c)/2);
+    snr_prctCorrect = normcdf(snr_power/2);
     
-    fprintf('Contrast %1.4f \t SNR dB: %2.3f, d-prime/power: %2.3f,  percent correct: %2.3f\n', contrasts(c), snr_dB(c), snr_power(c), snr_prctCorrect(c))
+    fprintf('Contrast %1.4f \t SNR dB: %2.3f, d-prime/power: %2.3f,  percent correct: %2.3f\n', contrasts, snr_dB, snr_power, snr_prctCorrect)
     
-end
+return
 
 
 
