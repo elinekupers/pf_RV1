@@ -67,6 +67,7 @@ rgcParams.inputType  = inputType;          % are we dealing with cone absorption
 rgcParams.cone2RGCRatio = ratio;           % linear ratio
 rgcParams.seed       = seed;
 
+cone2RGCRatio = ratio; 
 %% Compute RGC responses from linear layer
 
 if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir')
