@@ -1,6 +1,6 @@
 function [expName, subFolder, seed] = pfRV1_prepHPC(taskID)
 
-% function to run different experiments with different seeds on NYU's HPC
+% function to run different experiments with different seeds on NYUs HPC
 
 
 
@@ -10,7 +10,7 @@ switch taskID
         expName   = 'conedensity';
         subFolder = sprintf('run%d', taskID);
         seed      = taskID;
-        
+
     case {6, 7, 8, 9, 10}
         expName   = 'defaultnophaseshift';
         subFolder = sprintf('run%d', taskID-5);
