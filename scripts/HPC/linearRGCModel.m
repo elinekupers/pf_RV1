@@ -1,4 +1,4 @@
-function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio)
+function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
 %
 % First attempt script to build an RGC layer on top of the current
 % computational observer model. The RGC layer is based on the retina-V1
@@ -67,63 +67,63 @@ rgcParams.inputType  = inputType;          % are we dealing with cone absorption
 rgcParams.cone2RGCRatio = ratio;           % linear ratio
 rgcParams.seed       = seed;
 
-cone2RGCRatio = ratio; 
+cone2RGCRatio = ratio;
 %% Compute RGC responses from linear layer
 
-if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc'), 'dir')
-    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc'));
+if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder), 'dir')
+    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder));
 end
 
+% Subsampling ratio
 fprintf('Ratio %d:1\n', cone2RGCRatio)
 
-% preallocate space for current ratio
-allRGCResponses = cell(1, length(contrasts));
+fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 
-% Subsampling ratio
+allRGCResponses = cell(1,length(contrasts));
 
-for eccen = 1:length(eccentricities)
-    fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
-    
-    % Load cone responses (current or absorption rates)
-    for c = 1:length(contrasts)
-        fprintf('Contrast %1.4f\n', contrasts(c))
-        % get filename, load cone responses
-        d     = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
-        tmp   = load(fullfile(d.folder, d.name));
-        fn    = fieldnames(tmp);
-        if strcmp(inputType, 'absorptionrate')
-            coneResponse = tmp.(fn{strcmpi(fn,'absorptions')});
-        else
-            coneResponse = tmp.(fn{strcmpi(fn,'current')});
-        end
-        sparams      = tmp.(fn{strcmpi(fn,'sparams')});
-        
-        % Define dimensions of cone mosaic and other params of stim
-        sz = size(coneResponse);
-        rgcParams.nTrials    = sz(1);      % #trials per stim orientation and phase
-        rgcParams.cRows      = sz(2);      % #cones on y-axis
-        rgcParams.cCols      = sz(3);      % #cones on x-axis
-        rgcParams.timePoints = sz(4);      % ms
-        
-        rgcParams.fov        = sparams.sceneFOV;   % deg
-        rgcParams.c          = contrasts(c);       % contrast of stim % Michelson
-        rgcParams.stimSF     = expParams.spatFreq; % cpd
-        
-        % Do it!
-        [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
-        
-        if saveData
-            parsave(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
-            parsave(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
-        end
-        allRGCResponses{c} = rgcResponse;
+% Load cone responses (current or absorption rates)
+for c = 1:length(contrasts)
+    fprintf('Contrast %1.4f\n', contrasts(c))
+    % get filename, load cone responses
+    d     = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
+    tmp   = load(fullfile(d.folder, d.name));
+    fn    = fieldnames(tmp);
+    if strcmp(inputType, 'absorptionrate')
+        coneResponse = tmp.(fn{strcmpi(fn,'absorptions')});
+    else
+        coneResponse = tmp.(fn{strcmpi(fn,'current')});
     end
+    sparams      = tmp.(fn{strcmpi(fn,'sparams')});
+    
+    % Define dimensions of cone mosaic and other params of stim
+    sz = size(coneResponse);
+    rgcParams.nTrials    = sz(1);      % #trials per stim orientation and phase
+    rgcParams.cRows      = sz(2);      % #cones on y-axis
+    rgcParams.cCols      = sz(3);      % #cones on x-axis
+    rgcParams.timePoints = sz(4);      % ms
+    
+    rgcParams.fov        = sparams.sceneFOV;   % deg
+    rgcParams.c          = contrasts(c);       % contrast of stim % Michelson
+    rgcParams.stimSF     = expParams.spatFreq; % cpd
+    
+    % Do it!
+    [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
+    
+    if saveData
+        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+    end
+    
+    allRGCResponses{c} = rgcResponse;
 end
 
 if saveData
     parsave(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'DoGfilter',DoGfilter, 'rgcParams', rgcParams, 'contrasts',contrasts, 'expParams',expParams);
     parsave(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcArray_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'rgcarray',rgcarray, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
 end
+
+
+
 
 
 %% Get 2-AFC SVM Linear Classifier accuracy
@@ -152,14 +152,14 @@ switch expName
             dataIn = allRGCResponses{c};
             
             % Get SVM classifier performance in percent correct
-            P_svm(c) = getClassifierAccuracy(dataIn);
+            P_svm(c) = getClassifierAccuracy(dataIn(:,:,:,selectTimePoints,:));
             fprintf('%s\n',P_svm(c))
         end
         
         % Save classification results
         if saveData
             if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder)); end
-            parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
+            parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
         end
 end
 

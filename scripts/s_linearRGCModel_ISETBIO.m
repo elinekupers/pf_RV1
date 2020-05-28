@@ -183,7 +183,7 @@ switch expName
                 load(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', ii,  contrasts(c), inputType)), 'rgcResponse');
                 
                 % get RGC responses one ratio at a time
-                dataIn = allRGCResponses(ii,c);
+                dataIn = rgcResponse(:,:,:,selectTimePoints,:);
                 
                 % Get SVM classifier performance in percent correct
                 P_svm(ii,c) = getClassifierAccuracy(dataIn);
@@ -197,7 +197,7 @@ switch expName
             for c = 1:length(contrasts)
                 load(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', ii,  contrasts(c), inputType)), 'rgcResponse');
 
-                dataIn = rgcResponse;
+                dataIn = rgcResponse(:,:,:,selectTimePoints,:);
                 %             dataIn = allRGCResponses(ii,:);
                 P_snr(ii,c) = getSNRAccuracy(dataIn,expParams,inputType, ii, c, baseFolder);
             end
@@ -212,56 +212,33 @@ switch expName
 end
 
 %% Visualize outcome
-lineColors = lines(size(P_snr,1));
+lineColors = lines(size(P_svm,1));
 figure(2); clf; hold all;
-for ii = 1:size(P_snr,1)
-    plot(5e-5, P_snr(ii,1), 'o','color', lineColors(ii,:), 'lineWidth',4);
-    plot(contrasts(2:end), P_snr(ii,2:end),  'o-','color', lineColors(ii,:), 'lineWidth',4);
+for ii = 1:size(P_svm,1)
+    plot(4e-5, P_svm(ii,1), 'o','color', lineColors(ii,:), 'lineWidth',4);
+    plot(contrasts(2:end), P_svm(ii,2:end),  'o-','color', lineColors(ii,:), 'lineWidth',4);
 end
 
 xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
 title('2AFC SNR classification performance'); box off;
 set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
-set(gca, 'XLim', [4e-5 max(contrasts)], 'YLim', [0.4 1]);
+set(gca, 'XLim', [4e-5 max(contrasts)], 'YLim', [40 100]);
+
+% Plot accuracy from cone absorption classification for comparison
+absorptionClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', subFolder, sprintf('Classify*.mat')));
+absorptionP = load(fullfile(absorptionClassifyData.folder, absorptionClassifyData.name));
+
+plot(absorptionP.expParams.contrastLevels(2:end), absorptionP.accuracy(2:end), 'ko:', 'lineWidth',4);
+plot(4e-5, absorptionP.accuracy(1), 'ko', 'lineWidth',4);
+
 legend({'', 'RGC:Cones=1:1',...
     '', 'RGC:Cones=1:2', ...
     '', 'RGC:Cones=1:3', ...
     '', 'RGC:Cones=1:4', ...
-    '', 'RGC:Cones=1:5'}, 'Location', 'Best'); legend boxoff;
+    '', 'RGC:Cones=1:5', ...
+    '', 'Cone absorptions'}, 'Location', 'Best'); legend boxoff;
 
-    hgexport(gcf, fullfile(pfRV1rootPath, 'figures', 'SNR_ClassifierPerformance_RGC-absorptions_defaultnophaseshift'))
-    print(fullfile(pfRV1rootPath, 'figures', 'SNR_ClassifierPerformance_RGC-absorptions_defaultnophaseshift'), '-dpng')
+hgexport(gcf, fullfile(pfRV1rootPath, 'figures', sprintf('SVM_ClassifierPerformance_RGC-absorptions_%s_%s',expName, subFolder)))
+print(fullfile(pfRV1rootPath, 'figures', sprintf('SVM_ClassifierPerformance_RGC-absorptions_defaultnophaseshift_%s_%s',expName, subFolder)), '-dpng')
 
-%% Plot accuracy
-
-% load accuracy for cone current and absorptions
-rgcP = load(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classify_rgcResponse_Cones2RGC1_%s.mat', inputType)));
-
-currentClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', subFolder, sprintf('current_*.mat')));
-currentP = load(fullfile(currentClassifyData.folder, currentClassifyData.name));
-
-absorptionClassifyData = dir(fullfile(baseFolder, 'data', expName, 'classification', subFolder, sprintf('Classify*.mat')));
-absorptionP = load(fullfile(absorptionClassifyData.folder, absorptionClassifyData.name));
-
-lineColors = lines(size(P,1));
-figure(2); clf; hold all;
-for ii = 1:size(P,1)
-    plot(rgcP.expParams.contrastLevelsPC, P(ii,:),  'o-','color', lineColors(ii,:), 'lineWidth',4);
-end
-plot(currentP.expParams.contrastLevelsPC, currentP.accuracy, 'ko--', 'lineWidth',4);
-plot(currentP.expParams.contrastLevelsPC, absorptionP.accuracy, 'ko:', 'lineWidth',4);
-xlabel('Stimulus contrast (%)'); ylabel('Accuracy (% correct)');
-title('2AFC SVM classification performance')
-set(gca, 'XScale', 'log', 'TickDir', 'out', 'FontSize', 16);
-
-legend({'RGC:Cones=1:1',...
-    'RGC:Cones=1:2', ...
-    'RGC:Cones=1:3', ...
-    'RGC:Cones=1:4', ...
-    'RGC:Cones=1:5', ...
-    'Cone current', 'Cone absorptions'}, 'Location', 'Best'); legend boxoff
-
-if saveFigs
-    hgexport(gcf, fullfile(pfRV1rootPath, 'figures', 'Performance_SVMClassifier_RGC-absorptions_vs_Cones'))
-end
 
