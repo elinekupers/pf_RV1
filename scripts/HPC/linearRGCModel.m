@@ -20,7 +20,7 @@ function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
 %% 0. Define params
 
 % Base folder for data and figures
-baseFolder = '/scratch/ek99/pf_RV1';
+% baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/'; %'/scratch/ek99/pf_RV1';
 
 rng(seed);
 
@@ -124,44 +124,44 @@ end
 
 
 
-
-
-%% Get 2-AFC SVM Linear Classifier accuracy
-
-switch expName
-    
-    case 'idealobserver'
-        % Preallocate space
-        P_ideal = NaN(1,length(contrasts));
-        
-        % Loop over ratios
-        dataIn = allRGCResponses{:};
-        P_ideal = getIdealObserverAccuracy(dataIn, expName, subFolder, baseFolder, allRGCResponses);
-        
-        % Save classification results
-        if saveData
-            if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
-            save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifyIdeal_rgcResponse_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'P_ideal', 'rgcParams', 'expParams', '-v7.3')
-        end
-        
-    case {'defaultnophaseshift', 'default','conedensity'}
-        % Preallocate space
-        P_svm = NaN(1,length(contrasts));
-        
-        for c = 1:length(contrasts)
-            dataIn = allRGCResponses{c};
-            
-            % Get SVM classifier performance in percent correct
-            P_svm(c) = getClassifierAccuracy(dataIn(:,:,:,selectTimePoints,:));
-            fprintf('%s\n',P_svm(c))
-        end
-        
-        % Save classification results
-        if saveData
-            if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder)); end
-            parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
-        end
-end
+% 
+% 
+% %% Get 2-AFC SVM Linear Classifier accuracy
+% 
+% switch expName
+%     
+%     case 'idealobserver'
+%         % Preallocate space
+%         P_ideal = NaN(1,length(contrasts));
+%         
+%         % Loop over ratios
+%         dataIn = allRGCResponses{:};
+%         P_ideal = getIdealObserverAccuracy(dataIn, expName, subFolder, baseFolder, allRGCResponses);
+%         
+%         % Save classification results
+%         if saveData
+%             if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc'), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc')); end
+%             save(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', sprintf('classifyIdeal_rgcResponse_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'P_ideal', 'rgcParams', 'expParams', '-v7.3')
+%         end
+%         
+%     case {'defaultnophaseshift', 'default','conedensity'}
+%         % Preallocate space
+%         P_svm = NaN(1,length(contrasts));
+%         
+%         for c = 1:length(contrasts)
+%             dataIn = allRGCResponses{c};
+%             
+%             % Get SVM classifier performance in percent correct
+%             P_svm(c) = getClassifierAccuracy(dataIn(:,:,:,selectTimePoints,:));
+%             fprintf('%s\n',P_svm(c))
+%         end
+%         
+%         % Save classification results
+%         if saveData
+%             if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder), 'dir'); mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder)); end
+%             parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
+%         end
+% end
 
 return
 
