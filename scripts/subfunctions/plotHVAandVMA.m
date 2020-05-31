@@ -112,7 +112,7 @@ end
 
 
 % Go plot
-yl     = [-20,110]; %[-1 1] * max(abs([HVAvsEccen, VMAvsEccen]));
+yl     = [-10,100]; %[-1 1] * max(abs([HVAvsEccen, VMAvsEccen]));
 
 fH = figure; clf; set(gcf, 'Color', 'w', 'Position', [418, 269, 1905, 872]); hold all;
 subplot(121);
