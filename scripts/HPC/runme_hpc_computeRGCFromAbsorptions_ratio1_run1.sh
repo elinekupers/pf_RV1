@@ -17,7 +17,7 @@ cd /scratch/ek99/pf_RV1/
 # If the files you are running are not in the same folder as this script,
 # you can insert "addpath(genpath('/PATH/TO/FILES/'));" before the command
 # you want to run.
-matlab -nodisplay -r "addpath(genpath('/scratch/ek99/pf_RV1')); addpath(genpath('/scratch/ek99/JWLOrientedGabor')); addpath(genpath('/scratch/ek99/isetbio')); [expName, subFolder, seed] = pfRV1_prepHPC(1); linearRGCModel(pfRV1rootPath, subFolder, expName, seed, 1,$SLURM_ARRAY_TASK_ID)); exit()"
+matlab -nodisplay -r "addpath(genpath('/scratch/ek99/pf_RV1')); addpath(genpath('/scratch/ek99/JWLOrientedGabor')); addpath(genpath('/scratch/ek99/isetbio')); [expName, subFolder, seed] = pfRV1_prepHPC(1); linearRGCModel(pfRV1rootPath, subFolder, expName, seed, 1,$SLURM_ARRAY_TASK_ID); exit()"
 
 exit
 
