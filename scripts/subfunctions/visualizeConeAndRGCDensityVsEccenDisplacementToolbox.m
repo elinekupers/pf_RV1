@@ -15,10 +15,10 @@ fH6 = plotMeridiansVsEccen(meridianData.rgcDisplMap, regularSupportPosDegVisual,
 
 % ------------ Plot HVA and VMA vs eccen for cones and mRGC RF ------------
 titleStr = 'cone density Curcio et al 1990 - rgcDisplacement map';
-fH7  = plotHVAandVMA(meridianData.conesCurcioDisplMap, regularSupportPosDegVisual, titleStr, figureDir, saveFigures);
+fH7  = plotHVAandVMA(meridianData.conesCurcioDisplMap, [], regularSupportPosDegVisual, false, titleStr, figureDir, saveFigures);
 
 titleStr = 'mRGC RF density - rgcDisplacement map';
-fH8  = plotHVAandVMA(meridianData.rgcDisplMap, regularSupportPosDegVisual, titleStr, figureDir, saveFigures);
+fH8  = plotHVAandVMA(meridianData.rgcDisplMap, [], regularSupportPosDegVisual,  false, titleStr, figureDir, saveFigures);
 
 
 % ----- Compare Density vs eccen for cones using ISETBIO vs Song vs rgcDisplacement Toolbox --------

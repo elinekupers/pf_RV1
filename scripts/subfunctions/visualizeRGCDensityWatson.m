@@ -3,11 +3,11 @@ function [fH9, fH10] = visualizeRGCDensityWatson(rgcWatson, eccDeg, fH8, figureD
 
 % ------ Visualize density and HVA vs VMA ------ 
 titleStr = 'mRGC RF density Watson 2014 - ISETBIO';
-fH9 = plotMeridiansVsEccen(rgcWatson, eccDeg, titleStr, [], figureDir, saveFigures);
+fH9 = plotMeridiansVsEccen(rgcWatson, [], eccDeg, false, titleStr, [], figureDir, saveFigures);
 
 
 titleStr = 'HVA VMA mRGCf density Watson 2014 - ISETBIO';
-fH10 = plotHVAandVMA(rgcWatson, eccDeg, titleStr, figureDir, saveFigures);
+fH10 = plotHVAandVMA(rgcWatson, [], eccDeg, false, titleStr, figureDir, saveFigures);
 
 figure(fH10);  % Watson data
 h = get(fH8, 'Children'); 
@@ -22,7 +22,7 @@ legend(l([3,1]), {'HVA mRGCf density Watson 2014 - ISETBIO', ...
                   'HVA mRGCf Barnett & Aguirre 2018 - rgcDisplacementMap'}, 'Location', 'SouthEast');
 legend boxoff;
 title('mRGC HVA')
-set(gca, 'YLim', [-10, 80]);
+set(gca, 'YLim', [-20, 100]);
 
 
 axes(fH10.Children(3))
