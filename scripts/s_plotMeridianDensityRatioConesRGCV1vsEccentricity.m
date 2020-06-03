@@ -1,4 +1,4 @@
-% s_plotDensityRatioConesRGCV1
+% s_plotMeridianDensityRatioConesRGCV1vsEccentricity
 
 cd(pfRV1rootPath)
 
@@ -8,7 +8,7 @@ saveFigures = true;
 loadDataFromServer = true;
 
 % Make figure dir if doesnt exist
-figureDir = fullfile(pfRV1rootPath, 'figures', 'NatureNeuro', 'Figure3_supplement');
+figureDir = fullfile(pfRV1rootPath, 'figures', 'DissertationChapter');
 if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
 
@@ -17,11 +17,16 @@ if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 %  ----------------------------------------
 
 % Eccentricity range
-eccDeg = 0:0.05:60; % deg
+dtEcc  = 0.05;      % deg
+maxEcc = 60;        % deg
+eccDeg = 0:dtEcc:maxEcc; % deg
 
 % Polar angle range
-angDeg = [(0:5:360), 0];  % deg
+dtAng  = 5;   % deg
+maxAng = 360; % deg
+angDeg = [(0:dtAng:maxAng), 0];  % deg
 
+% Get cone density data from Curcio et al. (1990) and Song et al. (2011)
 conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
 conesSongIsetbioYoung = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Young');
 conesSongIsetbioOld   = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Old');
@@ -32,15 +37,6 @@ end
 
 [fH1, fH2, fH3, fH4] = visualizeConeDensityVsEccenIsetbio(conesCurcioIsetbio, conesSongIsetbioYoung, ...
                        conesSongIsetbioOld, meridianIdx, eccDeg, figureDir, saveFigures);
-
-%% ------------------------------------------------------------
-%  --------- (Not yet implemented) RGC from ISETBIO -----------
-%  ------------------------------------------------------------
-
-% fov = 2; % deg
-% getRGCDensityIsetbio(fov)
-
-
 
 
 %% -----------------------------------------------------------------
@@ -59,7 +55,7 @@ if loadDataFromServer
 else
     % Get data (by computation, takes about 20 minutes)
     [allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = ...
-        getConeAndRGCDensityDisplacementMap(0.01, 5, 40, ...
+        getConeAndRGCDensityDisplacementMap(0.01, 5, max(eccDeg), ...
             10, true, true);
 end
 
@@ -68,63 +64,70 @@ for ii = 1:length(cardinalMeridianAngles)
     [~, meridianIdx(ii)] = find(sampleResPolAng==cardinalMeridianAngles(ii));
 end
 
-% pixelsPerDegVisual = 10;
-% imRdim = (max(regularSupportPosDegVisual) * pixelsPerDegVisual * 2) -1;
-% x = linspace(-1.* (max(regularSupportPosDegVisual)-.1),(max(regularSupportPosDegVisual)-.1), imRdim)
-% xy = meshgrid(x);
-% 
-% figure; surf(x,x,log10(allMaps{3}.data))
+% ------------ Plot HVA and VMA vs eccen for Cones and mRGC ------------
 
 [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
                             mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, fH4, figureDir, saveFigures);
-
-                        
-                        
+               
 %% -----------------------------------------------------------------
-%  ------------ CONES, RGCs & V1 from Noah's SFN poster --------------
+%  -------------------- mRGCs from Watson 2014 ---------------------
 %  -----------------------------------------------------------------
 
-
-% Eccentricity range
-eccDeg = 0:0.05:40; % deg
-
-
-% Get data
+% Get mRGC density data per meridian
 rgcWatson  = getMRGCRFWatson(eccDeg);
+
+% ------------ Plot HVA and VMA vs eccen for mRGC ------------
 
 [fH9, fH10] = visualizeRGCDensityWatson(rgcWatson, eccDeg, fH8, figureDir, saveFigures);
 
+%% -----------------------------------------------------------------
+%  ----------------- V1 CMF from Benson et al 2018 -----------------
+%  -----------------------------------------------------------------
 
-% ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
-
-% Get CMF from HCP:
+% Get CMF data from HCP all 181 subjects, separate for lh and rh:
 v1CMF = getV1CMFHCP;
+numSubjects = 181;
 
-% Compute HVA and VMA for different wedge sizes
-asymV1CMF = struct();
-
+% Get all fieldnames
 fn = fieldnames(v1CMF.individualSubjects);
 
+% Asymmetry percent diff calculation
+asymPrct = @(x1, x2) 100.*((x1-x2)./nanmean([x1,x2],2));
+
+% predefine variables
+asymV1CMF = struct();
+allData   = [];
+
+% Loop over eccentricities and visual field regions
 for ii = 1:numel(fn)
     
     theseData = v1CMF.individualSubjects.(fn{ii});
+    allData = cat(3,allData,theseData);
     
-    horz = mean([theseData(1:181,1), theseData(182:end,1)],2);
-    vert = mean([theseData(1:181,2), theseData(182:end,2)],2);
-    upr  = mean([theseData(1:181,3), theseData(182:end,3)],2);
-    lowr = mean([theseData(1:181,4), theseData(182:end,4)],2);
+    % Average across right and left hemispheres
+    horz = nanmean([theseData(1:numSubjects,1), theseData((numSubjects+1):end,1)],2);
+    vert = nanmean([theseData(1:numSubjects,2), theseData((numSubjects+1):end,2)],2);
+    upr  = nanmean([theseData(1:numSubjects,3), theseData((numSubjects+1):end,3)],2);
+    lowr = nanmean([theseData(1:numSubjects,4), theseData((numSubjects+1):end,4)],2);
     
-    asymV1CMF.(['hvaAll' fn{ii}]) = 100.* ((horz - vert) ./ mean([horz,vert],2));
-    asymV1CMF.(['vmaAll' fn{ii}]) = 100.* ((lowr - upr) ./ mean([upr,lowr],2));
+    % Compute asymmetry in percent change from mean, for each subject
+    asymV1CMF.(['hvaAll' fn{ii}]) = asymPrct(horz,vert);
+    asymV1CMF.(['vmaAll' fn{ii}]) = asymPrct(lowr,upr);
 end
 
 % Get CMF from & Hoyt (1991)
 CMF_HH91 = HortonHoytCMF(eccDeg);
+
 % Get CMF from Rovamo & Virsu (1979)
 CMF_RV79 = RovamuVirsuCMF(eccDeg);
-meridCMF_RV79 = [CMF_RV79.nasalR; CMF_RV79.superiorR; CMF_RV79.temporalR; CMF_RV79.inferiorR];
+
+meridCMF_RV79 = [CMF_RV79.nasalR; ...
+                CMF_RV79.superiorR; ...
+                CMF_RV79.temporalR; ...
+                CMF_RV79.inferiorR];
 
 
+% ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
 [fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(asymV1CMF, meridCMF_RV79, ...
                 CMF_HH91, eccDeg, fH10, saveFigures, figureDir);
 
