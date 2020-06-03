@@ -12,7 +12,7 @@
 cd(pfRV1rootPath)
 
 % Define general parameters
-saveData               = false;
+saveData               = true;
 saveFigures            = true;
 loadDataFromServer     = true; % if false, we will recompute the density and surface area numbers (takes 20min+)
 
@@ -37,6 +37,8 @@ meridianLabel          = {'nasal meridian','superior meridian','temporal meridia
 %  --------- CONES from Curcio et al (1991) using ISETBIO ----------
 %  -----------------------------------------------------------------
 
+dataSet = 'Curcio1990';
+
 % Get eccentricity range
 eccenBoundary = [0,8]; % degrees visual angle
 dt            = 0.1; % sample rate, degrees visual angle
@@ -51,7 +53,6 @@ if loadDataFromServer
     % load data from mat-file
     load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'coneDensity')
 else % recompute data
-    dataSet = 'Curcio1990';
     coneDensity = getConeDensityIsetbio(angDeg, eccDeg, dataSet);
     if saveData
         save(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'coneDensity','eccDeg', 'angDeg','cardinalMeridianAngles','meridianLabel')
@@ -93,8 +94,8 @@ titleStr = 'mRGCf density Watson 2014 - ISETBIO';
 fH2             = plotHVAandVMA(mRGCRFDensityPerDeg2, [], eccDeg, visualFieldFlag, titleStr, figureDir, saveFigures);
 
 % Legend labels
-labels = {{'HVA Cones Curcio et al (1991)', '', 'HVA mRGC Watson (2014)'}, ...
-          {'VMA Cones Curcio et al (1991)', '', 'VMA mRGC Watson (2014)'}};
+labels = {{'HVA Cones Curcio et al (1990)', '', 'HVA mRGC Watson (2014)'}, ...
+          {'VMA Cones Curcio et al (1990)', '', 'VMA mRGC Watson (2014)'}};
 
 % Add mRGC data to cone density figure
 figure(fH1); h = get(fH2, 'Children');
@@ -112,7 +113,7 @@ plot(h(1).Children(2).XData,h(1).Children(2).YData, ...
             'LineStyle', h(1).Children(2).LineStyle); hold on
 legend(labels{2}, 'Location', 'EastOutside'); legend boxoff 
 
-closefig(fH2)
+close(fH2)
 
 %% -----------------------------------------------------------------
 %  -------------- V1-V2 CMF from HCP Retinotopy dataset ------------
