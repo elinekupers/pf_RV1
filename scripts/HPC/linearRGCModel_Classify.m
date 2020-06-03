@@ -74,12 +74,12 @@ switch expName
         
         for c = 1:length(contrasts)
             
-            load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
+            load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
             dataIn = rgcResponse;
             
             % Get SVM classifier performance in percent correct
             P_svm(c) = getClassifierAccuracy(dataIn(:,:,:,selectTimePoints,:));
-            fprintf('%s\n',P_svm(c))
+            fprintf('%3.2f\n',P_svm(c))
         end
         
         % Save classification results
