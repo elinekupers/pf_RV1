@@ -1,4 +1,5 @@
-function fH = plotMeridiansVsEccen(meridianData, regularSupportPosDegVisual, titleStr, yl, figureDir, saveFigures)
+function fH = plotMeridiansVsEccen(meridianData, regularSupportPosDegVisual, ...
+                                    titleStr, yl, figureDir, saveFigures)
 % Function to plot meridia data as a function of eccentricity. 
 %
 % INPUT:
