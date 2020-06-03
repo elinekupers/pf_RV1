@@ -176,6 +176,18 @@ stdHVA = std(bootDataHVA, [],2,'omitnan');
 mdVMA  = mean(bootDataVMA,2);
 stdVMA = std(bootDataVMA, [],2,'omitnan');
 
+% prepare x-axes
+eccen = mean([1, 2; ... (1.5 degree)
+    2, 3; ... (2.5 degree)
+    3, 4; ... (3.5 degree)
+    4, 5; ... (4.5 degree)
+    5, 6],2); % (5.5 degree)
+
+% Duplicate eccentricity x axis, alternate for HVA and VMA
+allEccen = NaN(1,length(eccen)*2);
+allEccen(1:2:end) = eccen;
+allEccen(2:2:end) = eccen;
+
 % Fit a 2nd degree polynomial to data
 [pHVA,error1]    = polyfit(allEccen(selectGroupHVA),mdHVA',2);
 [fitHVA, delta1] = polyval(pHVA,1:6, error1);
@@ -190,17 +202,7 @@ R2_VMA = 1 - (error2.normr/norm(mdVMA - mean(mdVMA)))^2;
 
 %  ------------ Plot HVA and VMA vs eccen for HCP mean subject -----------
 
-% prepare x-axes
-eccen = mean([1, 2; ... (1.5 degree)
-    2, 3; ... (2.5 degree)
-    3, 4; ... (3.5 degree)
-    4, 5; ... (4.5 degree)
-    5, 6],2); % (5.5 degree)
 
-% Duplicate eccentricity x axis, alternate for HVA and VMA
-allEccen = NaN(1,length(eccen)*2);
-allEccen(1:2:end) = eccen;
-allEccen(2:2:end) = eccen;
 
 figure(fH1); 
 axes(fH1.Children(4));
