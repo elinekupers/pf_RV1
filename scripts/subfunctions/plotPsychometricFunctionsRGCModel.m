@@ -181,7 +181,7 @@ if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
     savefig(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio)))
     hgexport(gcf,fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d.eps',expName,ratio)))
-    print(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio), '-dpng'))
+    print(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio)), '-dpng')
 end
 
 %% 7. Plot density thresholds
