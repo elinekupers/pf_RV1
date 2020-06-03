@@ -82,10 +82,10 @@ fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 allRGCResponses = cell(1,length(contrasts));
 
 % Load cone responses (current or absorption rates)
-for c = 1:length(contrasts)
+for c = 10:length(contrasts)
     fprintf('Contrast %1.4f\n', contrasts(c))
     % get filename, load cone responses
-    d     = dir(fullfile(baseFolder, 'data', expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
+    d     = dir(fullfile('/Volumes/server/Projects/PerformanceFieldsIsetBio/data/coneabsorptions', expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
     tmp   = load(fullfile(d.folder, d.name));
     fn    = fieldnames(tmp);
     if strcmp(inputType, 'absorptionrate')

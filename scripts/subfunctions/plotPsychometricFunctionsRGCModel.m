@@ -43,7 +43,7 @@ expParams    = loadExpParams(expName, false);
 [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
 
 % Where to find data and save figures
-dataPth     = fullfile(baseFolder,'data','classification','rgc',expName,subFolder);
+dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', subFolder);
 figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, subFolder, sprintf('ratio%d', ratio));
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
@@ -179,12 +179,13 @@ legend([h(end:-2:2)],labels{plotIdx}, 'Location','bestoutside'); legend boxoff
 
 if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
-    savefig(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s',expName)))
-    hgexport(gcf,fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s.eps',expName)))
+    savefig(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio)))
+    hgexport(gcf,fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d.eps',expName,ratio)))
+    print(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio), '-dpng'))
 end
 
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName) || strcmp('eccbasedcoverage',expName)
     
-    plotConeDensityVSThreshold(expName, fit, xThresh, 'fitTypeName','poly2', 'saveFig', saveFig, 'figurePth', figurePth);    
+    plotConeDensityVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth);    
 end
