@@ -12,7 +12,7 @@ WatsonRGCCalc = WatsonRGCModel('generateAllFigures', false);
 % Compute total RGC RF density along the superior meridian for a number of eccentricities
 meridianLabel = {'nasal meridian','superior meridian','temporal meridian','inferior meridian'};
 for ii = 1:length(meridianLabel)
-    rgcWatson(ii,:) = WatsonRGCCalc.midgetRGCRFDensity(eccDeg, meridianLabel{ii}, 'RFs per deg2');
+    [~,rgcWatson(ii,:)] = WatsonRGCCalc.mRGCRFSpacingAndDensityAlongMeridian(eccDeg, meridianLabel{ii}, 'deg', 'deg^2');
 end
 
 
