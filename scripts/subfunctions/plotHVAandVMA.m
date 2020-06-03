@@ -1,4 +1,5 @@
-function fH = plotHVAandVMA(meridianData, confidenceIntervals, regularSupportPosDegVisual, visualFieldFlag, titleStr, figureDir, saveFigures)
+function fH = plotHVAandVMA(meridianData, confidenceIntervals, ...
+    regularSupportPosDegVisual, visualFieldFlag, titleStr, figureDir, saveFigures)
 % Function to plot HVA and VMA as a function of eccentricity.
 %
 % INPUT:
@@ -112,7 +113,7 @@ end
 
 
 % Go plot
-yl     = [-10,100]; %[-1 1] * max(abs([HVAvsEccen, VMAvsEccen]));
+yl     = [-20,100]; %[-1 1] * max(abs([HVAvsEccen, VMAvsEccen]));
 
 fH = figure; clf; set(gcf, 'Color', 'w', 'Position', [418, 269, 1905, 872]); hold all;
 subplot(121);
