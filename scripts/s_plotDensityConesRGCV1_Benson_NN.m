@@ -32,13 +32,6 @@ nboot = 1000;
 cardinalMeridianAngles = [0 90 180 270]; % deg: 0=nasal, 90=superior, 180=temporal and 270=inferior retina of left eye
 meridianLabel          = {'nasal meridian','superior meridian','temporal meridian','inferior meridian'};
 
-
-%% -----------------------------------------------------------------
-%  --------- CONES from Curcio et al (1991) using ISETBIO ----------
-%  -----------------------------------------------------------------
-
-dataSet = 'Curcio1990';
-
 % Get eccentricity range
 eccenBoundary = [0,8]; % degrees visual angle
 dt            = 0.1; % sample rate, degrees visual angle
@@ -47,6 +40,12 @@ eccDeg        = eccenBoundary(1):dt:eccenBoundary(2); % degrees visual angle
 % Polar angle range
 angDeg           = 0:dt:360;  % degrees visual angle
 [~,meridiansIdx] = intersect(angDeg,cardinalMeridianAngles);
+
+%% -----------------------------------------------------------------
+%  --------- CONES from Curcio et al (1991) using ISETBIO ----------
+%  -----------------------------------------------------------------
+
+dataSet = 'Curcio1990';
 
 % Load data from ISETBIO (takes a few minutes)
 if loadDataFromServer
@@ -120,8 +119,11 @@ close(fH2)
 %  -----------------------------------------------------------------
 
 % Get CMF data from HCP all 181 subjects, separate for lh and rh:
-v1CMF = getV1CMFHCP;
-numSubjects = 181;
+wedgeWidth = 10; %  wedge width in deg
+v1CMF = getV1CMFHCP(wedgeWidth);
+
+% Get number of subjects from data
+numSubjects = size(v1CMF.individualSubjects.eccen1_2,1)./2;
 
 % Get all fieldnames
 fn = fieldnames(v1CMF.individualSubjects);
@@ -131,13 +133,16 @@ asymPrct = @(x1, x2) 100.*((x1-x2)./nanmean([x1,x2],2));
 
 % predefine variables
 asymV1CMF = struct();
-allData   = [];
+allUpr    = [];
+allLowr   = [];
+allHorz   = [];
+allVert   = [];
 
 % Loop over eccentricities and visual field regions
 for ii = 1:numel(fn)
     
+    % Get subject data for eccen bin
     theseData = v1CMF.individualSubjects.(fn{ii});
-    allData = cat(3,allData,theseData);
     
     % Average across right and left hemispheres
     horz = nanmean([theseData(1:numSubjects,1), theseData((numSubjects+1):end,1)],2);
@@ -148,33 +153,49 @@ for ii = 1:numel(fn)
     % Compute asymmetry in percent change from mean, for each subject
     asymV1CMF.(['hvaAll' fn{ii}]) = asymPrct(horz,vert);
     asymV1CMF.(['vmaAll' fn{ii}]) = asymPrct(lowr,upr);
+    
+    allUpr  = [allUpr upr];
+    allLowr = [allLowr lowr];
+    
+    allHorz = [allHorz horz];
+    allVert = [allVert vert];
+
 end
 
-
 % Get new fieldnames
-fn = fieldnames(asymV1CMF);
+fn2 = fieldnames(asymV1CMF);
 
-selectGroupHVA = 1:2:length(fn);
-selectGroupVMA = 2:2:length(fn);
+selectGroupHVA = 1:2:length(fn2);
+selectGroupVMA = 2:2:length(fn2);
 
 % preallocate space for bootstraps
 bootDataHVA = NaN(length(selectGroupHVA), nboot);
 bootDataVMA = bootDataHVA;
 
 % Bootstrap the median asymmetry for HVA and VMA across subjects
-for f = 1:length(selectGroupHVA)
-    bootDataHVA(f,:) = bootstrp(nboot, @(x) nanmedian(x), asymV1CMF.(fn{selectGroupHVA(f)}));
+for f = 1:length(selectGroupHVA)    
+    bootDataHVA(f,:) = bootstrp(nboot, @(x) nanmedian(x), asymV1CMF.(fn2{selectGroupHVA(f)}));
 end
 for f = 1:length(selectGroupVMA)
-    bootDataVMA(f,:) = bootstrp(nboot, @(x) nanmedian(x), asymV1CMF.(fn{selectGroupVMA(f)}));
+    bootDataVMA(f,:) = bootstrp(nboot, @(x) nanmedian(x), asymV1CMF.(fn2{selectGroupVMA(f)}));
 end
 
-% Compute sample mean / se asymmetry across bootstraps
-mdHVA  = mean(bootDataHVA,2);
+% Compute sample median / se asymmetry across bootstraps, per eccentricity
+mdHVA  = median(bootDataHVA,2);
 stdHVA = std(bootDataHVA, [],2,'omitnan');
 
-mdVMA  = mean(bootDataVMA,2);
+mdVMA  = median(bootDataVMA,2);
 stdVMA = std(bootDataVMA, [],2,'omitnan');
+
+%% For Noah: Debug part to check order of operations
+
+hvaSumWedge = asymPrct(sum(allLowr,2),sum(allUpr,2));
+vmaSumWedge = asymPrct(sum(allHorz,2),sum(allVert,2));
+
+bootDataHVASum = bootstrp(nboot, @(x) nanmedian(x), hvaSumWedge);
+bootDataVMASum = bootstrp(nboot, @(x) nanmedian(x), vmaSumWedge);
+
+%% Plot figure
 
 % prepare x-axes
 eccen = mean([1, 2; ... (1.5 degree)
@@ -183,16 +204,11 @@ eccen = mean([1, 2; ... (1.5 degree)
     4, 5; ... (4.5 degree)
     5, 6],2); % (5.5 degree)
 
-% Duplicate eccentricity x axis, alternate for HVA and VMA
-allEccen = NaN(1,length(eccen)*2);
-allEccen(1:2:end) = eccen;
-allEccen(2:2:end) = eccen;
-
 % Fit a 2nd degree polynomial to data
-[pHVA,error1]    = polyfit(allEccen(selectGroupHVA),mdHVA',2);
+[pHVA,error1]    = polyfit(eccen,mdHVA,2);
 [fitHVA, delta1] = polyval(pHVA,1:6, error1);
 
-[pVMA, error2]   = polyfit(allEccen(selectGroupVMA),mdVMA',2);
+[pVMA, error2]   = polyfit(eccen,mdVMA,2);
 [fitVMA, delta2] = polyval(pVMA,1:6, error2);
 
 % Compute R2
@@ -202,37 +218,39 @@ R2_VMA = 1 - (error2.normr/norm(mdVMA - mean(mdVMA)))^2;
 
 %  ------------ Plot HVA and VMA vs eccen for HCP mean subject -----------
 
-
-
 figure(fH1); 
 axes(fH1.Children(4));
 for ii = 1:length(selectGroupHVA)
-    plot(allEccen(selectGroupHVA(ii)),mdHVA(ii), 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k', 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 12);
-    errorbar(allEccen(selectGroupHVA(ii)), mdHVA(ii), stdHVA(ii), 'Color', 'k', 'LineWidth', lw+1);
+    plot(eccen(ii),mdHVA(ii), 'MarkerFaceColor', 'k', 'MarkerEdgeColor', 'k', 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 12);
+    errorbar(eccen(ii), mdHVA(ii), stdHVA(ii), 'Color', 'k', 'LineWidth', lw+1);
 end
+
+% Make plot pretty
 l = findobj(gca, 'Type', 'Line');
 legend(l([8,6,2]), {'Cones', 'mRGC', 'V1/V2 cortex'}, 'Location', 'EastOutside'); legend boxoff;
 plot(1:6, fitHVA, 'k:', 'LineWidth', lw);
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')  
 set(gca', 'xlim', [0 max(eccDeg)], 'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
-title('HVA')
+title(sprintf('HVA (V1 fit R2: %1.2f)',R2_HVA))
 
 % Plot HCP integral data points and HVA
 axes(fH1.Children(4))
 for ii = 1:length(selectGroupVMA)
-    plot(allEccen(selectGroupVMA(ii)), mdVMA(ii), 'MarkerFaceColor', 'k', 'Color', 'k', 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 12);
-    errorbar(allEccen(selectGroupVMA(ii)), mdVMA(ii), stdVMA(ii), 'Color', 'k', 'LineWidth', lw+1);
+    plot(eccen(ii), mdVMA(ii), 'MarkerFaceColor', 'k', 'Color', 'k', 'Marker', 'o', 'LineWidth', lw, 'MarkerSize', 12);
+    errorbar(eccen(ii), mdVMA(ii), stdVMA(ii), 'Color', 'k', 'LineWidth', lw+1);
 end
+
+% Make plot pretty
 l = findobj(gca, 'Type', 'Line');
 legend(l([8,6,2]), {'Cones', 'mRGC', 'V1/V2 cortex'}, 'Location', 'EastOutside'); legend boxoff;
 plot(1:6, fitVMA, 'k:', 'LineWidth', lw)
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')  
 set(gca', 'xlim', [0 max(eccDeg)], 'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
-title('VMA')
+title(sprintf('VMA (V1 fit R2: %1.2f)',R2_VMA))
 
-
+% Save figures
 if saveFigures
     savefig(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'))
     print(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'), '-depsc')

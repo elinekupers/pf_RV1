@@ -1,4 +1,4 @@
-function dataMeridians = getV1CMFHCP()
+function dataMeridians = getV1CMFHCP(wedgeWidth)
 % Function to compute V1 cortical magnification factor data (CMF) in mm2
 % cortex/deg2 visual field) between 1 and 6 degrees eccentricity.
 %
@@ -23,7 +23,7 @@ allMasks.eccen3_4   = (T1.min_eccentricity_deg==3 & T1.max_eccentricity_deg==4);
 allMasks.eccen4_5   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==5); % deg
 allMasks.eccen5_6   = (T1.min_eccentricity_deg==5 & T1.max_eccentricity_deg==6); % deg
 
-polang              = T1.angle_delta_deg==10; % deg
+polang              = T1.angle_delta_deg==wedgeWidth; % deg
 
 %% 2. Get CMF data per polar angle
 

@@ -167,10 +167,10 @@ end
 
 % Save data
 if saveData
-    save(fullfile(dataDir', 'coneDensityByMeridian.mat'), 'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng');
-    save(fullfile(dataDir, 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng');
-    save(fullfile(dataDir', 'mRFtoConeDensityByMeridian.mat'),'mRFtoConeDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng');
-    save(fullfile(dataDir, 'rgcDensityByMeridian.mat'), 'rgcDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng');
+    save(fullfile(dataDir', 'coneDensityByMeridian.mat'), 'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng', '-v7.3');
+    save(fullfile(dataDir, 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng', '-v7.3');
+    save(fullfile(dataDir', 'mRFtoConeDensityByMeridian.mat'),'mRFtoConeDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng', '-v7.3');
+    save(fullfile(dataDir, 'rgcDensityByMeridian.mat'), 'rgcDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng', '-v7.3');
     save(fullfile(dataDir, 'rgcDisplacementMaps.mat'), 'allMaps');
 end
 
