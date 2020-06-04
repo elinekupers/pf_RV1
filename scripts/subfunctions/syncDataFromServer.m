@@ -21,16 +21,23 @@ if ~exist('projectPath', 'var') || isempty(projectPath)
 end
 
 % Path to data on the server
-dataDirServer  = fullfile(projectPath, 'data');
+dataDirServer  = fullfile(projectPath, 'data', 'densityData');
+dataV1 = fullfile(dataDirServer, 'HCP', 'DROI_table.csv');
+dataIsetbio   = fullfile(dataDirServer, 'isetbio');
+dataRGCDispl  = fullfile(dataDirServer, 'rgcDisplMap');
+
 
 % Path to data on local machine (git repo)
-dataDirGitRepo = fullfile(pfRV1rootPath, 'external');
+dataDirGitRepo = fullfile(pfRV1rootPath, 'external', 'data');
 
 % Make data directory if it does not exist
 if ~exist(dataDirGitRepo, 'dir'); mkdir(dataDirGitRepo); end
 
 % Sync data
-system(sprintf('rsync -zvhr %s %s', dataDirServer, dataDirGitRepo));
+system(sprintf('rsync -zvh %s %s', dataV1,dataDirGitRepo ));
+system(sprintf('rsync -zvhr %s %s', dataIsetbio, dataDirGitRepo));
+system(sprintf('rsync -zvhr %s %s', dataRGCDispl, dataDirGitRepo));
+
 
 
 return
