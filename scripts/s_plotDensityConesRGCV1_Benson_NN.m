@@ -14,7 +14,7 @@ cd(pfRV1rootPath)
 % Define general parameters
 saveData               = true;
 saveFigures            = true;
-loadDataFromServer     = true; % if false, we will recompute the density and surface area numbers (takes 20min+)
+loadDataFromServer     = false; % if false, we will recompute the density and surface area numbers (takes 20min+)
 
 % Make figure dir if doesnt exist
 figureDir = fullfile(pfRV1rootPath, 'figures', 'BensonAsymmetriesNatureNeuro');
@@ -50,16 +50,23 @@ dataSet = 'Curcio1990';
 % Load data from ISETBIO (takes a few minutes)
 if loadDataFromServer
     % load data from mat-file
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'coneDensity')
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg')
+    coneDensity = conesCurcioIsetbio;
+    clear conesCurcioIsetbio;
+    
+    [~,eccenBoundary] = intersect(eccDeg,[eccenBoundary(1)+1,eccenBoundary(2)+1]);
+    eccenLimits = [eccenBoundary(1):eccenBoundary(2)];
+    
 else % recompute data
     coneDensity = getConeDensityIsetbio(angDeg, eccDeg, dataSet);
+    eccenLimits = ((eccenBoundary(1)/dt)+1):1:((eccenBoundary(2)/dt)+1);
+
     if saveData
         save(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'coneDensity','eccDeg', 'angDeg','cardinalMeridianAngles','meridianLabel')
     end
 end
 
 % Limit data to 1-6 deg eccen for plotting
-eccenLimits = ((eccenBoundary(1)/dt)+1):1:((eccenBoundary(2)/dt)+1);
 meridianData.conesCurcioIsetbio = coneDensity(meridiansIdx,eccenLimits)';
 
 % ------ Visualize HVA and VMA ------
@@ -186,6 +193,10 @@ stdHVA = std(bootDataHVA, [],2,'omitnan');
 
 mdVMA  = median(bootDataVMA,2);
 stdVMA = std(bootDataVMA, [],2,'omitnan');
+
+if saveData
+   save(fullfile(pfRV1rootPath, 'external', 'data', 'V1CMF_HCP.mat'),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
+end
 
 %% For Noah: Debug part to check order of operations
 
