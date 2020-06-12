@@ -3,7 +3,7 @@
 cd(pfRV1rootPath)
 
 cardinalMeridianAngles = [0 90 180 270]; % (nasal, superior, temporal and inferior)
-saveData    = false;
+saveData    = true;
 saveFigures = true;
 loadDataFromServer = true;
 
@@ -17,7 +17,7 @@ if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 %  ----------------------------------------
 
 % Eccentricity range
-dtEcc  = 0.05;      % deg
+dtEcc  = 0.01;      % deg
 maxEcc = 60;        % deg
 eccDeg = 0:dtEcc:maxEcc; % deg
 
@@ -26,17 +26,30 @@ dtAng  = 5;   % deg
 maxAng = 360; % deg
 angDeg = [(0:dtAng:maxAng), 0];  % deg
 
-% Get cone density data from Curcio et al. (1990) and Song et al. (2011)
-conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
-conesSongIsetbioYoung = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Young');
-conesSongIsetbioOld   = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Old');
+if loadDataFromServer
+    % Get data from server
+    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'), 'file')
+        dataDir = syncDataFromServer();
+    end
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'))
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesSongISETBIO.mat'))
+else
+    % Get cone density data from Curcio et al. (1990) and Song et al. (2011)
+    conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
+    conesSongIsetbioYoung = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Young');
+    if saveData
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'), 'conesCurcioIsetbio', 'eccDeg', 'angDeg', '-v7.3');
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'conesSongISETBIO.mat'), 'conesSongIsetbioYoung', 'eccDeg', 'angDeg', '-v7.3');
+    end
+end
+
 
 for ii = 1:length(cardinalMeridianAngles)
     [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
 end
 
 [fH1, fH2, fH3, fH4] = visualizeConeDensityVsEccenIsetbio(conesCurcioIsetbio, conesSongIsetbioYoung, ...
-                       conesSongIsetbioOld, meridianIdx, eccDeg, figureDir, saveFigures);
+                       meridianIdx, eccDeg, figureDir, saveFigures);
 
 
 %% -----------------------------------------------------------------
@@ -55,13 +68,13 @@ if loadDataFromServer
 else
     % Get data (by computation, takes about 20 minutes)
     [allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = ...
-        getConeAndRGCDensityDisplacementMap(0.01, 5, max(eccDeg), ...
+        getConeAndRGCDensityDisplacementMap(dtEcc, dtAng, max(eccDeg), ...
             10, true, true);
 end
 
 % Plot density along cardinal meridians vs eccen
 for ii = 1:length(cardinalMeridianAngles)
-    [~, meridianIdx(ii)] = find(sampleResPolAng==cardinalMeridianAngles(ii));
+    [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
 end
 
 % ------------ Plot HVA and VMA vs eccen for Cones and mRGC ------------
@@ -73,19 +86,27 @@ end
 %  -------------------- mRGCs from Watson 2014 ---------------------
 %  -----------------------------------------------------------------
 
-% Get mRGC density data per meridian
-rgcWatson  = getMRGCRFWatson(eccDeg);
+if loadDataFromServer
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
+else
+    % Get mRGC density data per meridian
+    mRGCRFDensityPerDeg2  = getMRGCRFWatson(eccDeg);
+    
+    if saveData
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg','cardinalMeridianAngles');
+    end
+end
 
 % ------------ Plot HVA and VMA vs eccen for mRGC ------------
 
-[fH9, fH10] = visualizeRGCDensityWatson(rgcWatson, eccDeg, fH8, figureDir, saveFigures);
+[fH9, fH10] = visualizeRGCDensityWatson(mRGCRFDensityPerDeg2, eccDeg, fH8, figureDir, saveFigures);
 
 %% -----------------------------------------------------------------
 %  ----------------- V1 CMF from Benson et al 2018 -----------------
 %  -----------------------------------------------------------------
 
 % Get CMF data from HCP all 181 subjects, separate for lh and rh:
-v1CMF = getV1CMFHCP;
+v1CMF = getV1CMFHCP(10);
 numSubjects = 181;
 
 % Get all fieldnames
@@ -115,6 +136,13 @@ for ii = 1:numel(fn)
     asymV1CMF.(['vmaAll' fn{ii}]) = asymPrct(lowr,upr);
 end
 
+if saveData
+    save(fullfile(pfRV1rootPath, 'external', 'data', 'V1CMFHPC.mat'), 'asymV1CMF')
+end
+
+nboot = 1000; 
+
+
 % Get CMF from & Hoyt (1991)
 CMF_HH91 = HortonHoytCMF(eccDeg);
 
@@ -128,6 +156,6 @@ meridCMF_RV79 = [CMF_RV79.nasalR; ...
 
 
 % ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
-[fH13, fH14, fH15, fH16] = visualizeV1CMFHCP(asymV1CMF, meridCMF_RV79, ...
+[fH13, fH14, fH15] = visualizeV1CMFHCP(asymV1CMF, meridCMF_RV79, ...
                 CMF_HH91, eccDeg, fH10, saveFigures, figureDir);
 
