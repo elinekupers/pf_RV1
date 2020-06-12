@@ -12,7 +12,7 @@ function dataMeridians = getV1CMFHCP(wedgeWidth)
 
 %% 0. Read data in
 T1 = readtable(fullfile(pfRV1rootPath, 'external','data', 'DROI_table.csv'));
-cmfData = T1.surface_area_mm2;
+surfaceArea = T1.surface_area_mm2;
 
 numSubjects = size(T1,1);
 
@@ -24,6 +24,7 @@ allMasks.eccen4_5   = (T1.min_eccentricity_deg==4 & T1.max_eccentricity_deg==5);
 allMasks.eccen5_6   = (T1.min_eccentricity_deg==5 & T1.max_eccentricity_deg==6); % deg
 
 polang              = T1.angle_delta_deg==wedgeWidth; % deg
+
 
 %% 2. Get CMF data per polar angle
 
@@ -51,10 +52,10 @@ for jj = 1:numel(fn)
     % Select eccentricity mask
     thisEccenMask = allMasks.(fn{jj});
     % Select corresponding CMF data for visual field, eccen, polar ang
-    horz    = cmfData(horizontalVF & thisEccenMask & polang);
-    vert    = cmfData(verticalVF & thisEccenMask & polang);
-    upr     = cmfData(upperVF & thisEccenMask & polang);
-    lowr    = cmfData(lowerVF & thisEccenMask & polang);
+    horz    = surfaceArea(horizontalVF & thisEccenMask & polang) ./ ;
+    vert    = surfaceArea(verticalVF & thisEccenMask & polang) ./ ;
+    upr     = surfaceArea(upperVF & thisEccenMask & polang) ./ ;
+    lowr    = surfaceArea(lowerVF & thisEccenMask & polang) ./ ;
     
     % Concatenate data
     dataMeridians.individualSubjects.(fn{jj})   = cat(3, [horz, vert, upr, lowr]);
