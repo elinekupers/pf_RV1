@@ -117,6 +117,14 @@ for eccen = 1:nrEccen
         accuracy.P = accuracy.P';
     end
     
+    
+    if (ratio == 5) && (any(eccen==[11,12,13]))
+        if length(expParams.contrastLevels)<length(accuracy.P)
+            expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
+        end
+        xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
+    end
+    
     %% 4. Fit Weibull
     % Make a Weibull function first with contrast levels and then search for
     % the best fit with the classifier data
@@ -154,6 +162,16 @@ plotIdx = 1:length(fit.ctrpred);
 % Loop over all functions to plot
 for ii = plotIdx
     
+    if (ratio == 5) && (any(ii==[11,12,13]))
+        if length(expParams.contrastLevels)<length(accuracy.P)
+            expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
+        end
+        xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
+    else
+        expParams    = loadExpParams(expName, false);
+        [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
+    end
+    
     % What to plot?
     dataToPlot = fit.data{ii};
     fitToPlot  = fit.ctrpred{ii}*100;
@@ -184,8 +202,14 @@ if saveFig
     print(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio)), '-dpng')
 end
 
+% Save thresholds and fits
+if ~exist(fullfile(baseFolder,'data',expName,'thresholds'), 'dir'); mkdir(fullfile(baseFolder,'data',expName,'thresholds')); end
+save(fullfile(baseFolder,'data',expName,'thresholds', sprintf('cThresholds_ratio%d_%s', ratio, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
+
+
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName) || strcmp('eccbasedcoverage',expName)
     
     plotConeDensityVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth);    
 end
+
