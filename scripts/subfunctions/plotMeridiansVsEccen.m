@@ -55,7 +55,7 @@ for mm = 1:length(cardinalMeridianAngles)
     xlabel('Eccentricity (deg)');
     ylabel('Density [counts / deg retina ^2]');
     title(titleStr)
-    set(gca, 'YScale', 'log', 'TickDir', 'out', 'FontSize', 14)
+    set(gca, 'YScale', 'log', 'XScale', 'log','TickDir', 'out', 'FontSize', 14)
     if mm == 4
         legend(cardinalMeridianLabels, 'FontSize', 14); legend boxoff
     end
@@ -71,6 +71,7 @@ if saveFigures
     figName = strrep(titleStr,' ','_');
     savefig(fH, fullfile(figureDir, figName))
     print(fullfile(figureDir, figName), '-dpdf', '-fillpage')
+    hgexport(fH,fullfile(figureDir, figName))
     
 end
 
