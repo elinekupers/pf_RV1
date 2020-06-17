@@ -39,8 +39,12 @@ elseif strcmp(inputType, 'current')
     contrasts = expParams.contrastLevelsPC; % PC stands for photocurrent
     selectTimePoints = 51:78; % photocurrent responses are temporally delayed
 end
-
+    
 eccentricities = expParams.eccentricities; % deg (should be 4.5 deg)
+
+if (ratio == 5) && (any(eccen==[11,12,13]))
+    contrasts = [contrasts, 0.2:0.1:1];
+end
 
 if strcmp(inputType, 'current')
     preFix = 'current_';
@@ -110,8 +114,8 @@ for c = 1:length(contrasts)
     [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
     
     if saveData
-        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
-        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly', sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
     end
     
     allRGCResponses{c} = rgcResponse;
