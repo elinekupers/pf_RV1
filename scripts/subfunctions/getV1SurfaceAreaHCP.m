@@ -1,6 +1,7 @@
-function dataMeridians = getV1CMFHCP(wedgeWidth)
-% Function to compute V1 cortical magnification factor data (CMF) in mm2
-% cortex/deg2 visual field) between 1 and 6 degrees eccentricity.
+function dataMeridians = getV1SurfaceAreaHCP(wedgeWidth)
+% Function to compute V1 surface area in mm2 on the cortex. 
+% Note: Not yet CMF! Divide by deg2 visual field for each eccentricity wedge
+% between 1 and 6 degrees eccentricity.
 %
 % These data come from the published article:
 %   Benson, Jamison, Arcaro, Vu,Glasser, Coalson, VanEssen, Yacoub, Ugurbil,
@@ -52,10 +53,10 @@ for jj = 1:numel(fn)
     % Select eccentricity mask
     thisEccenMask = allMasks.(fn{jj});
     % Select corresponding CMF data for visual field, eccen, polar ang
-    horz    = surfaceArea(horizontalVF & thisEccenMask & polang) ./ ;
-    vert    = surfaceArea(verticalVF & thisEccenMask & polang) ./ ;
-    upr     = surfaceArea(upperVF & thisEccenMask & polang) ./ ;
-    lowr    = surfaceArea(lowerVF & thisEccenMask & polang) ./ ;
+    horz    = surfaceArea(horizontalVF & thisEccenMask & polang);
+    vert    = surfaceArea(verticalVF & thisEccenMask & polang);
+    upr     = surfaceArea(upperVF & thisEccenMask & polang);
+    lowr    = surfaceArea(lowerVF & thisEccenMask & polang);
     
     % Concatenate data
     dataMeridians.individualSubjects.(fn{jj})   = cat(3, [horz, vert, upr, lowr]);
