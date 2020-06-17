@@ -17,8 +17,8 @@ if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 %  ----------------------------------------
 
 % Eccentricity range
-dtEcc  = 0.01;      % deg
-maxEcc = 60;        % deg
+dtEcc  = 0.05;      % deg
+maxEcc = 40;        % deg
 eccDeg = 0:dtEcc:maxEcc; % deg
 
 % Polar angle range
