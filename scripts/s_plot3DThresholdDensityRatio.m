@@ -130,10 +130,10 @@ ratio_at_idx = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
 
 % Find the ratio of interest in model grid for nasal and inferior retina
 upsampledRatios = 2./ratioQ; % go from cone:rgc to 2rgc:cone 
-[~,rn] = min(abs(upsampledRatios-ratio_at_idx(1))); % nasal retina
-[~,rs] = min(abs(upsampledRatios-ratio_at_idx(2))); % superior retina
-[~,rt] = min(abs(upsampledRatios-ratio_at_idx(3))); % temporal retina
-[~,ri] = min(abs(upsampledRatios-ratio_at_idx(4))); % inferior retina
+[err_rn,rn] = min(abs(upsampledRatios-ratio_at_idx(1))); % nasal retina
+[err_rs,rs] = min(abs(upsampledRatios-ratio_at_idx(2))); % superior retina
+[err_rt,rt] = min(abs(upsampledRatios-ratio_at_idx(3))); % temporal retina
+[err_ri,ri] = min(abs(upsampledRatios-ratio_at_idx(4))); % inferior retina
 
 % Get cone density at chosen eccentricity for each meridian
 observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratio_at_idx;
