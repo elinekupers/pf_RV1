@@ -21,6 +21,10 @@ end
 
 eccentricities = expParams.eccentricities; % deg (should be 4.5 deg)
 
+if (ratio == 5) && (any(eccen==[11,12,13]))
+    contrasts = [contrasts, 0.2:0.1:1];
+end
+
 if strcmp(inputType, 'current')
     preFix = 'current_';
 else
