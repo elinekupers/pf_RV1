@@ -6,21 +6,21 @@ cd(pfRV1rootPath)
 
 cardinalMeridianAngles = [0 90 180 270]; % (nasal, superior, temporal and inferior)
 colors = {'r', 'b','g', 'k'};
-xScale = 'log';
-yScale = 'log';
+xScaleDensity = 'log';
+yScaleDensity = 'log';
 
-xl = [0.5 10]; % or [0 40];
-if strcmp(yScale, 'log')
-    ylR  = 10.^[2 4.5]; % for density
-    ylV  = 10.^[0 2.5];
-    ylR2 = 10.^[-1 0.5]; % for transformations
-    ylV2 = 10.^[1 2.5]; % for transformations
+xl = [0.9 40]; % or [0 40];
+if strcmp(yScaleDensity, 'log')
+    ylR  = 10.^[0.5 4]; % 3.5 log units for retinal density
+    ylV  = 10.^[-1 2.5]; % 3.5 log units for cortical surface area
 else
     ylR  = [0 25000];   % for density
     ylV  = [0 250];     % for V1 CMF
-    ylR2 = [0 3.5];  % for transformations
-    ylV2 = [0 200];     % for transformations
 end
+
+ylR2 = [0 25];  % for transformations
+ylV2 = [0 200];  % for transformations
+
 saveData    = true;
 saveFigures = true;
 loadDataFromServer = true;
@@ -242,6 +242,8 @@ meridCMF_RV79 = [CMF_RV79.nasalR; ...
 
 % Compute cone : RGC 
 cone2mRGC   = conesCurcioIsetbio(meridianIdx,:) ./ mRGCRFDensityPerDeg2;
+cone2mRGC_wHorz  = [nanmean([cone2mRGC(1,:);cone2mRGC(3,:)]); cone2mRGC(2,:); cone2mRGC(4,:)];
+
 
 % rotate/reflect watson rgc data to get visual field coordinates
 mRGCWatsonMeridiaIsetbioVF(1,:) = mRGCRFDensityPerDeg2(3,:); % nasal retina -> temporal retina (=nasal VF) 
@@ -265,53 +267,43 @@ RGCWatson2V1HCP   = mRGCWatsonVF_wHorz ./ HCPFits;
 
 %% ------------ Visualize meridan cone density vs eccentricity ------------
 
-fH = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [712    39   779   766])
+fH = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [ 305 39 1225 766])
 
 % Cones
-subplot(311); hold on;
+subplot(131); hold on;
 for ii = 1:4
     plot(eccDeg, conesCurcioIsetbio(meridianIdx(ii),:), colors{ii}, 'LineWidth', 2);
 end
 ylabel('Density (counts/deg^2)');
-title('Cones on all 4 meridia retina (Curcio et al. 1990)')
-set(gca, 'XLim', xl, 'YLim', ylR, 'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
+title('Cone density (Curcio et al. 1990)')
+set(gca, 'XLim', xl, 'YLim', ylR, 'XScale', xScaleDensity, 'YScale', yScaleDensity, 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
-if strcmp(xScale, 'log')
-    if max(xl)==40
-     set(gca, 'XTick', [1 10 max(xl)], 'XTickLabel', {'1' '10' '40'})
-    else
-      set(gca, 'XTick', [1 max(xl)], 'XTickLabel', {'1' '10'})
-    end
-end
+set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
+
 
 % Add legend
 legend({'Nasal Retina', 'Superior Retina', 'Temporal Retina', 'Inferior Retina'}, ...
      'Location', 'Best'); legend boxoff;
 
 % mRGC
-subplot(312); hold on;
+subplot(132); hold on;
 for ii = 1:4
     plot(eccDeg, mRGCRFDensityPerDeg2(ii,:), colors{ii}, 'LineWidth', 2);
 end
 ylabel('Density (counts/deg^2)');
-title('mRGC RF density on all meridia retina (Watson 2015)')
-set(gca, 'XLim', xl, 'YLim', ylR,'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
+title('mRGC RF density (Watson 2015)')
+set(gca, 'XLim', xl, 'YLim', ylR,'XScale', xScaleDensity, 'YScale', yScaleDensity, 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
-if strcmp(xScale, 'log')
-    if max(xl)==40
-     set(gca, 'XTick', [1 10 max(xl)], 'XTickLabel', {'1' '10' '40'})
-    else
-      set(gca, 'XTick', [1 max(xl)], 'XTickLabel', {'1' '10'})
-    end
-end
+set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
+
 % Add legend
 legend({'Nasal Retina', 'Superior Retina', 'Temporal Retina', 'Inferior Retina'}, ...
      'Location', 'Best'); legend boxoff;
 
 % V1 CMF
-subplot(313); cla; hold on;
+subplot(133); cla; hold on;
 
 for k = 1:5 % Plot HCP data
     errorbar(eccenHCP(k), medianHorzVF(k), seHorzVF(k), 'LineWidth',2 , 'color', 'k');
@@ -338,24 +330,18 @@ l = findobj(gca, 'Type', 'Line');
 legend(l([4,2,1,3]),{'Horton & Hoyt 91', 'HCP Horizontal VF', 'HCP Lower VF', ...
         'HCP Upper VF'}, 'Location', 'Best'); legend boxoff;
 % Make figure pretty
-set(gca,  'XLim', xl, 'YLim', ylV, 'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
+set(gca,  'XLim', xl, 'YLim', ylV, 'XScale', xScaleDensity, 'YScale', yScaleDensity, 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
+set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
+
 ylabel('CMF (mm^2/deg^2)'); xlabel('Eccentricity (deg)');
 box off;
-title('V1 CMF (Horton & Hoyt, 91 and HCP Benson et al. 18)');
-
-if strcmp(xScale, 'log')
-    if max(xl)==40
-     set(gca, 'XTick', [1 10 max(xl)], 'XTickLabel', {'1' '10' '40'})
-    else
-      set(gca, 'XTick', [1 max(xl)], 'XTickLabel', {'1' '10'})
-    end
-end
+title('V1 CMF (H&H, 91; Benson et al. 18)');
 
 if saveFigures
     % Save matlab fig and pdf
-    figName = sprintf('Fig2A_DensityPolarAngle_XYScale%s%s_maxEccen%d',xScale, yScale,xl(2));
+    figName = sprintf('Fig2A_DensityPolarAngle_XYScale%s%s_maxEccen%d',xScaleDensity, yScaleDensity,xl(2));
     savefig(fH, fullfile(figureDir, figName))
     hgexport(fH, fullfile(figureDir, figName))
     print(fH, fullfile(figureDir, figName) , '-dpng')
@@ -364,50 +350,37 @@ end
 
 %% Transformations cones to mRGC to V1
 fH = figure(2); clf; set(gcf, 'Color', 'w', 'Position', [983   301   594   504])
+colors_Horz = {'r', 'b', 'k'};
 
 subplot(211); cla; hold on;
-for ii = 1:4
-    plot(eccDeg, cone2mRGC(ii,:), 'color', colors{ii}, 'LineWidth', 2);
+for ii = 1:3
+    plot(eccDeg, cone2mRGC_wHorz(ii,:), 'color', colors_Horz{ii}, 'LineWidth', 2);
 end
 
 xlabel('Eccentricity (deg)');
 ylabel('Ratio');
 title('Ratio nasal cone density : mRGC RF density')
-set(gca, 'XLim', xl, 'YLim', ylR2,'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
+set(gca, 'XLim', xl, 'YLim', ylR2,'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
-
-if strcmp(xScale, 'log')
-    if max(xl)==40
-     set(gca, 'XTick', [1 10 max(xl)], 'XTickLabel', {'1' '10' '40'})
-    else
-      set(gca, 'XTick', [1 max(xl)], 'XTickLabel', {'1' '10'})
-    end
-end
+set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
 
 % Add legend
-legend({'Nasal Retina', 'Superior Retina', 'Temporal Retina', 'Inferior Retina'}, ...
+legend({'Horizontal Retina', 'Superior Retina', 'Inferior Retina'}, ...
      'Location', 'Best'); legend boxoff;
 
 subplot(212);cla; hold all;
-colors_Horz = {'r', 'b', 'k'};
-plot([xl(1), xl(1)], [ylV2(1), ylV2(2)], 'k', 'LineWidth',0.5)
 for ii = 1:3
     plot(x, RGCWatson2V1HCP(ii,:), 'color', colors_Horz{ii}, 'LineWidth', 2);
 end
 xlabel('Eccentricity (deg)');
 ylabel('Ratio (counts/mm^2)');
 title('Ratio nasal mRGC RF density : V1 CMF')
-set(gca, 'XLim', [0 10], 'YLim', ylV2, 'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
-         'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
+set(gca, 'XLim', [0 10], 'YLim', ylV2, 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
+         'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
-if strcmp(xScale, 'log')
-    if max(xl)==40
-     set(gca, 'XTick', [1 10 max(xl)], 'XTickLabel', {'1' '10' '40'})
-    else
-      set(gca, 'XTick', [1 max(xl)], 'XTickLabel', {'1' '10'})
-    end
-end
+set(gca, 'XTick', [1,3,6,10], 'XTickLabel', sprintfc('%d',[1,3,6,10]))
+
 % Add legend
 legend({'Horizontal VF', 'HCP Lower VF', ...
         'HCP Upper VF'}, 'Location', 'Best'); legend boxoff;
@@ -415,7 +388,7 @@ legend({'Horizontal VF', 'HCP Lower VF', ...
 
 if saveFigures
     % Save matlab fig and pdf
-    figName = sprintf('Fig2B_TransformsPolarAngle_XYScale%s%s_maxEccen%d',xScale, yScale,xl(2));
+    figName = sprintf('Fig2B_TransformsPolarAngle_XYScale%s%s_maxEccen%d',xScaleDensity, yScaleDensity,xl(2));
     savefig(fH, fullfile(figureDir, figName))
     hgexport(fH, fullfile(figureDir, figName))
     print(fH, fullfile(figureDir, figName) , '-dpng')
