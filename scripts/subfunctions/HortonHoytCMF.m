@@ -5,7 +5,9 @@ function CMF = HortonHoytCMF(eccentricity)
 
 % CMF in mm2/deg2, eccentricity in deg
 
-    CMF_mmperdeg = 17.3./(eccentricity+0.75);
-    CMF = CMF_mmperdeg.^2;
+%     CMF_mmperdeg = 17.3./(eccentricity+0.75);
+%     CMF = CMF_mmperdeg.^2;
+    
+     CMF = 300./((eccentricity+0.75).^2);
 
 end
