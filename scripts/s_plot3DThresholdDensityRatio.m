@@ -139,13 +139,14 @@ upsampledRatios = 2./ratioQ; % go from cone:rgc to 2rgc:cone
 observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratio_at_idx;
 
 % Check: should be equal to curcio data
-isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute))
+isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
 
-% Fit new line to upsampled contrast threshold data for nasal and inferior mRGC:cone ratio
+% Fit new line to upsampled contrast threshold data for all meridians
 lm_rn = fitlm(log10(xThresh), ZUpsampled(rn,:));
 lm_rs = fitlm(log10(xThresh), ZUpsampled(rs,:));
 lm_rt = fitlm(log10(xThresh), ZUpsampled(rt,:));
 lm_ri = fitlm(log10(xThresh), ZUpsampled(ri,:));
+
 
 % Predicted threshold
 cThreshold = @(x, a_coeff, b_intcpt) (a_coeff* log10(x)) + b_intcpt;
@@ -153,10 +154,75 @@ cThreshold = @(x, a_coeff, b_intcpt) (a_coeff* log10(x)) + b_intcpt;
 % Predicted cone density
 predictedDensity = @(y, a_coeff, b_intcpt) (10.^((y-b_intcpt)./a_coeff));
 
-% Get contrast levels from model
-predictedContrastThreshold.nasalRetina    = cThreshold(observedConesAtEccen(1), lm_rn.Coefficients.Estimate(2), lm_rn.Coefficients.Estimate(1));
-predictedContrastThreshold.superiorRetina = cThreshold(observedConesAtEccen(2), lm_rs.Coefficients.Estimate(2), lm_rs.Coefficients.Estimate(1));
-predictedContrastThreshold.temporalRetina = cThreshold(observedConesAtEccen(3), lm_rt.Coefficients.Estimate(2), lm_rt.Coefficients.Estimate(1));
-predictedContrastThreshold.inferiorRetina = cThreshold(observedConesAtEccen(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
+% Get contrast levels from model at 4.5 deg eccen
+% Nasal retina
+predictedContrastThreshold(1) = cThreshold(observedConesAtEccen(1), lm_rn.Coefficients.Estimate(2), lm_rn.Coefficients.Estimate(1));
+% Superior retina
+predictedContrastThreshold(2) = cThreshold(observedConesAtEccen(2), lm_rs.Coefficients.Estimate(2), lm_rs.Coefficients.Estimate(1));
+% Temporal retina
+predictedContrastThreshold(3) = cThreshold(observedConesAtEccen(3), lm_rt.Coefficients.Estimate(2), lm_rt.Coefficients.Estimate(1));
+% Inferior retina
+predictedContrastThreshold(4) = cThreshold(observedConesAtEccen(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
 
 
+% Double the difference in cone density from the mean, for each meridian
+errorRatioConeDensity = 0.5*abs(observedConesAtEccen-mean(observedConesAtEccen));
+
+% Nasal retina
+predictedError(1) = cThreshold(errorRatioConeDensity(1), lm_rn.Coefficients.Estimate(2), lm_rn.Coefficients.Estimate(1));
+% Superior retina
+predictedError(2) = cThreshold(errorRatioConeDensity(2), lm_rs.Coefficients.Estimate(2), lm_rs.Coefficients.Estimate(1));
+% Temporal retina
+predictedError(3) = cThreshold(errorRatioConeDensity(3), lm_rt.Coefficients.Estimate(2), lm_rt.Coefficients.Estimate(1));
+% Inferior retina
+predictedError(4) = cThreshold(errorRatioConeDensity(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
+
+
+
+
+%% COMPARE TO MODEL TO BEHAVIOR
+
+% Convert thresholds to sensitivity
+predContrastSensitivityMEAN    = 1./(predictedContrastThreshold./100);
+predContrastSensitivityMEAN_wHorz_VF = [mean(predContrastSensitivityMEAN([1 3])); predContrastSensitivityMEAN(4); predContrastSensitivityMEAN(2)];
+predContrastSensitivityERROR    = 1./(predictedError./100);
+predContrastSensitivityERROR_wHorz_VF = [mean(predContrastSensitivityERROR([1 3])); predContrastSensitivityERROR(4); predContrastSensitivityERROR(2)];
+
+
+
+obsContrastSensitivityMEAN_VF = [46.4938; 47.7887; 28.9764; 34.2813];
+obsContrastSensitivityERROR_VF = [2.66468; 1.8450; 1.6445; 2.0505];
+obsContrastSensitivityMEAN_wHorz_VF = [mean(obsContrastSensitivityMEAN_VF([1 2])), obsContrastSensitivityMEAN_VF(3), obsContrastSensitivityMEAN_VF(4)];
+obsContrastSensitivityERROR_wHorz_VF = [mean(obsContrastSensitivityERROR_VF([1 2])), obsContrastSensitivityERROR_VF(3), obsContrastSensitivityERROR_VF(4)];
+
+% Bar plot to compare against behavior
+
+condNames   = {'HVM', 'UVM','LVM'};
+condColor   = [63, 121, 204; 228, 65, 69]/255;
+
+fH4 = figure(4); set(fH4, 'position',[ 824   348   688   439], 'color', 'w'); clf; hold all;
+
+subplot(121)
+bar(1:3, predContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(1,:)); hold on
+errorbar(1:3,predContrastSensitivityMEAN_wHorz_VF,predContrastSensitivityERROR_wHorz_VF,'.','color', 'k', 'LineWidth',2);
+
+% format figure
+set(gca,'xlim',[0.2,3.8],'ylim',[0, 70], 'TickDir', 'out', 'XTick', [1:3], ...
+    'XTickLabel', condNames, 'FontSize', 14);
+box off; ylabel('Contrast sensitivity'); title('Model'); 
+
+subplot(122)
+bar(1:3, obsContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(2,:)); hold on
+errorbar(1:3,obsContrastSensitivityMEAN_wHorz_VF,obsContrastSensitivityERROR_wHorz_VF, '.','color', 'k', 'LineWidth',2);
+
+% format figure
+set(gca,'xlim',[0.2,3.8],'ylim',[0, 70], 'TickDir', 'out', 'XTick', [1:3], ...
+    'XTickLabel', condNames, 'FontSize', 14);
+box off; title('Behavior'); 
+
+
+if saveFigs
+    hgexport(fH4, fullfile(figureFolder, 'Sensitivity_Model_vs_Behavior_4_5eccen'))
+    savefig(fH4, fullfile(figureFolder, 'Sensitivity_Model_vs_Behavior_4_5eccen'))
+    print(fH4, fullfile(figureFolder, 'Sensitivity_Model_vs_Behavior_4_5eccen'), '-dpng')
+end
