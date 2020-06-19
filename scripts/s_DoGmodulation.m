@@ -53,9 +53,7 @@ noise       = noise2D(midpoint,:)';
 coneresp    = coneresp2D(midpoint,:)';
 
 % Get snr
-snr_stim     = snr(stim);
-snr_noise    = snr(noise);
-snr_coneresp = snr(coneresp);
+snrAbsorptions     = snr(coneresp2D-mean(coneresp2D(:)), noise2D);
 
 % Stim params
 stimfreq      = 4; % cpd
@@ -117,6 +115,8 @@ for ii = 1:numC2RGCratios
     rgcstim(:,ii) = conv2(stim, f(:,ii), 'same');
     rgcnoise(:,ii) = conv2(noise, f(:,ii), 'same');
 
+    snrFilteredAbsorptions(:,ii) = snr(coneresp-mean(coneresp(:)), rgcnoise);
+    
     % Subsample
     rgcresp_sub{ii}  = rgcresp(rowIndices{ii},ii);
     rgcstim_sub{ii}  = rgcstim(rowIndices{ii},ii);
