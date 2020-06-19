@@ -3,19 +3,13 @@
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
 expName = 'default';
 ratios = 1:5;
-labelsRatio = sprintfc('cone2RGC = %1.1f:1.0', 2./ratios);
+labelsRatio = sprintfc('cone2RGC = %1.1f:1', 2./ratios);
 colors = parula(6);
 
 fH1 = figure(1); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
 fH2 = figure(2); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
-fH3 = figure(3); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
-fH4 = figure(4); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
-fH5 = figure(5); set(gcf, 'Position', [786,135,560,420], 'color', 'w'); clf; hold all;
-fH6 = figure(6); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
-fH7 = figure(7); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
-fH8 = figure(8); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
-fH9 = figure(9); set(gcf, 'Position', [786,135,560,420], 'color', 'w'); clf; hold all;
 
+%% Visualize filter and subsample grid
 for r = ratios
 
     % Load data
@@ -24,19 +18,11 @@ for r = ratios
     
     labelsFilter = sprintf('ctr:sur = %1.2f:%1.2f', rgcParams.DoG.kc,rgcParams.DoG.ks);
     
-    fNameFiltResponse = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('filteredConeCurrent_Cones2RGC%d_contrast0.1000_eccen4.50_absorptionrate.mat',r));
-    load(fullfile(fNameFiltResponse));
-   
-    fNameFiltSubResponse = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast0.1000_eccen4.50_absorptionrate.mat',r));
-    load(fullfile(fNameFiltSubResponse));
-    
-    % Use selected time points only
-    timepointsToAverage = 1:28;
-    filteredSubsampled = squeeze(mean(mean(rgcResponse(:,:,:, timepointsToAverage,1),1),4))./2;
-    
     % Get array
     sz = size(DoGfilter);
     midpoint = ceil(sz(1)/2);
+    quarterpoint = midpoint/2;
+    
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
     conearray = zeros(rgcParams.cCols, rgcParams.cRows);
     rowIndices = 1:rgcParams.cone2RGCRatio:rgcParams.cRows;
@@ -44,29 +30,7 @@ for r = ratios
     rgcarray = conearray;
     rgcarray(rowIndices, colIndices) = 1;
     
-    % Stim and noise in FFT
-    filteredOnly_amps_1D  = abs(fft(filteredConeCurrent(:,midpoint)));
-    
-    filteredSubsampled_amps_2D  = abs(fft2(filteredSubsampled));
-    midpoint_rsp = ceil(size(filteredSubsampled_amps_2D,1)/2);
-    filteredSubsampled_amps_1D = filteredSubsampled_amps_2D(:,midpoint_rsp);
-    
-    % Get FFT amplitudes of Gaussian filter 
-    G_2D = abs(fft2(DoGfilter./sum(abs(DoGfilter(:)))));
-    G_1D  = G_2D(:,midpoint);
-
-    quarterpoint = midpoint/2;
-    quarterpoint_rsp = midpoint_rsp/2;
-
-    % get stim sf and get coords to draw circle
-    sfOfStim = rgcParams.stimSF * rgcParams.fov;
-
-    th = 0:pi/50:2*pi;
-    xvals = sfOfStim * cos(th) + midpoint;
-    yvals = sfOfStim * sin(th) + midpoint;
-    
-    %% DOG visual field
-   
+    %DOG visual field
     figure(1)
     subplot(1,length(ratios),r);
     plot([0,sz(1)], [0 0], 'k'); hold on;
@@ -78,6 +42,7 @@ for r = ratios
         'XTickLabel', {'-0.25', '0', '0.25'});
     axis square; box off;
     
+    %Array visual field
     figure(2)
     subplot(1,length(ratios),r);
     plot(X,Y, '.','color', [0.5,0.5,0.5], 'MarkerSize',9); hold on;
@@ -93,54 +58,185 @@ for r = ratios
         'YTick', [midpoint-10,midpoint,midpoint+10], ...
         'YTickLabel', {'-0.25', '0', '0.25'});
     
+end
     
-    figure(9); hold all;
-    plot(DoGfilter(midpoint,:), 'color', colors(r,:), 'LineWidth',2)
+hgexport(fH1, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGs'))
+hgexport(fH2, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'Arrays'))
+print(fH1, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGs'), '-dpng')
+print(fH2, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'Arrays'), '-dpng')
+
+
+%% All DoG filters in one figure
+fH3 = figure(3); set(gcf, 'Position', [786,135,560,420], 'color', 'w'); clf; hold all;
+
+xlabel('x position (deg)')
+ylabel('modulation (a.u.)')
+title('DoG filters')
+set(gca,'YLim', [-0.05,1], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
+    'XTickLabel', {'-1', '0', '1'});
+axis square; box off;
+
+for r = ratios
+    fNameFilter = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_absorptionrate.mat',r));
+    load(fullfile(fNameFilter));
+    plot(DoGfilter(midpoint,:), 'color', colors(r,:), 'LineWidth',2); hold all;
+end
+legend(labelsRatio, 'Location','Best'); legend boxoff;
+
+plot([0,sz(1)], [0 0], 'k'); hold on;
+
+
+hgexport(fH3, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGs_allInOne'))
+print(fH3, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGs_allInOne'), '-dpng')
+
+%% 2D RGC RESPONSE -- FILTERED ONLY 
+
+fH4 = figure(4); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
+for r = ratios
     
+    fNameFiltResponse = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('filteredConeCurrent_Cones2RGC%d_contrast0.1000_eccen4.50_absorptionrate.mat',r));
+    load(fullfile(fNameFiltResponse), 'filteredConeCurrent');
+    midpoint = ceil(size(filteredConeCurrent,1)/2);
     
-    %% 1D RGC RESPONSE
-    figure(3)
     subplot(1,length(ratios),r); cla
-    imagesc(filteredSubsampled); colormap gray; hold on;
-    plot([0, size(filteredSubsampled,1)], [midpoint_rsp, midpoint_rsp], 'r:', 'LineWidth',4)
+    imagesc(filteredConeCurrent); colormap gray; hold on;
+    plot([0, size(filteredConeCurrent,1)], [midpoint, midpoint], 'r:', 'LineWidth',4)
     colorbar;
     xlabel('x position (deg)')
     ylabel('y position (deg)')
-    title(labelsFilter);
+    title(labelsRatio{r});
     set(gca, ...
-        'CLim', [0 max(filteredSubsampled(:))])
-%     set(gca, 'YLim', [0 sz(1)],'XLim', [0 sz(1)], ...
-%         'TickDir', 'out', 'FontSize', 15, ...
-%         'XTick', [0, midpoint_rsp, size(filteredSubsampled,1)], ...
-%         'XTickLabel', {'-1', '0', '1'}, ...
-%         'YTick', [0, midpoint_rsp, size(filteredSubsampled,2)], ...
-%         'YTickLabel', {'-1', '0', '1'});
+        'CLim', [0 max(filteredConeCurrent(:))])
+    set(gca, 'YLim', [0 sz(1)],'XLim', [0 sz(1)], ...
+        'TickDir', 'out', 'FontSize', 15, ...
+        'XTick', [0, midpoint, size(filteredConeCurrent,1)], ...
+        'XTickLabel', {'-1', '0', '1'}, ...
+        'YTick', [0, midpoint, size(filteredConeCurrent,2)], ...
+        'YTickLabel', {'-1', '0', '1'});
+    axis square; box off;
+end
+
+hgexport(fH4, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_rgcResponseFilteredOnly'))
+print(fH4, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_rgcResponseFilteredOnly'), '-dpng')
+
+
+%% 2D RGC RESPONSE FILTERED + SUBSAMPLE 
+fH5 = figure(5); set(gcf, 'Position', [33,42,1639,763], 'color', 'w'); clf; hold all;
+
+for r = ratios
+    
+    fNameFiltSubResponse = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast0.1000_eccen4.50_absorptionrate.mat',r));
+    load(fullfile(fNameFiltSubResponse));
+
+    % Use selected time points only
+    filteredSubsampled = squeeze(mean(rgcResponse(:,:,:,[1:3],1),1))./2;
+    midpoint = ceil(size(filteredSubsampled,1)/2);
+
+    for ii = 1:3
+        subplot(3,length(ratios),((ii-1)*length(ratios))+r);
+        imagesc(squeeze(filteredSubsampled(:,:,ii))); colormap gray; hold on;
+        
+        plot([0, size(filteredConeCurrent,1)], [midpoint, midpoint], 'r:', 'LineWidth',4)
+        colorbar;
+        xlabel('x position (deg)')
+        ylabel('y position (deg)')
+        title(labelsRatio{r});
+        set(gca, ...
+            'CLim', [0 max(filteredSubsampled(:))], 'TickDir', 'out', 'FontSize', 15)
+        axis square; box off;
+    end
+end  
+    
+hgexport(fH5, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_rgcResponseSubsampled'))
+print(fH5, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_rgcResponseSubsampled'), '-dpng')
+
+
+%% 1D RGC RESPONSE FILTERED + SUBSAMPLE 
+fH6 = figure(6); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
+
+for r = ratios
+    
+    fNameFiltSubResponse = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast0.1000_eccen4.50_absorptionrate.mat',r));
+    load(fullfile(fNameFiltSubResponse));
+
+    % Use selected time points only
+    midpoint = ceil(size(rgcResponse,2)/2);
+
+    filteredSubsampled_1D = squeeze(mean(rgcResponse(:,:,midpoint,1,1),1))./2;
+    
+    
+    subplot(1,length(ratios),r);  hold on;
+    plot(filteredSubsampled_1D, 'k', 'LineWidth', 2); 
+    xlabel('x position (deg)', 'FontSize', 15)
+    ylabel('RGC response (a.u.)', 'FontSize', 15)
+    title(labelsRatio{r});
+    set(gca, 'YLim', [0 max(filteredSubsampled_1D)],'XLim', [0 length(filteredSubsampled_1D)], ...
+            'TickDir', 'out', 'FontSize', 15, ...
+            'XTick', [0, midpoint, length(filteredSubsampled_1D)], ...
+            'XTickLabel', {'-x', '0', 'x'});
     axis square; box off;
     
-    %% 2D RGC RESPONSE
-    figure(4)
-    subplot(1,length(ratios),r); cla
-    plot(filteredSubsampled(midpoint_rsp,:), 'k', 'LineWidth',4); colormap gray; 
-    xlabel('x position (deg)')
-    ylabel('modulation (a.u.)')
-    title(labelsFilter)
-    set(gca, 'XLim', [0 size(filteredSubsampled,1)], 'TickDir', 'out', 'FontSize', 15), ...
-%         'XTick', [0,midpoint_rsp,size(filteredSubsampled,1)], ...
-%         'XTickLabel', {'-1', '0', '1'});
-    axis square; box off;
+end 
+
+hgexport(fH6, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '1D_rgcResponseSubsampled'))
+print(fH6, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '1D_rgcResponseSubsampled'), '-dpng')
+
+
+%% 1D DOG FFT
+
+fH7 = figure(7); set(gcf, 'Position', [786,135,560,420], 'color', 'w'); clf; hold all;
+
+for r = ratios
     
-    %% 1D DOG FFT
+    % Load data
+    fNameFilter = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_absorptionrate.mat',r));
+    load(fullfile(fNameFilter));
     
-    % Get 1D x axis
-    ncones = length(G_1D);
-    x      = (0:ncones-1)/ncones*rgcParams.fov; % degrees
+    G_2D = abs(fft2(DoGfilter./sum(abs(DoGfilter(:)))));
+    
+    % Visualize  1D representation
+    ncones = size(G_2D,1);
     fs     = (0:ncones-1)/2;
+    G      = fftshift(G_2D);
     
-    figure(5); clf; hold all;
-    plot(fs-(max(fs)/2), G_1D, 'color', colors(r,:), 'LineWidth', 4);
+    midpoint = ceil(size(G,1)/2);
+    G_1D  = G(:,midpoint);
+
+    plot(fs-(max(fs)/2), G_1D, 'color', colors(r,:), 'LineWidth', 4); hold on;
+end
+
+    plot(rgcParams.stimSF * [1 1], [0 .8], 'r:', 'LineWidth', 4);
+    xlabel('Spatial frequency (cycles/deg)'); 
+    ylabel('Normalized Modulation (a.u.)'); 
+    legend(labelsRatio, 'Location', 'Best'); legend boxoff;
+    set(gca, 'YLim', [0 .8],'XLim', [0 max(fs)/2], ...
+            'TickDir', 'out', 'FontSize', 15);
+    axis square; box off;
+
+hgexport(fH7, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '1D_DoGFFT'))
+print(fH7, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '1D_DoGFFT'), '-dpng')
+
     
-    %% 2D DOG FFT
-    figure(6)
+%% 2D DOG FFT
+    
+fH8 = figure(8); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
+for r = ratios
+    
+    % Load data
+    fNameFilter = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_absorptionrate.mat',r));
+    load(fullfile(fNameFilter));
+
+    G_2D = abs(fft2(DoGfilter./sum(abs(DoGfilter(:)))));
+    midpoint = ceil(size(G_2D,1)/2);
+    G_1D  = G_2D(:,midpoint);
+   
+    % get stim sf and get coords to draw circle
+    sfOfStim = rgcParams.stimSF * rgcParams.fov;
+
+    th = 0:pi/50:2*pi;
+    xvals = sfOfStim * cos(th) + midpoint;
+    yvals = sfOfStim * sin(th) + midpoint;
+    
     subplot(1,length(ratios),r); cla; hold on;
     imagesc(fftshift(G_2D)); colormap gray;
     
@@ -151,10 +247,10 @@ for r = ratios
     % draw stim sf cross
     plot(xvals, yvals, 'r:', 'lineWidth',3);
     colorbar; 
-    set(gca, 'CLim', [0 0.7], 'XLim', [0 size(G_2D,1)])
+    set(gca, 'CLim', [0 0.8], 'XLim', [0 size(G_2D,1)])
     xlabel('cycles/deg');
     ylabel('cycles/deg');
-    title(labelsFilter)
+    title(labelsRatio{r})
     set(gca, 'TickDir', 'out', 'FontSize', 15, ...
        'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
         'XTickLabel',{num2str(-quarterpoint/rgcParams.fov), '0', num2str(quarterpoint/rgcParams.fov)}, ...
@@ -162,87 +258,74 @@ for r = ratios
         'YTickLabel',{num2str(-quarterpoint/rgcParams.fov), '0', num2str(quarterpoint/rgcParams.fov)});
     axis square; box off;
     
-    %% 1D RGC RESPONSE
-    figure(7); 
+end
+
+hgexport(fH8, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_DoGFFT'))
+print(fH8, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_DoGFFT'), '-dpng')
+
+
+%% 1D and 2D RGC RESPONSE FFT
+
+fH9 = figure(9); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
+fH10 = figure(10); set(gcf, 'Position', [33,719,1639,234], 'color', 'w'); clf; hold all;
+
+for r = ratios
+    
+    fNameFiltSubResponse = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcResponse_Cones2RGC%d_contrast0.1000_eccen4.50_absorptionrate.mat',r));
+    load(fullfile(fNameFiltSubResponse));
+
+    % Use selected time points only
+    filteredSubsampled = squeeze(mean(rgcResponse(:,:,:,1,1),1))./2;
+    filteredSubsampled_amps_2D  = abs(fft2(filteredSubsampled));
+    filteredSubsampled_amps_2D(1,1) = NaN;
+%     filteredSubsampled_amps_2D_norm = fftshift(filteredSubsampled_amps_2D)./max(filteredSubsampled_amps_2D(:));
+    
+    midpoint = ceil(size(filteredSubsampled_amps_2D,1)/2);  
+    quarterpoint_rsp = midpoint/2;
+    
+    figure(9);
+    subplot(1,length(ratios),r); cla
+    imagesc(filteredSubsampled_amps_2D); colormap gray;
+    colorbar; 
+    set(gca, ...
+        'CLim', [-1 1])
+    xlabel('sf (cycles/deg)')
+    ylabel('sf (cycles/deg)')
+    title(labelsRatio{r})
+      
+    set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+        'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+        'XTickLabel',{num2str(-quarterpoint_rsp/rgcParams.fov), '0', num2str(quarterpoint_rsp/rgcParams.fov)}, ...
+        'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+        'YTickLabel',{num2str(-quarterpoint_rsp/rgcParams.fov), '0', num2str(quarterpoint_rsp/rgcParams.fov)});
+    axis square; box off;
+
+    figure(10);
+    filteredSubsampled_amps_1D  = filteredSubsampled_amps_2D(:,midpoint);
     
     ncones = length(filteredSubsampled_amps_1D);
     x      = (0:ncones-1)/ncones*rgcParams.fov; % degrees
     fs     = (0:ncones-1)/2;
     
     subplot(1,length(ratios),r); cla; hold on;
-    plot(fs, fftshift(filteredSubsampled_amps_1D), 'k', 'LineWidth', 2); 
-%     xlim([0 max(fs)/2])
+    plot(fs-max(fs)/2, (filteredSubsampled_amps_1D), 'k', 'LineWidth', 2); 
+    xlim([0 max(fs)/2])
     plot(rgcParams.stimSF * [1 1], [0 1], 'r:', 'LineWidth', 4);
     xlabel('sf (cycles/deg)')
     ylabel('modulation (a.u.)')
-    title(labelsFilter)
+    title(labelsRatio{r})
 %     set(gca, 'YLim', [0 2], ...
 %         'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint], ...
 %         'XTickLabel', {'0', num2str(midpoint/rgcParams.fov)});
 %     axis square; box off;
 %     
-    %% 2D RGC RESPONSE FFT
-    figure(8)
-    subplot(1,length(ratios),r); cla
-    filteredSubsampled_amps_2D_norm = fftshift(filteredSubsampled_amps_2D)./max(filteredSubsampled_amps_2D(:));
-    imagesc(filteredSubsampled_amps_2D_norm); colormap gray;
-    colorbar; 
-    set(gca, ...
-        'CLim', [-1 1])
-    xlabel('sf (cycles/deg)')
-    ylabel('sf (cycles/deg)')
-    title(labelsFilter)
-      
-    set(gca, 'TickDir', 'out', 'FontSize', 15, ...
-        'XTick', [midpoint_rsp*0.5, midpoint_rsp, midpoint_rsp*1.5], ...
-        'XTickLabel',{num2str(-quarterpoint_rsp/rgcParams.fov), '0', num2str(quarterpoint_rsp/rgcParams.fov)}, ...
-        'YTick', [midpoint_rsp*0.5, midpoint_rsp, midpoint_rsp*1.5], ...
-        'YTickLabel',{num2str(-quarterpoint_rsp/rgcParams.fov), '0', num2str(quarterpoint_rsp/rgcParams.fov)});
-    axis square; box off;
-
+ 
 end
 
-figure(5);
- xlim([0 max(fs)/2])
-hold on
-plot(rgcParams.stimSF * [1 1], [0 .6], 'r:', 'LineWidth', 4);
-xlabel('Spatial frequency (cycles/deg)'); 
-ylabel('Normalized Modulation (a.u.)'); 
-plot([0,sz(1)], [0 0], 'k'); hold on;
-title(labelsFilter)
-%     set(gca, 'YLim', [-0.05,1],'XLim', (midpoint + [-10, 10]), 'TickDir', 'out', 'FontSize', 15, 'XTick', [midpoint-10,midpoint,midpoint+10], ...
-%         'XTickLabel', {'-0.25', '0', '0.25'});
-axis square; box off;
-        
-figure(9);
-plot([0,sz(1)], [0 0], 'k'); hold on;
-xlabel('x position (deg)')
-ylabel('modulation (a.u.)')
-title('DoG filters')
-set(gca,'YLim', [-0.05,1], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
-    'XTickLabel', {'-1', '0', '1'});
-axis square; box off;
-legend(labelsRatio, 'Location','Best'); legend boxoff;
-
-hgexport(fH1, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGs'))
-hgexport(fH2, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'Arrays'))
-hgexport(fH3, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcResp1D'))
-hgexport(fH4, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcResp2D'))
-hgexport(fH5, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGFFT1D'))
-hgexport(fH6, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGFFT2D'))
-hgexport(fH7, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcRespFFT1D'))
-hgexport(fH8, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcRespFFT2D'))
-hgexport(fH9, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGAllFFT'))
-
-print(fH1, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGs'), '-dpng')
-print(fH2, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'Arrays'), '-dpng')
-print(fH3, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcResp1D'), '-dpng')
-print(fH4, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcResp2D'), '-dpng')
-print(fH5, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGFFT1D'), '-dpng')
-print(fH6, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGFFT2D'), '-dpng')
-print(fH7, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcRespFFT1D'), '-dpng')
-print(fH8, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'rgcRespFFT2D'), '-dpng')
-print(fH9, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', 'DoGAllFFT'), '-dpng')
+hgexport(fH9, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_rgcResponseFFT'))
+print(fH9, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '2D_rgcResponseFFT'), '-dpng')
+hgexport(fH10, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '1D_rgcResponseFFT'))
+print(fH10, fullfile(baseFolder, 'figures', 'RGC_layer', 'cartoons', '1D_rgcResponseFFT'), '-dpng')
 
 
 
