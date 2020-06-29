@@ -24,7 +24,7 @@ yScale = 'log';
 ylR  = 10.^[1 4]; % 3.5 log units for retinal density
 ylV  = 10.^[-0.9 2.1]; % 3.5 log units for cortical surface area
 
-ylR2 = [0 25];  % for transformations
+ylR2 = [0 35];  % for transformations
 ylV2 = [0 200];  % for transformations
 
 %% ----------------------------------------
@@ -120,7 +120,7 @@ xlim([0,max(xl)]);
 ylim(ylR2);
 xlabel('Eccentricity (deg)');
 ylabel('Ratio');
-title('Ratio nasal cone density : mRGC RF density')
+title('Ratio avg cone density : mRGC RF density')
 set(gca, 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15, 'XTick', [0 10 20 30 max(eccDeg)], 'XTickLabel', {'0' '10' '20' '30' '40'});
@@ -132,7 +132,7 @@ xlim([0,max(xl)]);
 ylim(ylV2);
 xlabel('Eccentricity (deg)');
 ylabel('Ratio (counts/mm^2)');
-title('Ratio nasal mRGC RF density : V1 CMF')
+title('Ratio avg mRGC RF density : V1 CMF')
 set(gca, 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15, 'XTick', [0:10:40], 'XTickLabel', {'0' '10' '20' '30' '40'});
