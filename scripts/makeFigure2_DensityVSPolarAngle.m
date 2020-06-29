@@ -11,19 +11,19 @@ yScaleDensity = 'log';
 
 xl = [0.9 40]; % or [0 40];
 if strcmp(yScaleDensity, 'log')
-    ylR  = 10.^[0.5 4]; % 3.5 log units for retinal density
-    ylV  = 10.^[-1 2.5]; % 3.5 log units for cortical surface area
+    ylR  = 10.^[1 4]; % 3.5 log units for retinal density
+    ylV  = 10.^[-0.9 2.1]; % 3.5 log units for cortical surface area
 else
     ylR  = [0 25000];   % for density
     ylV  = [0 250];     % for V1 CMF
 end
 
-ylR2 = [0 25];  % for transformations
+ylR2 = [0 35];  % for transformations
 ylV2 = [0 200];  % for transformations
 
-saveData    = true;
+saveData    = false;
 saveFigures = true;
-loadDataFromServer = true;
+loadDataFromServer = false;
 
 % Make figure dir if doesnt exist
 figureDir = fullfile(pfRV1rootPath, 'figures', 'DissertationChapter', 'Figure2');
@@ -42,7 +42,7 @@ eccDeg = 0:dtEcc:maxEcc; % deg
 % Polar angle range
 dtAng  = 90;   % deg
 maxAng = 360; % deg
-angDeg = (0:dtAng:maxAng); % deg, (nasal, superior, temporal and inferior)
+angDeg = (0:dtAng:maxAng-1); % deg, (nasal, superior, temporal and inferior)
 
 if loadDataFromServer
     % Get data from server
@@ -51,6 +51,12 @@ if loadDataFromServer
     end
     load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'))
     load(fullfile(pfRV1rootPath, 'external', 'data', 'conesSongISETBIO.mat'))
+    
+    for ii = 1:length(cardinalMeridianAngles)
+        [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
+    end
+    
+    conesCurcioIsetbio = conesCurcioIsetbio(meridianIdx,:);
 else
     % Get cone density data from Curcio et al. (1990) and Song et al. (2011)
     conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
@@ -61,34 +67,32 @@ else
     end
 end
 
-for ii = 1:length(cardinalMeridianAngles)
-    [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
-end
+
 
 %% -----------------------------------------------------------------
 %  --------- CONES and RGC from displacement map toolbox -----------
 %  -----------------------------------------------------------------
 
-if loadDataFromServer
-    % Get data from server
-    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'coneDensityByMeridian.mat'), 'file')
-        dataDir = syncDataFromServer();
-    end
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'coneDensityByMeridian.mat'),'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplacementMaps.mat'), 'allMaps')
-    
-else
-    % Get data (by computation, takes about 20 minutes)
-    [allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = ...
-        getConeAndRGCDensityDisplacementMap(dtEcc, dtAng, max(eccDeg), ...
-        10, true, true);
-end
+% if loadDataFromServer
+%     % Get data from server
+%     if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'coneDensityByMeridian.mat'), 'file')
+%         dataDir = syncDataFromServer();
+%     end
+%     load(fullfile(pfRV1rootPath, 'external', 'data', 'coneDensityByMeridian.mat'),'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
+%     load(fullfile(pfRV1rootPath, 'external', 'data', 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
+%     load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplacementMaps.mat'), 'allMaps')
+%     
+% else
+%     % Get data (by computation, takes about 20 minutes)
+%     [allMaps, coneDensityByMeridian, rgcDensityByMeridian, regularSupportPosDegVisual] = ...
+%         getConeAndRGCDensityDisplacementMap(dtEcc, dtAng, max(eccDeg), ...
+%         10, true, true);
+% end
 
 % Plot density along cardinal meridians vs eccen
-for ii = 1:length(cardinalMeridianAngles)
-    [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
-end
+% for ii = 1:length(cardinalMeridianAngles)
+%     [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
+% end
 
 
 %% -----------------------------------------------------------------
@@ -155,17 +159,17 @@ else
     end
     
     % Scale factor for dorsal/vert
-    scaleROI = nanmedian(allVert)./(nanmedian(allLowr) + nanmedian(allUpr));
+    scaleROI = allVert./(allLowr + allUpr);
     downscaledLowr = scaleROI.*allLowr;
     downscaledUpr = scaleROI.*allUpr;
     
     % Get visual field size for different eccentricity bins
     areaWedge = @(r1,r2,th) (pi*(r1.^2)*(th./360)) - (pi*(r2.^2)*(th./360));
-    areaDeg2_10 = [areaWedge(2,1,10), ...
-        areaWedge(3,2,10), ...
-        areaWedge(4,3,10), ...
-        areaWedge(5,4,10), ...
-        areaWedge(6,5,10)];
+    areaDeg2_40 = [areaWedge(2,1,40), ...
+        areaWedge(3,2,40), ...
+        areaWedge(4,3,40), ...
+        areaWedge(5,4,40), ...
+        areaWedge(6,5,40)];
     areaDeg2_20 = [areaWedge(2,1,20), ...
         areaWedge(3,2,20), ...
         areaWedge(4,3,20), ...
@@ -175,8 +179,8 @@ else
     % COMPUTE CMF (surface area / visual area) PER ECCEN BIN
     allUprCMF  = downscaledUpr./areaDeg2_20; 
     allLowrCMF = downscaledLowr./areaDeg2_20; 
-    allHorzCMF = allHorz./areaDeg2_20;
-    allVertCMF = allVert./areaDeg2_20;
+    allHorzCMF = allHorz./areaDeg2_40;
+    allVertCMF = allVert./areaDeg2_40;
     
     % Boostrap median CMF
     nboot = 1000;
@@ -240,9 +244,17 @@ meridCMF_RV79 = [CMF_RV79.nasalR; ...
 
 %% Transformations
 
-% Compute cone : RGC 
-cone2mRGC   = conesCurcioIsetbio(meridianIdx,:) ./ mRGCRFDensityPerDeg2;
-cone2mRGC_wHorz  = [nanmean([cone2mRGC(1,:);cone2mRGC(3,:)]); cone2mRGC(2,:); cone2mRGC(4,:)];
+% Compute cone : RGC
+conesCurcioIsetbio_wHorz(1,:) = nanmean(conesCurcioIsetbio([1,3],:),1);
+conesCurcioIsetbio_wHorz(2,:) = conesCurcioIsetbio(2,:);
+conesCurcioIsetbio_wHorz(3,:) = conesCurcioIsetbio(4,:);
+
+watsonMRGC_wHorz(1,:) = nanmean(mRGCRFDensityPerDeg2([1,3],:),1);
+watsonMRGC_wHorz(2,:) = mRGCRFDensityPerDeg2(2,:);
+watsonMRGC_wHorz(3,:) = mRGCRFDensityPerDeg2(4,:);
+
+cone2mRGC        = conesCurcioIsetbio ./ mRGCRFDensityPerDeg2;
+cone2mRGC_wHorz  = conesCurcioIsetbio_wHorz ./ watsonMRGC_wHorz;
 
 
 % rotate/reflect watson rgc data to get visual field coordinates
@@ -265,6 +277,8 @@ mRGCWatsonVF_wHorz = [ nanmean([mRGCWatsonMeridiaIsetbioVF(1,eccIdx_1_6_Isetbio)
 % Compute RGC : V1 CMF from HCP ratio
 RGCWatson2V1HCP   = mRGCWatsonVF_wHorz ./ HCPFits;
 
+mRGC2V1_Avg = nanmean(mRGCWatsonMeridiaIsetbioVF,1) ./ CMF_HH91;
+
 %% ------------ Visualize meridan cone density vs eccentricity ------------
 
 fH = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [ 305 39 1225 766])
@@ -272,7 +286,7 @@ fH = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [ 305 39 1225 766])
 % Cones
 subplot(131); hold on;
 for ii = 1:4
-    plot(eccDeg, conesCurcioIsetbio(meridianIdx(ii),:), colors{ii}, 'LineWidth', 2);
+    plot(eccDeg, conesCurcioIsetbio(ii,:), colors{ii}, 'LineWidth', 2);
 end
 ylabel('Density (counts/deg^2)');
 title('Cone density (Curcio et al. 1990)')
@@ -321,13 +335,13 @@ end
 plot(eccDeg,CMF_HH91, 'k:', 'LineWidth',2); % Plot Horton & Hoyt
 
 % Plot fits
-plot(x, fitUpperVFHCP, 'k:', 'LineWidth', 2);
 plot(x, fitHorzVFHCP, 'r:', 'LineWidth', 2);
 plot(x, fitLowerVFHCP, 'b:', 'LineWidth', 2);
+plot(x, fitUpperVFHCP, 'k:', 'LineWidth', 2);
 
 % Add legend
 l = findobj(gca, 'Type', 'Line');
-legend(l([4,2,1,3]),{'Horton & Hoyt 91', 'HCP Horizontal VF', 'HCP Lower VF', ...
+legend(l([4,3,2,1]),{'Horton & Hoyt 91', 'HCP Horizontal VF', 'HCP Lower VF', ...
         'HCP Upper VF'}, 'Location', 'Best'); legend boxoff;
 % Make figure pretty
 set(gca,  'XLim', xl, 'YLim', ylV, 'XScale', xScaleDensity, 'YScale', yScaleDensity, 'TickDir', 'out', ...
@@ -363,13 +377,14 @@ title('Ratio nasal cone density : mRGC RF density')
 set(gca, 'XLim', xl, 'YLim', ylR2,'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
-set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
+set(gca, 'XTick', [0:10:max(xl)], 'XTickLabel', sprintfc('%d',[0:10:max(xl)]))
 
 % Add legend
 legend({'Horizontal Retina', 'Superior Retina', 'Inferior Retina'}, ...
      'Location', 'Best'); legend boxoff;
 
 subplot(212);cla; hold all;
+plot(eccDeg, mRGC2V1_Avg, 'k:', 'LineWidth', 1);
 for ii = 1:3
     plot(x, RGCWatson2V1HCP(ii,:), 'color', colors_Horz{ii}, 'LineWidth', 2);
 end
@@ -377,12 +392,12 @@ xlabel('Eccentricity (deg)');
 ylabel('Ratio (counts/mm^2)');
 title('Ratio nasal mRGC RF density : V1 CMF')
 set(gca, 'XLim', [0 10], 'YLim', ylV2, 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
-         'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
+         'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
-set(gca, 'XTick', [1,3,6,10], 'XTickLabel', sprintfc('%d',[1,3,6,10]))
+set(gca, 'XTick', [0:2:10], 'XTickLabel', sprintfc('%d',[0:2:10]))
 
 % Add legend
-legend({'Horizontal VF', 'HCP Lower VF', ...
+legend({'Horton & Hoyt 1991', 'Horizontal VF', 'HCP Lower VF', ...
         'HCP Upper VF'}, 'Location', 'Best'); legend boxoff;
 
 
