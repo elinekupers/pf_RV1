@@ -43,7 +43,7 @@ expParams    = loadExpParams(expName, false);
 [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
 
 % Where to find data and save figures
-dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', subFolder);
+dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', 'average');
 figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, subFolder, sprintf('ratio%d', ratio));
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
@@ -77,30 +77,13 @@ for eccen = 1:nrEccen
     
     %% 2. Get correct filename
     if plotAvg
-        %                     fName   = sprintf('Classify_coneOutputs_contrast%1.3f_pa0_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f_lms-%1.1f%1.1f%1.1f_AVERAGE.mat', ...
-        %                         max(expParams.contrastLevels), ...
-        %                         sprintf('%i',expParams.eyemovement(:,em)'), ...
-        %                         expParams.eccentricities(eccen), ...
-        %                         expParams.defocusLevels(df), ...
-        %                         expParams.spatFreq, ...
-        %                         expParams.cparams.spatialDensity(lmsIdx,2), ...
-        %                         expParams.cparams.spatialDensity(lmsIdx,3), ...
-        %                         expParams.cparams.spatialDensity(lmsIdx,4));
-        %
-        %                     fNameSE   = sprintf('Classify_coneOutputs_contrast%1.3f_pa0_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f_lms-%1.1f%1.1f%1.1f_SE.mat', ...
-        %                         max(expParams.contrastLevels), ...
-        %                         sprintf('%i',expParams.eyemovement(:,em)'), ...
-        %                         expParams.eccentricities(eccen), ...
-        %                         expParams.defocusLevels(df), ...
-        %                         expParams.spatFreq, ...
-        %                         expParams.cparams.spatialDensity(lmsIdx,2), ...
-        %                         expParams.cparams.spatialDensity(lmsIdx,3), ...
-        %                         expParams.cparams.spatialDensity(lmsIdx,4));
-        %
-        %                     SE{count} = load(fullfile(dataPth, fNameSE));
+        fName = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_AVERAGE.mat', ratio, eccen);
+        fNameSE  = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_SE.mat', ratio, eccen);
+        
+        SE{count} = load(fullfile(dataPth, fNameSE));
         
     else
-        fName = sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', ...
+            fName = sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', ...
             ratio, inputType, eccen, expName, subFolder);
     end
     
@@ -118,7 +101,7 @@ for eccen = 1:nrEccen
     end
     
     
-    if (ratio == 5) && (any(eccen==[11,12,13]))
+    if (ratio == 5) && (any(eccen==[10,11,12,13]))
         if length(expParams.contrastLevels)<length(accuracy.P)
             expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
         end
@@ -145,7 +128,7 @@ end % eccen
 
 %% 6. Visualize psychometric curves
 
-figure(3); clf; set(gcf,'Color','w', 'Position',  [1000, 850, 986, 488], 'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s ratio %d', expName, ratio)); hold all;
+figure(3); clf; set(gcf,'Color','w', 'Position',  [218   316   986   488], 'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s ratio %d', expName, ratio)); hold all;
 
 % Remove empty cells
 idx = ~cellfun(@isempty, fit.ctrpred);
@@ -162,11 +145,14 @@ plotIdx = 1:length(fit.ctrpred);
 % Loop over all functions to plot
 for ii = plotIdx
     
-    if (ratio == 5) && (any(ii==[11,12,13]))
+    if (ratio == 5) && (any(ii==[10,11,12,13]))
         if length(expParams.contrastLevels)<length(accuracy.P)
             expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
         end
         xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
+    elseif strcmp(expName, 'default')
+         expParams    = loadExpParams(expName, false);
+        [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('rgcratios');
     else
         expParams    = loadExpParams(expName, false);
         [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
@@ -208,8 +194,11 @@ save(fullfile(baseFolder,'data',expName,'thresholds', sprintf('cThresholds_ratio
 
 
 %% 7. Plot density thresholds
-if strcmp('conedensity',expName) || strcmp('eccbasedcoverage',expName)
+if strcmp('conedensity',expName)
+    load(fullfile(baseFolder,'data',expName,'thresholds', sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_13_conedensity', ratio)), 'varThresh');
     
-    plotConeDensityVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth);    
+    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
+elseif strcmp('default',expName) || strcmp('defaultnophaseshift',expName) || strcmp('idealobserver',expName)
+    plotCone2RGCRatioVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 end
 
