@@ -9,7 +9,7 @@ colors      = parula(length(ratios)+1);
 labels      = sprintfc('RGC:cone = %1.1f:1.0', 2./ratios);
 
 % Folders
-saveFigs     = true;
+saveFigs     = false;
 baseFolder   = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
 dataFolder   = fullfile(baseFolder,'data',expName,'thresholds');
 figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder);
@@ -156,10 +156,10 @@ observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratio_at_idx
 isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
 
 % Fit new line to upsampled contrast threshold data for all meridians
-lm_rn = fitlm(log10(xThresh), log10(ZUpsampled(rn,:)));
-lm_rs = fitlm(log10(xThresh), log10(ZUpsampled(rs,:)));
-lm_rt = fitlm(log10(xThresh), log10(ZUpsampled(rt,:)));
-lm_ri = fitlm(log10(xThresh), log10(ZUpsampled(ri,:)));
+lm_rn = fitlm(log10(xThresh), log10(ZUpsampled(rn,:))); % nasal
+lm_rs = fitlm(log10(xThresh), log10(ZUpsampled(rs,:))); % superior
+lm_rt = fitlm(log10(xThresh), log10(ZUpsampled(rt,:))); % temporal
+lm_ri = fitlm(log10(xThresh), log10(ZUpsampled(ri,:))); % inferior
 
 
 % Predicted threshold
@@ -180,7 +180,7 @@ predictedContrastThreshold(4) = cThreshold(observedConesAtEccen(4), lm_ri.Coeffi
 
 
 % Double the difference in cone density from the mean, for each meridian
-errorRatioConeDensity = 0.5*abs(observedConesAtEccen-mean(observedConesAtEccen));
+errorRatioConeDensity = abs(observedConesAtEccen-(observedConesAtEccen.*1.2));
 
 % Nasal retina
 predictedError = [];
@@ -216,29 +216,29 @@ if saveFigs
 end
 
 %% Make gif of rotating mesh
-
-filename = fullfile(figureFolder,'fullModelMesh.gif');
-
-x = -160:5:-95;
-angles = [x, fliplr(x)];
-
-figure(fH3); axis vis3d;
-for n = 1:length(angles)
-    set(gca, 'View', [angles(n), 10.4000]);
-   
-    drawnow; pause(0.1);
-    
-    % Capture the plot as an image
-    frame = getframe(fH3);
-    im = frame2im(frame);
-    [imind,cm] = rgb2ind(im,256);
-    % Write to the GIF File
-    if n == 1
-        imwrite(imind,cm,filename,'gif', 'Loopcount',inf);
-    else
-        imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 0.1);
-    end
-end
+% 
+% filename = fullfile(figureFolder,'fullModelMesh.gif');
+% 
+% x = -160:5:-95;
+% angles = [x, fliplr(x)];
+% 
+% axis manual; axis vis3d;
+% for n = 1:length(angles)
+%     set(gca, 'View', [angles(n), 10.4000]);
+%    
+%     drawnow; pause(0.1);
+%     
+%     % Capture the plot as an image
+%     frame = getframe(fH3);
+%     im = frame2im(frame);
+%     [imind,cm] = rgb2ind(im,256);
+%     % Write to the GIF File
+%     if n == 1
+%         imwrite(imind,cm,filename,'gif', 'Loopcount',inf);
+%     else
+%         imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 0.1);
+%     end
+% end
 
 
 
@@ -280,51 +280,104 @@ end
 
 %% COMPARE TO MODEL TO BEHAVIOR
 
-% Convert thresholds to sensitivity
-predContrastSensitivityMEAN    = 1./((10.^predictedContrastThreshold)./100);
-predContrastSensitivityMEAN_wHorz_VF = [mean(predContrastSensitivityMEAN([1 3])); predContrastSensitivityMEAN(4); predContrastSensitivityMEAN(2)];
-% predContrastSensitivityERROR_upper    = 1./(10.^predictedError(:,2));
-predContrastSensitivityERROR_lower    = 1./((10.^predictedError(:,1))./100);
+%%%% MRGC %%%%
+% Convert MRGC thresholds to sensitivity
+predContrastSensitivityMEAN_retina    = 100.*(1./(10.^predictedContrastThreshold));
 
-predError = predContrastSensitivityMEAN-predContrastSensitivityERROR_lower';
+% Get error mRGC
+predContrastSensitivityERROR_retina    = 1./((10.^predictedError)./100);
+predContrastSensitivityERROR_retina_lower = [predContrastSensitivityERROR_retina(:,1)];
+predContrastSensitivityERROR_retina_upper = [predContrastSensitivityERROR_retina(:,2)];
 
-predContrastSensitivityERROR_wHorz_VF = [mean(predError([1 3])); predError(4); predError(2)];
+% HVM, UVM (inferior), LVM (superior)
+predContrastSensitivityMEAN_wHorz_VF = [mean(predContrastSensitivityMEAN_retina([1 3])); predContrastSensitivityMEAN_retina(4); predContrastSensitivityMEAN_retina(2)];
+predContrastSensitivityERROR_wHorz_VF_lower = [mean(predContrastSensitivityERROR_retina_lower([1 3])); predContrastSensitivityERROR_retina_lower(4); predContrastSensitivityERROR_retina_lower(2)];
+predContrastSensitivityERROR_wHorz_VF_upper = [mean(predContrastSensitivityERROR_retina_upper([1 3])); predContrastSensitivityERROR_retina_upper(4); predContrastSensitivityERROR_retina(2)];
 
-obsContrastSensitivityMEAN_VF = [46.4938; 47.7887; 28.9764; 34.2813];
+%%%% BEHAVIOR %%%%
+% OBSERVED LVM, RVM, UVM, LVM
+obsContrastSensitivityMEAN_VF = [46.4938; 47.7887; 28.9764; 34.3813];
+obsContrastSensitivityMEAN_retina = [obsContrastSensitivityMEAN_VF(1),obsContrastSensitivityMEAN_VF(4),obsContrastSensitivityMEAN_VF(2),obsContrastSensitivityMEAN_VF(3)];
 obsContrastSensitivityERROR_VF = [2.66468; 1.8450; 1.6445; 2.0505];
 obsContrastSensitivityMEAN_wHorz_VF = [mean(obsContrastSensitivityMEAN_VF([1 2])), obsContrastSensitivityMEAN_VF(3), obsContrastSensitivityMEAN_VF(4)];
 obsContrastSensitivityERROR_wHorz_VF = [mean(obsContrastSensitivityERROR_VF([1 2])), obsContrastSensitivityERROR_VF(3), obsContrastSensitivityERROR_VF(4)];
 
+
+%%%% CONES %%%%
+% MODELED CONE ONLY
+conesPredContrastThreshMEAN_retina        = [0.0245    0.0256    0.0246    0.0252]; % nasal, superior, temporal, inferior
+conesPredContrastThreshERROR_retina_lower = [0.0257, 0.0269, 0.0258, 0.0265]; % - 20% cone density difference
+conesPredContrastThreshERROR_retina_upper = [0.0235, 0.0246, 0.0236, 0.0242]; % + 20% cone density difference
+
+conesPredContrastSensitivityMEAN_retina =  1./conesPredContrastThreshMEAN_retina;
+conesPredContrastSensitivityMEAN_VF     =  [conesPredContrastSensitivityMEAN_retina(1),conesPredContrastSensitivityMEAN_retina(4),conesPredContrastSensitivityMEAN_retina(3),conesPredContrastSensitivityMEAN_retina(2)];
+conesPredContrastSensitivityMEAN_wHorz_VF  = [mean(conesPredContrastSensitivityMEAN_VF([1 3])),conesPredContrastSensitivityMEAN_VF(2),conesPredContrastSensitivityMEAN_VF(4)];
+conesPredContrastSensitivityERROR_wHorz_VF_lower = 1./[mean(conesPredContrastThreshERROR_retina_lower([1 3])),conesPredContrastThreshERROR_retina_lower(2),conesPredContrastThreshERROR_retina_lower(4)];
+conesPredContrastSensitivityERROR_wHorz_VF_upper = 1./[mean(conesPredContrastThreshERROR_retina_upper([1 3])),conesPredContrastThreshERROR_retina_upper(2),conesPredContrastThreshERROR_retina_upper(4)];
+
+% Predicted cone density
+neededConeDensityForBehavior(1) = predictedDensity(1./obsContrastSensitivityMEAN_VF(1),lm_rn.Coefficients.Estimate(2), lm_rn.Coefficients.Estimate(1));
+neededConeDensityForBehavior(2) = predictedDensity(1./obsContrastSensitivityMEAN_VF(4),lm_rs.Coefficients.Estimate(2), lm_rs.Coefficients.Estimate(1));
+neededConeDensityForBehavior(3) = predictedDensity(1./obsContrastSensitivityMEAN_VF(2),lm_rt.Coefficients.Estimate(2), lm_rt.Coefficients.Estimate(1));
+neededConeDensityForBehavior(4) = predictedDensity(1./obsContrastSensitivityMEAN_VF(3),lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
+
+
+%% HVA VMA calc
+HVAcalc.obs       = hva(obsContrastSensitivityMEAN_retina);
+VMAcalc.obs       = vma(obsContrastSensitivityMEAN_retina);
+HVAcalc.predRGC   = hva(predContrastSensitivityMEAN_retina);
+VMAcalc.predRGC   = vma(predContrastSensitivityMEAN_retina);
+HVAcalc.predCones = hva(conesPredContrastSensitivityMEAN_retina);
+VMAcalc.predCones = vma(conesPredContrastSensitivityMEAN_retina);
+
+
+fprintf('HVA predicted Cones \t %1.2f - predicted mRGC \t %1.2f - \t observed %1.2f \n', HVAcalc.predCones, HVAcalc.predRGC, HVAcalc.obs)
+fprintf('VMA predicted Cones \t %1.2f - predicted mRGC \t %1.2f - \t observed %1.2f \n', VMAcalc.predCones, VMAcalc.predRGC, VMAcalc.obs)
+%%
+
 % Bar plot to compare against behavior
 
 condNames   = {'HVM', 'UVM','LVM'};
-condColor   = [63, 121, 204; 228, 65, 69]/255;
+condColor   = [63, 121, 204; 228, 65, 69;150 123 182]/255;
 
-fH4 = figure(4); set(fH4, 'position',[ 824   348   688   439], 'color', 'w'); clf; hold all;
+fH4 = figure(4); set(fH4, 'position',[383         245        1129         542], 'color', 'w'); clf; hold all;
 
-subplot(121)
-bar(1:3, predContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(1,:)); hold on
-errorbar(1:3,predContrastSensitivityMEAN_wHorz_VF,predContrastSensitivityERROR_wHorz_VF,'.','color', 'k', 'LineWidth',2);
+subplot(141)
+bar(1:3, conesPredContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(1,:)); hold on
+errorbar(1:3,conesPredContrastSensitivityMEAN_wHorz_VF,conesPredContrastSensitivityMEAN_wHorz_VF-conesPredContrastSensitivityERROR_wHorz_VF_lower,conesPredContrastSensitivityMEAN_wHorz_VF-conesPredContrastSensitivityERROR_wHorz_VF_upper,'.','color', 'k', 'LineWidth',2);
 
 % format figure
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[1.3, 1.7], 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
-box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction');
+box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Cones');
 
-subplot(122)
-bar(1:3, obsContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(2,:)); hold on
+
+subplot(142)
+bar(1:3, predContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(2,:)); hold on
+errorbar(1:3,predContrastSensitivityMEAN_wHorz_VF,predContrastSensitivityMEAN_wHorz_VF-predContrastSensitivityERROR_wHorz_VF_lower,predContrastSensitivityMEAN_wHorz_VF-predContrastSensitivityERROR_wHorz_VF_upper,'.','color', 'k', 'LineWidth',2);
+
+% format figure
+set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[1.3, 1.7], 'TickDir', 'out', 'XTick', [1:3], ...
+    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
+box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction mRGCs');
+
+subplot(143)
+bar(1:3, obsContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(3,:)); hold on
 errorbar(1:3,obsContrastSensitivityMEAN_wHorz_VF,obsContrastSensitivityERROR_wHorz_VF, '.','color', 'k', 'LineWidth',2);
 
 % format figure
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[1.3, 1.7], 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
-box off; title('Behavior');
+box off; ylabel('Contrast sensitivity (%)'); title('Behavior');
 
-hva(1./predContrastSensitivityMEAN)
-hva(1./obsContrastSensitivityMEAN_VF)
+subplot(144); hold on;
+bar([1,2.5], [HVAcalc.predCones, HVAcalc.predRGC, HVAcalc.obs; VMAcalc.predCones, VMAcalc.predRGC, VMAcalc.obs],'EdgeColor','none','facecolor','k'); hold on
 
-vma(1./predContrastSensitivityMEAN)
-vma(1./obsContrastSensitivityMEAN_VF)
+% format figure
+set(gca,'Xlim',[0.2,3.2],'Ylim',[-3, 40], 'TickDir', 'out', 'XTick', [1, 2.5], ...
+    'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
+box off;ylabel('Asymmetry (%)');  title('Asymmetry');
+
 
 
 if saveFigs
