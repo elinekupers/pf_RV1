@@ -31,30 +31,47 @@ fH14 = plotHVAandVMA(meridianDataCMF_RV79, eccDeg, titleStr, figureDir, saveFigu
 % ------------ Plot HVA and VMA vs eccen for HCP mean subject -----------
 fH15 = figure(); clf; set(gcf, 'Color', 'w', 'Position', [ 788   676   754   669]); hold all;
 
-fn = fieldnames(CMFV1_HCP);
-eccen = mean([0, 1; ... (0.5 degree)
-    1, 2; ... (1.5 degree)
+% Boostrap median CMF
+nboot = 1000;
+bootDataUpperVisualField = bootstrp(nboot, @(x) nanmedian(x), allUprCMF);
+bootDataLowerVisualField = bootstrp(nboot, @(x) nanmedian(x), allLowrCMF);
+bootDataHorizontalVisualField = bootstrp(nboot, @(x) nanmedian(x), allHorzCMF);
+bootDataVerticalVisualField = bootstrp(nboot, @(x) nanmedian(x), allVertCMF);
+
+% Get the median across bootstraps
+medianUpperVF = median(bootDataUpperVisualField,1);
+medianLowerVF = median(bootDataLowerVisualField,1);
+medianHorzVF = median(bootDataHorizontalVisualField,1);
+medianVertVF = median(bootDataVerticalVisualField,1);
+
+seUpperVF = std(bootDataUpperVisualField,[],1);
+seLowerVF = std(bootDataLowerVisualField,[],1);
+seHorzVF = std(bootDataHorizontalVisualField,[],1);
+seVertVF = std(bootDataVerticalVisualField,[],1);
+
+% Get eccentricity (to fit data and prepare x-axes for visualization)
+eccenHCP = mean([1, 2; ... (1.5 degree)
     2, 3; ... (2.5 degree)
     3, 4; ... (3.5 degree)
     4, 5; ... (4.5 degree)
-    5, 6; ... (5.5 degree)
-    6, 7; ... (6.5 degree)
-    7, 8],2); % (7.5 degree)
+    5, 6],2); % (5.5 degree)
 
-allEccen = NaN(1,length(eccen)*2);
-allEccen(1:2:end) = eccen;
-allEccen(2:2:end) = eccen;
+    % Fit a linear function to data
+% Note horizontal VF = nasal+temporal retina (1st/3rd row)
+x = (1:0.05:6);
+[coeffHorzVF]    = fit(eccenHCP,medianHorzVF','power1');
+fitHorzVFHCP     = coeffHorzVF.a .* x.^coeffHorzVF.b;
 
-lw = 1;
-nboot = 1000;
+% Note lower VF = superior retina (2th row)
+[coeffLowerVF]    = fit(eccenHCP,medianLowerVF','power1');
+fitLowerVFHCP     = coeffLowerVF.a .* x.^coeffLowerVF.b;
 
-bootData = NaN(length(fn), nboot);
-for f = 1:length(fn)
-    bootData(f,:) = bootstrp(nboot, @(x) nanmean(x), CMFV1_HCP.(fn{f}));
-end
+% Note upper VF = inferior retina (4th row)
+[coeffUpperVF]    = fit(eccenHCP,medianUpperVF','power1');
+fitUpperVFHCP     = coeffUpperVF.a .* x.^coeffUpperVF.b;
 
 % Plot HCP integral data points
-for ii =  3:length(allEccen)-4
+for ii =  1:length(eccenHCP)
     mdAsym = nanmedian(bootData(ii,:));
     stdAsym = std(bootData(ii,:), 'omitnan');
     
