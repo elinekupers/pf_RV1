@@ -5,6 +5,19 @@
 % Note: Retinal computations are on the meridia, the V1 cortical surface 
 % area is the integral of a wedge +/- 10 deg polar angle wedge, from
 % 1-6 deg eccentricity.
+%
+% Written by Eline Kupers in 2019
+%
+% Dependencies:
+%   - ISETBIO toolbox (github.com/isetbio/isetbio)
+%   - pf_RV1 toolbox  (github.com/elinekupers/pf_RV1)
+%   - CSV file "DROI_table.csv", with V1/V2 surface area for +/- 10 deg 
+%       polar angle wedge. You can download the file from the OSF webpage:
+%       https://osf.io/5gprz/
+%       
+%       This CSV file should be moved to the folder:
+%       fullfile(pfRV1rootPath, 'external', 'data')
+% 
 
 %% 0. Set up parameters
 
@@ -17,7 +30,7 @@ saveFigures            = true;
 loadDataFromServer     = false; % if false, we will recompute the density and surface area numbers (takes 20min+)
 
 % Make figure dir if doesnt exist
-figureDir = fullfile(pfRV1rootPath, 'figures', 'BensonAsymmetriesNatureNeuro');
+figureDir = fullfile(pfRV1rootPath, 'figures', 'BensonFigure3Asymmetries');
 if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
 % Plotting params
@@ -42,7 +55,7 @@ angDeg           = 0:dt:360;  % degrees visual angle
 [~,meridiansIdx] = intersect(angDeg,cardinalMeridianAngles);
 
 %% -----------------------------------------------------------------
-%  --------- CONES from Curcio et al (1991) using ISETBIO ----------
+%  --------- CONES from Curcio et al (1990) using ISETBIO ----------
 %  -----------------------------------------------------------------
 
 dataSet = 'Curcio1990';
@@ -74,7 +87,7 @@ titleStr = sprintf('Cone density %s - ISETBIO left eye', dataSet);
 fH1 = plotHVAandVMA(meridianData.conesCurcioIsetbio', [], eccDeg, visualFieldFlag, titleStr, figureDir, saveFigures);
 
 %% -----------------------------------------------------------------
-%  -------------- mRGC from Watson 2015 using ISETBIO --------------
+%  -------------- mRGC from Watson 2014 using ISETBIO --------------
 %  -----------------------------------------------------------------
 
 if loadDataFromServer
@@ -97,11 +110,11 @@ end
 
 % ------ Visualize density and HVA vs VMA ------
 titleStr = 'mRGCf density Watson 2014 - ISETBIO';
-fH2             = plotHVAandVMA(mRGCRFDensityPerDeg2, [], eccDeg, visualFieldFlag, titleStr, figureDir, saveFigures);
+fH2      = plotHVAandVMA(mRGCRFDensityPerDeg2, [], eccDeg, visualFieldFlag, titleStr, figureDir, saveFigures);
 
 % Legend labels
-labels = {{'HVA Cones Curcio et al (1990)', '', 'HVA mRGC Watson (2014)'}, ...
-          {'VMA Cones Curcio et al (1990)', '', 'VMA mRGC Watson (2014)'}};
+labels   = {{'HVA Cones Curcio et al (1990)', '', 'HVA mRGC Watson (2014)'}, ...
+           {'VMA Cones Curcio et al (1990)', '', 'VMA mRGC Watson (2014)'}};
 
 % Add mRGC data to cone density figure
 figure(fH1); h = get(fH2, 'Children');
