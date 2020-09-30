@@ -1,4 +1,4 @@
-%% s_plotDensityConesRGCV1_Benson_NN
+%% s_plotDensityConesRGCV1_Benson2020
 %
 % Script to plot cone density, midget RGC density and V1 cortical surface
 % area asymmetries along cardinal meridians, as a function of eccentricity.
@@ -127,7 +127,7 @@ close(fH2)
 
 % Get CMF data from HCP all 181 subjects, separate for lh and rh:
 wedgeWidth = 10; %  wedge width in deg
-v1CMF = getV1CMFHCP(wedgeWidth);
+v1CMF = getV1SurfaceAreaHCP(wedgeWidth);
 
 % Get number of subjects from data
 numSubjects = size(v1CMF.individualSubjects.eccen1_2,1)./2;
@@ -198,8 +198,6 @@ if saveData
    save(fullfile(pfRV1rootPath, 'external', 'data', 'V1CMF_HCP.mat'),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
 end
 
-%% For Noah: Debug part to check order of operations
-
 hvaSumWedge = asymPrct(sum(allLowr,2),sum(allUpr,2));
 vmaSumWedge = asymPrct(sum(allHorz,2),sum(allVert,2));
 
@@ -238,7 +236,7 @@ end
 
 % Make plot pretty
 l = findobj(gca, 'Type', 'Line');
-legend(l([8,6,2]), {'Cones', 'mRGC', 'V1/V2 cortex'}, 'Location', 'EastOutside'); legend boxoff;
+legend(l([8,6,2]), {'Cones', 'mRGC', 'V1 cortex'}, 'Location', 'EastOutside'); legend boxoff;
 plot(1:6, fitHVA, 'k:', 'LineWidth', lw);
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')  
@@ -259,7 +257,7 @@ plot(1:6, fitVMA, 'k:', 'LineWidth', lw)
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')  
 set(gca', 'xlim', [0 max(eccDeg)], 'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
-title(sprintf('VMA (V1 fit R2: %1.2f)',R2_VMA))
+title(sprintf('VMA (V1/V2 fit R2: %1.2f)',R2_VMA))
 
 % Save figures
 if saveFigures
