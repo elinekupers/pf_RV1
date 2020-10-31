@@ -1,8 +1,7 @@
 %% s_linearRGCModel_ISETBIO
 %
-% First attempt script to build an RGC layer on top of the current
-% computational observer model. The RGC layer is based on the retina-V1
-% model published by Bradley, Abrams and Geisler (2014) in JoV.
+% Script to build an mRGC layer on top of the current
+% computational observer model.
 %
 % Our RGC layer of the model has two stages, after getting the cone
 % currents, first one is linear and the second is non-linear:
@@ -15,7 +14,7 @@
 % To recompute cone currents without eyemovements or Gabor stim phase
 % shifts, use the following command:
 % runComputationalObserverModel('defaultnophaseshift', 'saveFolder', ...
-%                             'conecurrentRV1','seed',1,'currentFlag',true)
+%                             'run1','seed',1,'currentFlag',false)
 
 %% 0. Define params
 
