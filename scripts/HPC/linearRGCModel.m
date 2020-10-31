@@ -1,8 +1,7 @@
 function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
 %
-% First attempt script to build an RGC layer on top of the current
-% computational observer model. The RGC layer is based on the retina-V1
-% model published by Bradley, Abrams and Geisler (2014) in JoV.
+% Function to build an RGC layer on top of the current
+% computational observer model.
 %
 % Our RGC layer of the model has two stages, after getting the cone
 % currents, first one is linear and the second is non-linear:
@@ -15,8 +14,10 @@ function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
 % To recompute cone currents without eyemovements or Gabor stim phase
 % shifts, use the following command:
 % runComputationalObserverModel('defaultnophaseshift', 'saveFolder', ...
-%                             'conecurrentRV1','seed',1,'currentFlag',true)
-
+%                             'run1','seed',1,'currentFlag',false)
+%
+% Example:
+% baseFolder = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/coneabsorptions';
 %% 0. Define params
 
 % Base folder for data and figures
@@ -89,7 +90,7 @@ allRGCResponses = cell(1,length(contrasts));
 for c = 1:length(contrasts)
     fprintf('Contrast %1.4f\n', contrasts(c))
     % get filename, load cone responses
-    d     = dir(fullfile('/Volumes/server/Projects/PerformanceFieldsIsetBio/data/coneabsorptions', expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
+    d     = dir(fullfile(baseFolder, expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
     tmp   = load(fullfile(d.folder, d.name));
     fn    = fieldnames(tmp);
     if strcmp(inputType, 'absorptionrate')
