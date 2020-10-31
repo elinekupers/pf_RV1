@@ -148,9 +148,8 @@ end
 
 %% Plot 3D INTERPOLATED data
 
-fH3 = figure(3); set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
+fH3 = figure(3); clf; set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
 surf(X2,Y2,fct_upsampled2, 'FaceLighting', 'gouraud', 'FaceColor',[1 1 1]);% 'DiffuseStrength', 0.5, 'SpecularStrength', 0.2, 'SpecularExponent', 40);
-axis square; material shiny;
 % camlight(-180,0,'local')
 % h = light;
 % lightangle(h,90,100)
@@ -160,11 +159,14 @@ ylabel('Cone density (cells/deg^2)', 'FontSize', 20)
 zlabel('Contrast threshold (%)', 'FontSize', 20)
 title('Interpolated fit to data: Effect of RGC filtering on contrast threshold')
 
-set(gca, 'ZLim',[0,10], 'FontSize', 20, 'LineWidth', 2,'xScale', 'linear', 'YScale', 'log', 'ZScale', 'log', ...
+set(gca, 'ZLim',[0,10], 'FontSize', 20, 'LineWidth', 2,'XScale', 'linear', 'YScale', 'log', 'ZScale', 'log', ...
     'XTick', c2rgc, 'XTickLabel', sprintfc('%1.2f', rgc2c), ...
-    'TickDir', 'out', 'View',[-233.6000   14.4000]);
+    'TickDir', 'out','View',[-134.0000   11.2000]);
 grid on;
 set(gca, 'GridAlpha', .1, 'ZMinorGrid', 'on', 'YMinorGrid', 'off', 'XMinorGrid', 'off')
+set(gca, 'PlotBoxAspectRatioMode', 'manual', 'PlotBoxAspectRatio', [1 1 1])
+axis square; material shiny;
+
 
 if saveFigs
     hgexport(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_view1'))
@@ -173,7 +175,7 @@ if saveFigs
 end
 
 % Flip view and save again
-set(gca, 'View', [126.0000   15.2000])
+set(gca, 'View', [-219.6000   12.0000])
 
 if saveFigs
     hgexport(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_view2'))
@@ -185,11 +187,11 @@ end
 %%  Predict contrast thresholds for given mRGC density
 
 % mRGC data for different meridia. Order=nasal, superior, temporal,inferior.
-watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
-watson2015.eccDeg = (0:0.05:60);
+watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg');
+assert([length(watson2015.eccDeg) == length(0:0.05:40)]);
 
 % Curcio et al. 1990 (left eye, retina coords, same order as mRGC)
-curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg','angDeg');
+curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg','angDeg');
 [~,angIdx] = intersect(curcio1990.angDeg,[0,90,180,270]);
 coneDensityDeg2PerMeridian= curcio1990.conesCurcioIsetbio(angIdx,:);
 
@@ -199,7 +201,7 @@ rgc2coneRatio = watson2015.mRGCRFDensityPerDeg2./coneDensityDeg2PerMeridian;
 % Get rgc:cone ratio at chosen eccentricity
 eccToCompute = 4.5; % deg
 idxEccen     = find(watson2015.eccDeg==eccToCompute); % index
-ratioAtIdx = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
+ratioAtIdx   = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
 
 % Find the ratio of interest in model grid for nasal and inferior retina
 [err_rn,rn] = min(abs(rgc2c_upsampled-ratioAtIdx(1))); % nasal retina
@@ -281,6 +283,7 @@ end
 
 % Ratio left / cone density right
 set(gca, 'View', [-134.0000   11.2000])
+set(gca, 'xdir', 'reverse')
 
 if saveFigs
     hgexport(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view1'))
@@ -288,12 +291,7 @@ if saveFigs
     print(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view1'), '-dpng')
 end
 
-set(gca, 'View', [-219.6000   12.0000])
-if saveFigs
-    hgexport(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view3'))
-    savefig(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view3'))
-    print(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view3'), '-dpng')
-end
+
 
 %% Make gif of rotating mesh
 %
