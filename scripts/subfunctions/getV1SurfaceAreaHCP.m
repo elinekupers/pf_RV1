@@ -12,7 +12,7 @@ function dataMeridians = getV1SurfaceAreaHCP(wedgeWidth)
 % Written by EK 2019 NYU
 
 %% 0. Read data in
-T1 = readtable(fullfile(pfRV1rootPath, 'external','data', 'DROI_table.csv'));
+T1 = readtable(fullfile(pfRV1rootPath, 'external','data', 'benson2020','DROI_table.csv'));
 surfaceArea = T1.surface_area_mm2;
 
 numSubjects = size(T1,1);
