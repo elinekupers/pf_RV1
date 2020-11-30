@@ -61,18 +61,19 @@ end
 %% 2. Visualize plot
 xrange = xThresh;
 xticks = fliplr(xrange);
-
+colormap = parula(length(xThresh));
 for ii = 1:length(xticks); xticklbls{ii} = sprintf('%1.3f', xticks(ii)); end% get x axis range
 
 % Plot it!
-figure(2); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649])
+figure(2); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649]); hold on;
 
-plot(xThresh, 10.^y, 'r-', 'LineWidth', 3); hold all;
+% plot(xThresh, 10.^y, 'r-', 'LineWidth', 3); hold all;
 if ~isempty(varThresh)
     errorbar(xThresh, yThresh, varThresh, 'Color', 'k', 'LineStyle','none', 'LineWidth', 2);
 end
-scatter(xThresh, yThresh, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',2);
-
+for ii = 1:length(xThresh)
+    scatter(xThresh(ii), yThresh(ii), 80, 'MarkerFaceColor', colormap(ii,:), 'MarkerEdgeColor','k', 'LineWidth',2);
+end
 
 
 box off;

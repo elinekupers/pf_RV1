@@ -6,6 +6,7 @@ cd(pfRV1rootPath)
 
 cardinalMeridianAngles = [0 90 180 270]; % (nasal, superior, temporal and inferior)
 colors = {'r', 'b','g', 'k'};
+lineStyles = {'-','-','--', '--'};
 xScaleDensity = 'log';
 yScaleDensity = 'log';
 
@@ -14,7 +15,7 @@ if strcmp(yScaleDensity, 'log')
     ylR  = 10.^[1 4]; % 3.5 log units for retinal density
     ylV  = 10.^[-0.9 2.1]; % 3.5 log units for cortical surface area
 else
-    ylR  = [0 25000];   % for density
+    ylR  = [0 25000];   % for retinal density
     ylV  = [0 250];     % for V1 CMF
 end
 
@@ -23,10 +24,10 @@ ylV2 = [0 200];  % for transformations
 
 saveData    = false;
 saveFigures = true;
-loadDataFromServer = false;
+loadDataFromServer = true;
 
 % Make figure dir if doesnt exist
-figureDir = fullfile(pfRV1rootPath, 'figures', 'DissertationChapter', 'Figure2');
+figureDir = fullfile(pfRV1rootPath, 'figures', 'Figure2');
 if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
 
@@ -46,14 +47,14 @@ angDeg = (0:dtAng:maxAng-1); % deg, (nasal, superior, temporal and inferior)
 
 if loadDataFromServer
     % Get data from server
-    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'), 'file')
+    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'), 'file')
         dataDir = syncDataFromServer();
     end
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'))
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesSongISETBIO.mat'))
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'))
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesSongISETBIO.mat'))
     
     for ii = 1:length(cardinalMeridianAngles)
-        [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
+        [~, meridianIdx(ii)] = find(angDeg==cardinalMeridianAngles(ii));
     end
     
     conesCurcioIsetbio = conesCurcioIsetbio(meridianIdx,:);
@@ -62,8 +63,8 @@ else
     conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
     conesSongIsetbioYoung = getConeDensityIsetbio(angDeg, eccDeg, 'Song2011Young');
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'), 'conesCurcioIsetbio', 'eccDeg', 'angDeg', '-v7.3');
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'conesSongISETBIO.mat'), 'conesSongIsetbioYoung', 'eccDeg', 'angDeg', '-v7.3');
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'), 'conesCurcioIsetbio', 'eccDeg', 'angDeg', '-v7.3');
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesSongISETBIO.mat'), 'conesSongIsetbioYoung', 'eccDeg', 'angDeg', '-v7.3');
     end
 end
 
@@ -100,13 +101,13 @@ end
 %  -----------------------------------------------------------------
 
 if loadDataFromServer
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
 else
     % Get mRGC density data per meridian
     mRGCRFDensityPerDeg2  = getMRGCRFWatson(eccDeg);
     
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg','cardinalMeridianAngles');
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg','cardinalMeridianAngles');
     end
 end
 
@@ -118,12 +119,12 @@ end
 HH91 = HortonHoytCMF(eccDeg);
 
 % Get CMF from Rovamo & Virsu (1979) in mm2/deg2
-RV79 = RovamuVirsuCMF(eccDeg);
-
-CMF_RV79(1,:) = RV79.nasalVF;
-CMF_RV79(2,:) = RV79.superiorVF;
-CMF_RV79(3,:) = RV79.temporalVF;
-CMF_RV79(4,:) = RV79.inferiorVF;
+% RV79 = RovamuVirsuCMF(eccDeg);
+% 
+% CMF_RV79(1,:) = RV79.nasalVF;
+% CMF_RV79(2,:) = RV79.superiorVF;
+% CMF_RV79(3,:) = RV79.temporalVF;
+% CMF_RV79(4,:) = RV79.inferiorVF;
 
 loadDataFromServer=false;
 if loadDataFromServer
@@ -132,7 +133,7 @@ if loadDataFromServer
 else
     % Get CMF data from HCP all 181 subjects, separate for lh and rh:
     v1Area = getV1SurfaceAreaHCP(10);
-    numSubjects = 181;
+    numSubjects = length(v1Area.individualSubjects.eccen1_2)/2;
     
     % Get all fieldnames
     fn = fieldnames(v1Area.individualSubjects);
@@ -208,7 +209,7 @@ else
         5, 6],2); % (5.5 degree)
     
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'V1AreaHCP_sum.mat'), ...
+        save(fullfile(pfRV1rootPath, 'external', 'data','benson2020','V1AreaHCP_sum.mat'), ...
             'allUpr','allLowr', 'allHorz','allVert', ...
             'allUprCMF', 'allLowrCMF', 'allHorzCMF', 'allVertCMF',...
             'medianUpperVF', 'medianLowerVF', 'medianHorzVF', 'medianVertVF', ...
@@ -286,7 +287,7 @@ fH = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [ 305 39 1225 766])
 % Cones
 subplot(131); hold on;
 for ii = 1:4
-    plot(eccDeg, conesCurcioIsetbio(ii,:), colors{ii}, 'LineWidth', 2);
+    plot(eccDeg, conesCurcioIsetbio(ii,:), colors{ii}, 'LineWidth', 2, 'LineStyle', lineStyles{ii});
 end
 ylabel('Density (counts/deg^2)');
 title('Cone density (Curcio et al. 1990)')
@@ -303,7 +304,7 @@ legend({'Nasal Retina', 'Superior Retina', 'Temporal Retina', 'Inferior Retina'}
 % mRGC
 subplot(132); hold on;
 for ii = 1:4
-    plot(eccDeg, mRGCRFDensityPerDeg2(ii,:), colors{ii}, 'LineWidth', 2);
+    plot(eccDeg, mRGCRFDensityPerDeg2(ii,:), colors{ii}, 'LineWidth', 2, 'LineStyle', lineStyles{ii});
 end
 ylabel('Density (counts/deg^2)');
 title('mRGC RF density (Watson 2015)')
@@ -330,19 +331,23 @@ for k = 1:5 % Plot HCP data
     plot(eccenHCP(k), medianUpperVF(k), 'ko', 'MarkerFaceColor', 'w', 'MarkerSize', 5, 'LineWidth',2);
 end
 
-
+cla;
 % Plot HH
 plot(eccDeg,CMF_HH91, 'k:', 'LineWidth',2); % Plot Horton & Hoyt
 
 % Plot fits
-plot(x, fitHorzVFHCP, 'r:', 'LineWidth', 2);
-plot(x, fitLowerVFHCP, 'b:', 'LineWidth', 2);
-plot(x, fitUpperVFHCP, 'k:', 'LineWidth', 2);
+plot(x, fitHorzVFHCP, 'r-', 'LineWidth', 2);
+plot(x, fitLowerVFHCP, 'b-', 'LineWidth', 2);
+plot(x, fitUpperVFHCP, 'k-', 'LineWidth', 2);
+
+% plot average of fits
+plot(x, mean([fitHorzVFHCP;fitLowerVFHCP;fitUpperVFHCP]), 'color', [0.3, 0.3, 0.3], 'LineStyle', '--', 'LineWidth', 3);
+
 
 % Add legend
 l = findobj(gca, 'Type', 'Line');
 legend(l([4,3,2,1]),{'Horton & Hoyt 91', 'HCP Horizontal VF', 'HCP Lower VF', ...
-        'HCP Upper VF'}, 'Location', 'Best'); legend boxoff;
+        'HCP Upper VF', 'Average HCP'}, 'Location', 'Best'); legend boxoff;
 % Make figure pretty
 set(gca,  'XLim', xl, 'YLim', ylV, 'XScale', xScaleDensity, 'YScale', yScaleDensity, 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
@@ -388,6 +393,8 @@ plot(eccDeg, mRGC2V1_Avg, 'k:', 'LineWidth', 1);
 for ii = 1:3
     plot(x, RGCWatson2V1HCP(ii,:), 'color', colors_Horz{ii}, 'LineWidth', 2);
 end
+plot(x, mean(RGCWatson2V1HCP,1), 'color', [0.3 0.3 0.3], 'LineStyle', '--','lineWidth',3);
+
 xlabel('Eccentricity (deg)');
 ylabel('Ratio (counts/mm^2)');
 title('Ratio nasal mRGC RF density : V1 CMF')
@@ -398,7 +405,7 @@ set(gca, 'XTick', [0:2:10], 'XTickLabel', sprintfc('%d',[0:2:10]))
 
 % Add legend
 legend({'Horton & Hoyt 1991', 'Horizontal VF', 'HCP Lower VF', ...
-        'HCP Upper VF'}, 'Location', 'Best'); legend boxoff;
+        'HCP Upper VF', 'Average HCP'}, 'Location', 'Best'); legend boxoff;
 
 
 if saveFigures

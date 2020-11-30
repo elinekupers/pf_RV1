@@ -13,7 +13,9 @@ function [] = plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, expName, su
 % none
 %
 % Example:
-% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'run1',2)
+% baseFolder =
+% subFolder = 
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'idealobserver', subFolder, 'Ideal')
 %
 %% 0. Set general experiment parameters
 validScalarPosNum = @(x) isnumeric(x) && isscalar(x) && (x > 0);

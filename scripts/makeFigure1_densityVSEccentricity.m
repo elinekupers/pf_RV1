@@ -1,4 +1,4 @@
-function [] = makeFigure1_densityVSEccentricity()
+function [] = makeFigure1_DensityVSEccentricity()
 
 cd(pfRV1rootPath)
 
