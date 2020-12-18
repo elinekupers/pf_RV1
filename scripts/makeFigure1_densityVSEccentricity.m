@@ -7,7 +7,7 @@ saveFigures = true;
 loadDataFromServer = true;
 
 % Make figure dir if doesnt exist
-figureDir = fullfile(pfRV1rootPath, 'figures', 'DissertationChapter', 'Figure1');
+figureDir = fullfile(pfRV1rootPath, 'figures', 'Figure1');
 if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
 
@@ -36,7 +36,7 @@ conesCurcioIsetbio        = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
 conesCurcioIsetbioAvg     = nanmean(conesCurcioIsetbio,1);
 
 % RGC from Watson
-rgcWatsonIsetbio  = getMRGCRFWatson(eccDeg);
+rgcWatsonIsetbio    = getMRGCRFWatson(eccDeg);
 rgcWatsonIsetbioAvg = nanmean(rgcWatsonIsetbio,1);
 
 % V1 CMF from Horton & Hoyt
@@ -63,6 +63,7 @@ plot(eccDeg, conesCurcioIsetbioAvg, 'k', 'LineWidth', 2);
 xlim(xl);
 ylim(ylR);
 ylabel('Density (counts/deg^2)');
+xlabel('Eccentricity (deg)');
 title('Cones (Curcio et al. 1990)')
 set(gca, 'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
@@ -77,6 +78,7 @@ plot(eccDeg, rgcWatsonIsetbioAvg, 'k', 'LineWidth', 2);
 xlim(xl);
 ylim(ylR);
 ylabel('Density (counts/deg^2)');
+xlabel('Eccentricity (deg)');
 title('mRGC RF density (Watson 2015)')
 set(gca, 'XScale', xScale, 'YScale', yScale, 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
@@ -122,8 +124,8 @@ xlabel('Eccentricity (deg)');
 ylabel('Ratio');
 title('Ratio avg cone density : mRGC RF density')
 set(gca, 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
-         'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
-         'LineWidth',1,'FontSize',15, 'XTick', [0 10 20 30 max(eccDeg)], 'XTickLabel', {'0' '10' '20' '30' '40'});
+         'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
+         'LineWidth',1,'FontSize',9, 'XTick', [0 10 20 30 max(eccDeg)], 'XTickLabel', {'0' '10' '20' '30' '40'});
 box off;
 
 subplot(212)
@@ -135,7 +137,7 @@ ylabel('Ratio (counts/mm^2)');
 title('Ratio avg mRGC RF density : V1 CMF')
 set(gca, 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
-         'LineWidth',1,'FontSize',15, 'XTick', [0:10:40], 'XTickLabel', {'0' '10' '20' '30' '40'});
+         'LineWidth',1,'FontSize',9, 'XTick', [0:10:40], 'XTickLabel', {'0' '10' '20' '30' '40'});
 box off;
 
 if saveFigures

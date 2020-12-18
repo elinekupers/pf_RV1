@@ -31,6 +31,12 @@ for r = ratios
     rgcarray = conearray;
     rgcarray(rowIndices, colIndices) = 1;
     
+    % Center Gauss RGC
+    sigma.center = rgcParams.cone2RGCRatio*rgcParams.DoG.kc;
+
+    % Surround Gauss RGC
+    sigma.surround = rgcParams.cone2RGCRatio*rgcParams.DoG.ks;
+    
     % X-axis for 1D DoG visual field
     x = linspace(1,sz(1),numel(DoGfilter(midpoint,:)));
     
@@ -55,8 +61,28 @@ for r = ratios
     % 2D Array visual field
     figure(2)
     subplot(1,length(ratios),r);
-    plot(X,Y, '.','color', [0.5,0.5,0.5], 'MarkerSize',9); hold on;
+    plot(X,Y, '.','color', [0.5,0.5,0.5], 'MarkerSize',9); hold all;
     plot(X(logical(rgcarray)),Y(logical(rgcarray)), 'r.');
+    
+    tmpX = X(logical(rgcarray));
+    tmpY = Y(logical(rgcarray));
+
+    [~, idxX] = min(abs(tmpX-midpoint));
+    [~, idxY] = min(abs(tmpY-midpoint));
+
+    for ii = idxX+[-1,1,ceil(size(X,1)/r)]
+        for jj = idxY
+            th = 0:pi/50:2*pi;
+            xunits_c = sigma.center * cos(th) + tmpX(ii);
+            yunits_c = sigma.center * sin(th) +  tmpY(jj);
+            xunits_s = sigma.surround * cos(th) +  tmpX(ii);
+            yunits_s = sigma.surround * sin(th) +  tmpY(jj);
+           
+            plot(xunits_c,yunits_c, 'color', colors(r,:),'lineWidth',2);
+            plot(xunits_s, yunits_s, 'color', colors(r,:), 'lineWidth',2);
+        end
+    end
+
     axis square;box off; 
     title(labelsRatio{r});
     xlabel('x position (deg)');
