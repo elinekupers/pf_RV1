@@ -16,8 +16,27 @@ function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
 % runComputationalObserverModel('defaultnophaseshift', 'saveFolder', ...
 %                             'run1','seed',1,'currentFlag',false)
 %
+% INPUTS
+% baseFolder    :   folder where rgc data live 
+% subFolder     :   subfolder name when running multiple iterations.
+% expName       :   string with experiment name, e.g. 'conedensity' (for
+%                   all options see loadExpParams.m)
+% seed          :   random number generator seed, in manuscript, we use the
+%                   following rule: run1 has rng seed 1, run2 has 2.. etc.
+% ratio         :   integer between 1-5 to indicate cone:mRGC ratio
+%                   because one mRGC = ON + OFF cell, 1 = 2:1, 2 = 1:1, 3 = 0.67:1, 4 = 0.5:1, 5 = 0.4:1 
+% eccen         :   index of eccentricity vector, for conedensity exp, eccentricies = [0 0.5 1 2 4.5 5 10:5:40] 
+%
 % Example:
-% baseFolder = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/coneabsorptions';
+% baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
+% subFolder  = 'run1'
+% expName    = 'conedensity'
+% seed       = 1; % run1 has rng seed 1, run2 has 2.. etc.
+% ratio      = 2; % cone:mRGC ratio = 1:1 (actually 2:2, as one mRGC = ON + OFF cell) 
+% eccen      = 5; % equal to 4.5 deg eccen
+
+% linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
+
 %% 0. Define params
 
 % Base folder for data and figures
@@ -26,14 +45,11 @@ function []=linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
 rng(seed);
 
 saveData = true;
-saveFigs = true;
 
 % Get experimental params
-% subFolder = 'onlyL_highcontrasts'; %'onlyL'
-% expName   = 'defaultnophaseshift'; %'idealobserver';
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
-inputType = 'absorptionrate'; % could also be 'current'
-if strcmp(inputType, 'absorptionrate')
+inputType = 'current'; % could be 'absorptions' or 'current'
+if strcmp(inputType, 'absorptions')
     contrasts = expParams.contrastLevels;
     selectTimePoints = 1:28;
 elseif strcmp(inputType, 'current')
@@ -41,7 +57,7 @@ elseif strcmp(inputType, 'current')
     selectTimePoints = 51:78; % photocurrent responses are temporally delayed
 end
     
-eccentricities = expParams.eccentricities; % deg (should be 4.5 deg)
+eccentricities = expParams.eccentricities; % deg
 
 if (ratio == 5) && (any(eccen==[11,12,13]))
     contrasts = [contrasts, 0.2:0.1:1];
@@ -70,13 +86,14 @@ rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [
 rgcParams.inputType  = inputType;          % are we dealing with cone absorptions or current?
 
 rgcParams.cone2RGCRatio = ratio;           % linear ratio
-rgcParams.seed       = seed;
-
-cone2RGCRatio = ratio;
+rgcParams.seed          = seed;
+cone2RGCRatio           = ratio;
 %% Compute RGC responses from linear layer
 
-if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder), 'dir')
-    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder));
+if saveData
+    if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder), 'dir')
+        mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder));
+    end
 end
 
 % Subsampling ratio
@@ -90,10 +107,10 @@ allRGCResponses = cell(1,length(contrasts));
 for c = 1:length(contrasts)
     fprintf('Contrast %1.4f\n', contrasts(c))
     % get filename, load cone responses
-    d     = dir(fullfile(baseFolder, expName, subFolder,sprintf('OGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', contrasts(c), eccentricities(eccen))));
+    d     = dir(fullfile(baseFolder, 'data', expName, inputType, expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', preFix, contrasts(c), eccentricities(eccen))));
     tmp   = load(fullfile(d.folder, d.name));
     fn    = fieldnames(tmp);
-    if strcmp(inputType, 'absorptionrate')
+    if strcmp(inputType, 'absorptions')
         coneResponse = tmp.(fn{strcmpi(fn,'absorptions')});
     else
         coneResponse = tmp.(fn{strcmpi(fn,'current')});
@@ -115,6 +132,12 @@ for c = 1:length(contrasts)
     [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
     
     if saveData
+        if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio)), 'dir')
+            mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio)));
+        end
+        if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly'), 'dir')
+            mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly'));
+        end
         parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
         parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly', sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
     end
@@ -123,8 +146,8 @@ for c = 1:length(contrasts)
 end
 
 if saveData
-    parsave(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'DoGfilter',DoGfilter, 'rgcParams', rgcParams, 'contrasts',contrasts, 'expParams',expParams);
-    parsave(fullfile(baseFolder, 'data',  expName, 'rgc', sprintf('rgcArray_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'rgcarray',rgcarray, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+    parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'DoGfilter',DoGfilter, 'rgcParams', rgcParams, 'contrasts',contrasts, 'expParams',expParams);
+    parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcArray_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'rgcarray',rgcarray, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
 end
 
 
