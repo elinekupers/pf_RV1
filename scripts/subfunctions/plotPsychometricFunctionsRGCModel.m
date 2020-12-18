@@ -3,9 +3,12 @@ function [] = plotPsychometricFunctionsRGCModel(baseFolder, expName, subFolder, 
 % observer model.
 %
 % INPUTS:
+% baseFolder      : path to project
 % expName         : string defining the condition you want to plot.
 %                   (See load expParams for possible conditions)
-% [subFolderName] : string defining the sub folder you want to plot from.
+% subFolder       : string defining the sub folder you want to plot from.
+% ratio           : integer from 1-5, to choose mRGC:cone ratio
+% [inputType]     : choose from 'current' or 'absorptionrate'
 % [saveFig]       : boolean defining to save figures or not
 % [plotAvg]      : boolean defining to plot average across experiments runs or not
 %
@@ -40,10 +43,17 @@ plotAvg       = p.Results.plotAvg;
 
 % Load specific experiment parameters
 expParams    = loadExpParams(expName, false);
-[xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
-
+if strcmp(inputType, 'current')
+    [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('current');
+else
+    [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
+end
 % Where to find data and save figures
-dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', 'average');
+if plotAvg
+    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', 'average');
+else
+    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', subFolder);
+end
 figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, subFolder, sprintf('ratio%d', ratio));
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
@@ -153,6 +163,8 @@ for ii = plotIdx
     elseif strcmp(expName, 'default')
          expParams    = loadExpParams(expName, false);
         [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('rgcratios');
+    elseif strcmp(inputType, 'current')
+        [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('current');
     else
         expParams    = loadExpParams(expName, false);
         [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
