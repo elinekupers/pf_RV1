@@ -13,7 +13,7 @@ rgcParams.saveFigs   = true;
 
 % Define DoG Params
 rgcParams.DoG.kc     = 1/3;                % Gauss center sigma. (Bradley et al. 2014 paper has kc =1)
-rgcParams.DoG.ks     = 10.1/3;             % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10)
+rgcParams.DoG.ks     = 6;             % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10)
 rgcParams.DoG.wc     = 0.53;               % DoG center Gauss weight. Range: [0,1].
 rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
 rgcParams.cRows      = 79;  % #cones on y-axis
