@@ -1,7 +1,7 @@
 %% Effect of zero-padding using conv2 to filter mRGC responses
 
 % general flags
-useArtificalStim = false;
+useArtificalStim = true;
 doSubsampling    = false;
 doSmallerArray   = false;
 
@@ -18,7 +18,7 @@ ws = 1-wc;
 
 saveFig = false;
 if saveFig
-    saveDir = fullfile(pfRV1rootPath, 'figures', 'conv2demo');
+    saveDir = fullfile(pfRV1rootPath, 'figures', 'conv2demo1');
     if ~exist('saveDir', 'dir'); mkdir(saveDir); end
 end
 %% Load or simulate stimulus
@@ -58,9 +58,9 @@ else
     
     % Go 1D for now
     midpoint    = ceil(size(stim2D,1)/2);
-    stim        = stim2D(midpoint,:)' - mean(stim2D(midpoint,:));
+    stim        = stim2D(midpoint,:)';% - mean(stim2D(midpoint,:));
     noise       = noise2D(midpoint,:)';
-    coneresp    = coneresp2D(midpoint,:)' - mean(coneresp2D(midpoint,:));
+    coneresp    = coneresp2D(midpoint,:)';% - mean(coneresp2D(midpoint,:));
     
     % Plot it!
     figure(100); set(gcf, 'Position', [16 487 1641 461]); clf;
@@ -149,12 +149,12 @@ rgcnoise = rgcresp;
 for ii = 1:numC2RGCratios
     
     padMean1         = ones(ceil(length(coneresp(:,ii))/2)-1,1)*mean(coneresp(:,ii));
-    coneresp_padMean(:,ii) = [padMean1; coneresp(:,ii); padMean1];
+    coneresp_padMean(:,ii) = [iePoisson(padMean1); coneresp(:,ii); iePoisson(padMean1)];
     padMean2         = ones(ceil(length(stim(:,ii))/2)-1,1)*mean(stim(:,ii));
-    stim_padMean(:,ii)     = [padMean2; stim(:,ii); padMean2];
+    stim_padMean(:,ii)     = [iePoisson(padMean2); stim(:,ii); iePoisson(padMean2)];
     padMean3         = ones(ceil(length(noise(:,ii))/2)-1,1)*mean(noise(:,ii));
-    noise_padMean(:,ii)    = [padMean3; noise(:,ii); padMean3];
-    
+    noise_padMean(:,ii)    = [iePoisson(padMean3); noise(:,ii); iePoisson(padMean3)];
+        
     % Convolve cone response with DoG filter
     rgcresp(:,ii)  = conv(coneresp(:,ii), f(:,ii), 'same');
     rgcstim(:,ii)  = conv(stim(:,ii), f(:,ii), 'same');
@@ -248,7 +248,7 @@ end
     
     
     %% Visualize filters in visual and fft domain
-    figure(11), clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+    figure(1), clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
     
     % Plot center Gaussian
     subplot(4,2,1)
@@ -340,10 +340,10 @@ end
     end
     %%
     
-    figure(3);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+    figure(13);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
     for ii = 1:numC2RGCratios
         fs = (0:length(STIMOUTPUT{ii})-1)/2;
-        yl = max(NOISEOUTPUT{ii})*100;
+        yl = max(NOISEOUTPUT{ii})*5;
         % Stim (no noise)
         subplot(311); title('FFT RGC outputs for STIM');
         plot(fs, STIMOUTPUT{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
@@ -373,12 +373,12 @@ end
     end
     
     %%
-    figure(4);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+    figure(14);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
     for ii = 1:numC2RGCratios
         fs = (0:length(STIMOUTPUT_padded{ii})-1)/2;
         yl = max(NOISEOUTPUT_padded{ii})*5;
         % Stim (no noise)
-        subplot(311); title('FFT RGC outputs for STIM, using valid conv2');
+        subplot(311); title('FFT RGC outputs for STIM,  w/ mean padding');
         plot(fs, STIMOUTPUT_padded{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
         ylim([0 yl]); set(gca, 'TickDir', 'out', 'FontSize', 14);
         legend(labels); legend boxoff; ylabel('Amplitude')
@@ -386,14 +386,14 @@ end
         if ii==1; xlim([0 max(fs)/2]); end
         
         % Noise
-        subplot(312); title('FFT RGC outputs for NOISE, using valid conv2');
+        subplot(312); title('FFT RGC outputs for NOISE,  w/ mean padding');
         plot(fs, NOISEOUTPUT_padded{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
         ylim([0 yl]); set(gca, 'TickDir', 'out', 'FontSize', 14)
         box off; ylabel('Amplitude')
         if ii==1; xlim([0 max(fs)/2]); end
         
         % Cones (stim+noise)
-        subplot(313); title('FFT RGC outputs for CONES (stim+noise), using valid conv2');
+        subplot(313); title('FFT RGC outputs for CONES (stim+noise),  w/ mean padding');
         ylim([0 yl]);
         plot(fs, RGCOUTPUT_padded{ii}, '-','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
         xlabel('Spatial frequency (cpd)'); set(gca, 'TickDir', 'out', 'FontSize', 14);
@@ -402,11 +402,11 @@ end
     end
     
     if saveFig
-        print(gcf, fullfile(saveDir, 'DoG1D_RGCOUTPUT_fft_validconv2'), '-dpng')
+        print(gcf, fullfile(saveDir, 'DoG1D_RGCOUTPUT_fft_meanpadding'), '-dpng')
     end
     
     %%
-    figure(5);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+    figure(15);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
     for ii = 1:numC2RGCratios
         fs = (0:length(STIMOUTPUT{ii})-1)/2;
         
@@ -416,7 +416,7 @@ end
         plot(fs, NOISEOUTPUT{ii}, '--', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
         plot(fs, RGCOUTPUT{ii}, ':','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
     end
-    yl = max(NOISEOUTPUT{ii})*4;
+    yl = max(NOISEOUTPUT{ii})*20;
     xlim([0 18]); ylim([0 yl]); set(gca, 'TickDir', 'out', 'FontSize', 14);
     legend({'Stim', 'Noise', 'Cones'}); legend boxoff;
     ylabel('Amplitude')
@@ -427,17 +427,18 @@ end
         print(gcf, fullfile(saveDir, 'DoG1D_RGCOUTPUT_all'), '-dpng')
     end
     %%
-    figure(6);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
+    figure(16);  clf; set(gcf, 'Color', 'w', 'Position', [1 117 1056 831]);
     for ii = 1:numC2RGCratios
+        
         fs = (0:length(STIMOUTPUT_padded{ii})-1)/2;
         
         % Plot FFT RGC
-        title('FFT RGC outputs for valid conv2');
+        title('FFT RGC outputs  w/ mean padding');
         plot(fs, STIMOUTPUT_padded{ii}, '-', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
         plot(fs, NOISEOUTPUT_padded{ii}, '--', 'LineWidth', 2, 'Color', cmap(ii,:)); hold on;
         plot(fs, RGCOUTPUT_padded{ii}, ':','LineWidth', 2, 'Color', cmap(ii,:)); hold on;
     end
-    
+     yl = max(NOISEOUTPUT{ii})*8;
     xlim([0 18]); ylim([0 yl]); set(gca, 'TickDir', 'out', 'FontSize', 14);
     legend({'Stim', 'Noise', 'Cones'}); legend boxoff;
     ylabel('Amplitude')
@@ -445,7 +446,7 @@ end
     box off;
     
     if saveFig
-        print(gcf, fullfile(saveDir, 'DoG1D_RGCOUTPUT_validconv2'), '-dpng')
+        print(gcf, fullfile(saveDir, 'DoG1D_RGCOUTPUT_meanpadding'), '-dpng')
     end
     
     %%
