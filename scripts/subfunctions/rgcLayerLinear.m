@@ -19,10 +19,13 @@ function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinea
 %                           cone:RGC ratio
 %
 % OUTPUTS:
-%   rgcParams           : RGC
-%   rgcarray            :
-%   DoGfilter           :
-%   filteredConeCurrent :
+%   rgcResponse         : mRGC responses (i.e. filtered and resampled cone
+%                           data), 5-D array
+%   rgcarray            : Resampling matrix of mRGC layer (same size as cone
+%                           matrix)
+%   DoGfilter           : Difference of Gaussian filter used to filter cone
+%                           data
+%   filteredConeCurrent : Filtered, but not resampled, mRGC data.
 
 
 % reshape cone data
@@ -85,7 +88,7 @@ if rgcParams.verbose
     % Plot array, filter and response
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
     if strcmp(rgcParams.inputType, 'current')
-        timepointsToAverage = 1:size(rgcResponse,4);
+        timepointsToAverage = 51:78;
     else
         timepointsToAverage = 1:28;
     end
