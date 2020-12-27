@@ -63,10 +63,20 @@ for ii = 1:size(reshapedConeData,4)
     
     for t = 1:size(reshapedConeData,3)
         
+        % get single time frame image
         img =  reshapedConeData(:,:,t, ii);
         
+        % mean cone absorption--> get poission noise to pad surround
+        mnPad = ones(size(img,1)*2,size(img,2)*2).*mean(img(:));
+        mnPadPoisson = iePoisson(mnPad, 'noiseFlag', 'random', 'seed', rgcParams.seed);
+        rowStart = floor(size(img,1)/2)+1;
+        colStart = floor(size(img,2)/2)+1;
+        imgMnPadded = mnPadPoisson;
+        imgMnPadded([rowStart:(rowStart+size(img,1)-1)],[colStart:(colStart+size(img,2)-1)]) = img;
+        
         % Convolve image with DoG filter
-        filteredConeCurrent = conv2(img, DoGfilter, 'same');
+        filteredConeCurrentFull = conv2(imgMnPadded, DoGfilter, 'same');
+        filteredConeCurrent = filteredConeCurrentFull([rowStart:(rowStart+size(img,1)-1)],[colStart:(colStart+size(img,2)-1)]);
         
         % Resample RGC image
         rgcResponse(:,:,t,ii) = squeeze(filteredConeCurrent(rowIndices, colIndices));
@@ -87,12 +97,12 @@ if rgcParams.verbose
     
     % Plot array, filter and response
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
-    if strcmp(rgcParams.inputType, 'current')
-        timepointsToAverage = 51:78;
-    else
-        timepointsToAverage = 1:28;
-    end
-    rgcResponse_mn = squeeze(mean(mean(rgcResponse(:,:,:,timepointsToAverage,1),1),4));
+%     if strcmp(rgcParams.inputType, 'current')
+%         timepointsToAverage = 51:78;
+%     else
+%         timepointsToAverage = 1:28;
+%     end
+    rgcResponse_mn = squeeze(mean(mean(rgcResponse(:,:,:,:,1),1),4));
     
     fH = figure(99); clf; set(gcf, 'Position', [244,680,2316,665], 'Color', 'w');
     
@@ -135,8 +145,9 @@ if rgcParams.verbose
     set(gca, 'TickDir', 'out', 'FontSize', 12);
     
     if rgcParams.saveFigs
-        if ~exist(fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder), 'dir')),
-            mkdir(fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder))); end
+        if ~exist(fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder))),
+            mkdir(fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder)));
+        end
         hgexport(fH, fullfile(pfRV1rootPath, 'figures', sprintf('RGC_%s', rgcParams.subFolder), sprintf('rgclayerresponse_%d_contrast%1.4f_%s.eps',rgcParams.cone2RGCRatio, rgcParams.c, rgcParams.inputType)));
     end
     
