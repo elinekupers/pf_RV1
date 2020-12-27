@@ -48,7 +48,7 @@ saveData = true;
 
 % Get experimental params
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
-inputType = 'current'; % could be 'absorptions' or 'current'
+inputType = 'absorptions'; % could be 'absorptions' or 'current'
 if strcmp(inputType, 'absorptions')
     contrasts = expParams.contrastLevels;
     selectTimePoints = 1:28;
@@ -91,8 +91,9 @@ cone2RGCRatio           = ratio;
 %% Compute RGC responses from linear layer
 
 if saveData
-    if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder), 'dir')
-        mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder));
+    saveFolder = fullfile(baseFolder, 'data',  expName, 'rgc', [subFolder '_meanPoissonPadded']);
+    if ~exist(saveFolder, 'dir')
+        mkdir(saveFolder);
     end
 end
 
@@ -113,8 +114,9 @@ for c = 1:length(contrasts)
     if strcmp(inputType, 'absorptions')
         coneResponse = tmp.(fn{strcmpi(fn,'absorptions')});
     else
-        coneResponse = tmp.(fn{strcmpi(fn,'current')});
+        coneResponse = tmp.(fn{strcmpi(fn,'current')}); 
     end
+    coneResponse = coneResponse(:,:,:,selectTimePoints,:);
     sparams      = tmp.(fn{strcmpi(fn,'sparams')});
     
     % Define dimensions of cone mosaic and other params of stim
@@ -123,7 +125,7 @@ for c = 1:length(contrasts)
     rgcParams.cRows      = sz(2);      % #cones on y-axis
     rgcParams.cCols      = sz(3);      % #cones on x-axis
     rgcParams.timePoints = sz(4);      % ms
-    
+    rgcParams.selectTimePoints = selectTimePoints; % truncate to stimulus "on" response only
     rgcParams.fov        = sparams.sceneFOV;   % deg
     rgcParams.c          = contrasts(c);       % contrast of stim % Michelson
     rgcParams.stimSF     = expParams.spatFreq; % cpd
@@ -132,22 +134,22 @@ for c = 1:length(contrasts)
     [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
     
     if saveData
-        if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio)), 'dir')
-            mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio)));
+        if ~exist(fullfile(saveFolder, sprintf('ratio%d',ratio)), 'dir')
+            mkdir(fullfile(saveFolder, sprintf('ratio%d',ratio)));
         end
-        if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly'), 'dir')
-            mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly'));
+        if ~exist(fullfile(saveFolder, 'filteredOnly'), 'dir')
+            mkdir(fullfile(saveFolder, 'filteredOnly'));
         end
-        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
-        parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, 'filteredOnly', sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+        parsave(fullfile(saveFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse',rgcResponse, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+        parsave(fullfile(saveFolder, 'filteredOnly', sprintf('filteredConeCurrent_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c),eccentricities(eccen), inputType)), 'filteredConeCurrent',filteredConeCurrent, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
     end
     
     allRGCResponses{c} = rgcResponse;
 end
 
 if saveData
-    parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'DoGfilter',DoGfilter, 'rgcParams', rgcParams, 'contrasts',contrasts, 'expParams',expParams);
-    parsave(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('rgcArray_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'rgcarray',rgcarray, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
+    parsave(fullfile(saveFolder, sprintf('rgcDoGFilter_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'DoGfilter',DoGfilter, 'rgcParams', rgcParams, 'contrasts',contrasts, 'expParams',expParams);
+    parsave(fullfile(saveFolder, sprintf('rgcArray_Cones2RGC%d_%s.mat', cone2RGCRatio, inputType)), 'rgcarray',rgcarray, 'rgcParams',rgcParams, 'contrasts',contrasts, 'expParams', expParams);
 end
 
 
