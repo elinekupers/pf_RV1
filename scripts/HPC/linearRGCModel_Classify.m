@@ -96,7 +96,7 @@ fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 
 switch expName
     
-    case {'defaultnophaseshift', 'default','conedensity'}
+    case {'defaultnophaseshift', 'default','conedensity', 'conedensitynonoise'}
         % Preallocate space
         P_svm = NaN(1,length(contrasts));
         
