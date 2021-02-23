@@ -44,17 +44,27 @@ colStart = floor(size(coneresp,2)/2)+1;
 imgMnPadded = mnPadPoisson;
 imgMnPadded([rowStart:(rowStart+size(coneresp,1)-1)],[colStart:(colStart+size(coneresp,2)-1)]) = coneresp;
 
-% Convolve image with DoG filter
-filteredConeCurrentFull = conv2(imgMnPadded, DoGfilter, 'same');
-filteredConeCurrent = filteredConeCurrentFull([rowStart:(rowStart+size(coneresp,1)-1)],[colStart:(colStart+size(coneresp,2)-1)]);
+% Convolve padded image with DoG filter
+filteredConeRespFull = conv2(imgMnPadded, DoGfilter, 'same');
+filteredConeRespPadded = filteredConeRespFull([rowStart:(rowStart+size(coneresp,1)-1)],[colStart:(colStart+size(coneresp,2)-1)]);
 
-% Resample RGC image
-rgcResponse = squeeze(filteredConeCurrent(rowIndices, colIndices));
+% Convolve default image with DoG filter
+filteredConeResp = conv2(coneresp, DoGfilter, 'same');
+
+% Resample RGC images
+rgcResponsePadded = squeeze(filteredConeRespPadded(rowIndices, colIndices));
+rgcResponse = squeeze(filteredConeResp(rowIndices, colIndices));
 
  % we divide by 2, because the time sampling is at 2 ms.
-subplot(5,1,ii);
+subplot(2,5,ii);
+imagesc(rgcResponsePadded./2); colormap gray; axis square; box off;
+title(sprintf('Mean RGC response using padded image, ratio %d', ii));
+xlabel('# cones (rows)');
+ylabel('# cones (cols)');
+
+subplot(2,5,ii+5);
 imagesc(rgcResponse./2); colormap gray; axis square; box off;
-title(sprintf('Mean RGC response, ratio %d', ii));
+title(sprintf('Mean RGC response no padding, ratio %d', ii));
 xlabel('# cones (rows)');
 ylabel('# cones (cols)');
 end
