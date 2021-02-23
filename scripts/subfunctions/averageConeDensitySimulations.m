@@ -5,7 +5,8 @@ expName                  = 'conedensity';
 expParams                = loadExpParams(expName, false);
 
 % Where to find data and save figures
-dataPth     = fullfile(baseFolder,'data',expName,'classification','rgc');
+subFolder   = 'noPaddingBeforeConvolution';
+dataPth     = fullfile(baseFolder,'data',expName,'classification','rgc',subFolder);
 averageDataPth = fullfile(dataPth,'average');
 
 % Number of total trials in computational observer model (50 clockwise, 50 counterclockwise)
@@ -82,8 +83,9 @@ end
 
 varThresh = std(ctrthresh,[],2);
 fNameSEThresh = sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity.mat', ratio, ec);
-if ~exist(fullfile(baseFolder,'data',expName,'thresholds'), 'dir'); mkdir(fullfile(baseFolder,'data',expName,'thresholds')); end
-save(fullfile(baseFolder,'data',expName,'thresholds',fNameSEThresh),'varThresh', 'ctrthresh');
+thresholdDir = fullfile(baseFolder,'data',expName,'thresholds',subFolder);
+if ~exist(thresholdDir, 'dir'); mkdir(thresholdDir); end
+save(fullfile(thresholdDir,fNameSEThresh),'varThresh', 'ctrthresh');
     
 
 end
