@@ -10,14 +10,18 @@ function [] = plotPsychometricFunctionsRGCModel(baseFolder, expName, subFolder, 
 % ratio           : integer from 1-5, to choose mRGC:cone ratio
 % [inputType]     : choose from 'current' or 'absorptionrate'
 % [saveFig]       : boolean defining to save figures or not
-% [plotAvg]      : boolean defining to plot average across experiments runs or not
+% [plotAvg]       : boolean defining to plot average across experiments runs or not
+% [meanPoissonPaddingFlag]   : string to define what simulation results to use (with
+%                       or without padding before convolution).
 %
 % OUTPUTS:
 % none
 %
-% Example:
+% Examples:
+% baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
 % plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'run1',2)
 %
+% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',1, 'plotAvg',true, 'meanPoissonPaddingFlag', true)
 %% 0. Set general experiment parameters
 validScalarPosNum = @(x) isnumeric(x) && isscalar(x) && (x > 0);
 
@@ -30,6 +34,7 @@ p.addRequired('ratio', validScalarPosNum);
 p.addParameter('inputType', 'absorptionrate', @ischar);
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
+p.addParameter('meanPoissonPaddingFlag', false, @islogical);
 p.parse(baseFolder, expName, subFolder, ratio, varargin{:});
 
 % Rename variables
@@ -40,6 +45,7 @@ ratio         = p.Results.ratio;
 inputType     = p.Results.inputType;
 saveFig       = p.Results.saveFig;
 plotAvg       = p.Results.plotAvg;
+meanPoissonPaddingFlag = p.Results.meanPoissonPaddingFlag;
 
 % Load specific experiment parameters
 expParams    = loadExpParams(expName, false);
@@ -48,16 +54,26 @@ if strcmp(inputType, 'current')
 else
     [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
 end
+
+if meanPoissonPaddingFlag
+    extraSubFolder = 'withPaddingBeforeConvolution';
+    subFolder = [subFolder '_meanPoissonPadded'];
+else
+    extraSubFolder = 'noPaddingBeforeConvolution';
+end
+
 % Where to find data and save figures
 if plotAvg
-    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', 'average');
+    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, 'average');
 else
-    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', subFolder);
+    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, subFolder);
 end
-figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, subFolder, sprintf('ratio%d', ratio));
+
+figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, extraSubFolder, subFolder, sprintf('ratio%d', ratio));
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
 end
+
 % Number of total trials in computational observer model (50 clockwise, 50 counterclockwise)
 nTotal      = expParams.nTrials;
 
@@ -87,8 +103,8 @@ for eccen = 1:nrEccen
     
     %% 2. Get correct filename
     if plotAvg
-        fName = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_AVERAGE.mat', ratio, eccen);
-        fNameSE  = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_SE.mat', ratio, eccen);
+        fName = sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_conedensity_AVERAGE.mat', ratio, inputType, eccen);
+        fNameSE  = sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_conedensity_SE.mat', ratio, inputType, eccen);
         
         SE{count} = load(fullfile(dataPth, fNameSE));
         
@@ -201,14 +217,14 @@ if saveFig
 end
 
 % Save thresholds and fits
-if ~exist(fullfile(baseFolder,'data',expName,'thresholds'), 'dir'); mkdir(fullfile(baseFolder,'data',expName,'thresholds')); end
-save(fullfile(baseFolder,'data',expName,'thresholds', sprintf('cThresholds_ratio%d_%s', ratio, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
+thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', extraSubFolder);
+if ~exist(thresholdsDir, 'dir'); mkdir(thresholdsDir); end
+save(fullfile(thresholdsDir, sprintf('cThresholds_ratio%d_%s', ratio, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
 
 
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName)
-    load(fullfile(baseFolder,'data',expName,'thresholds', sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_13_conedensity', ratio)), 'varThresh');
-    
+    load(fullfile(thresholdsDir, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_13_conedensity', ratio)), 'varThresh');
     plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 elseif strcmp('default',expName) || strcmp('defaultnophaseshift',expName) || strcmp('idealobserver',expName)
     plotCone2RGCRatioVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
