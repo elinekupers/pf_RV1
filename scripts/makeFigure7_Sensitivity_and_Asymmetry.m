@@ -1,23 +1,34 @@
 function makeFigure7_Sensitivity_and_Asymmetry()
 %
-% Funxtion to make Figure 7 of the manuscript:
-% TITLE. AUTHORS. JOURNAL. DOI.
-
+% Function to make Figure 7 of the manuscript:
+% Radial asymmetries around the visual field: From retina to cortex to 
+%   behavior. By Kupers, Benson, Carrasco, Winawer.
+%    JOURNAL. DOI.
 
 %% 0. Define params and folders
 nrSimConeDensities = 13;
 c2rgc       = 1:5; % Cone 2 RGC ratios
 rgc2c       = 2./c2rgc; % RGC 2 Cone ratios
 expName     = 'conedensity';
-subFolder   = 'average';
-colors      = parula(length(c2rgc)+1);
-labels      = sprintfc('RGC:cone = %1.1f:1.0', rgc2c);
+meanPoissonPaddingFlag = true;
+
+% colors      = parula(length(c2rgc)+1);
+% labels      = sprintfc('RGC:cone = %1.1f:1.0', rgc2c);
+
+% Change folder names if using mean Poisson padded cone data
+if meanPoissonPaddingFlag
+    extraSubFolder = 'withPaddingBeforeConvolution';
+    subFolder   = 'average_meanPoissonPadded';
+else
+    extraSubFolder = 'noPaddingBeforeConvolution';
+    subFolder   = 'average';
+end
 
 % Folders
-saveFigs     = true;
+saveFigs     = false;
 baseFolder   = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
-dataFolder   = fullfile(baseFolder,'data',expName,'thresholds');
-figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder);
+dataFolder   = fullfile(baseFolder,'data',expName,'thresholds',extraSubFolder);
+figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder, extraSubFolder);
 if (saveFigs) && ~exist(figureFolder, 'dir')
     mkdir(figureFolder);
 end
@@ -73,11 +84,11 @@ fct_upsampled2 = griddata(X1,Y1, 10.^fct', X2,Y2, 'linear');
 %% 3. Predict contrast thresholds for given mRGC density
 
 % mRGC data for different meridia. Order=nasal, superior, temporal,inferior.
-watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
+watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
 watson2015.eccDeg = (0:0.05:60);
 
 % Curcio et al. 1990 (left eye, retina coords, same order as mRGC)
-curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg','angDeg');
+curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg','angDeg');
 [~,angIdx] = intersect(curcio1990.angDeg,[0,90,180,270]);
 coneDensityDeg2PerMeridian= curcio1990.conesCurcioIsetbio(angIdx,:);
 
@@ -160,14 +171,16 @@ rgcPredContrastSensitivityERROR_wHorz_VF_lower = [mean(rgcPredContrastSensitivit
 rgcPredContrastSensitivityERROR_wHorz_VF_upper = [mean(rgcPredContrastSensitivityERROR_retina_upper([1 3])); rgcPredContrastSensitivityERROR_retina_upper(4); rgcPredContrastSensitivityERROR_retina_upper(2)];
 
 %% Get observed behavior + error
-% OBSERVED LeftVM, UVM, RightVM, LVM
+% OBSERVED Left HM, UVM, Right HM, LVM
 obsContrastSensitivityMEAN_VF        = [46.4938; 28.9764; 47.7887; 34.3813]; % contrast senstivity (%)
 obsContrastSensitivityERROR_VF       = [2.66468; 1.6445; 1.8450; 2.0505];    % contrast senstivity (%)
-obsContrastSensitivityMEAN_retina    = [obsContrastSensitivityMEAN_VF(1),obsContrastSensitivityMEAN_VF(4),obsContrastSensitivityMEAN_VF(3),obsContrastSensitivityMEAN_VF(2)];
+obsContrastSensitivityMEAN_retina    = [obsContrastSensitivityMEAN_VF(1), ... HM == nasal/temporal
+                                        obsContrastSensitivityMEAN_VF(4), ... LVM == superior retina
+                                        obsContrastSensitivityMEAN_VF(3), ... HM == nasal/temporal 
+                                        obsContrastSensitivityMEAN_VF(2)]; %  UVM == inferior retina
 
 obsContrastSensitivityMEAN_wHorz_VF  = [mean(obsContrastSensitivityMEAN_VF([1 3])), obsContrastSensitivityMEAN_VF(2), obsContrastSensitivityMEAN_VF(4)];
 obsContrastSensitivityERROR_wHorz_VF = [mean(obsContrastSensitivityERROR_VF([1 3])), obsContrastSensitivityERROR_VF(2), obsContrastSensitivityERROR_VF(4)];
-
 
 %% Get simulated thresholds and error for cone model only 
 % Cone data are from JWLOrientedGabor toolbox
@@ -176,12 +189,17 @@ load(fullfile(dataFolder,'coneOnly_predictedMeanAndError_stimeccen'),'modelPredi
 
 % MODELED CONE ONLY
 conesPredContrastThreshMEAN_retina        = modelPredictionForPF; % nasal, superior, temporal, inferior
-conesPredContrastThreshERROR_retina_lower = predictedError(:,1); % - doubling diff in cone density from the mean
+conesPredContrastThreshERROR_retina_lower = predictedError(:,1); %#ok<NODEF> % - doubling diff in cone density from the mean
 conesPredContrastThreshERROR_retina_upper = predictedError(:,2); % + doubling diff in cone density from the mean
 
-conesPredContrastSensitivityMEAN_retina          =  1./conesPredContrastThreshMEAN_retina;
-conesPredContrastSensitivityMEAN_VF              =  [conesPredContrastSensitivityMEAN_retina(1),conesPredContrastSensitivityMEAN_retina(4),conesPredContrastSensitivityMEAN_retina(3),conesPredContrastSensitivityMEAN_retina(2)];
+% Get sensivity for retinal coords
+conesPredContrastSensitivityMEAN_retina          = 1./conesPredContrastThreshMEAN_retina;
+% Convert retinal coords to visual field coords
+conesPredContrastSensitivityMEAN_VF              = [conesPredContrastSensitivityMEAN_retina(1),conesPredContrastSensitivityMEAN_retina(4),conesPredContrastSensitivityMEAN_retina(3),conesPredContrastSensitivityMEAN_retina(2)];
+% Combine left/right visual field coords to one horizontal value
 conesPredContrastSensitivityMEAN_wHorz_VF        = [mean(conesPredContrastSensitivityMEAN_VF([1 3])),conesPredContrastSensitivityMEAN_VF(2),conesPredContrastSensitivityMEAN_VF(4)];
+
+% Do the same for upper/lower bounds of error margins
 conesPredContrastSensitivityERROR_wHorz_VF_lower = 1./[mean(conesPredContrastThreshERROR_retina_lower([1 3])),conesPredContrastThreshERROR_retina_lower(4),conesPredContrastThreshERROR_retina_lower(2)];
 conesPredContrastSensitivityERROR_wHorz_VF_upper = 1./[mean(conesPredContrastThreshERROR_retina_upper([1 3])),conesPredContrastThreshERROR_retina_upper(4),conesPredContrastThreshERROR_retina_upper(2)];
 conesPredContrastSensitivityERROR_retina_lower   = 1./conesPredContrastThreshERROR_retina_lower; % - doubling diff in cone density from the mean
