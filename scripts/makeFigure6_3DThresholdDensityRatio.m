@@ -1,24 +1,39 @@
 function makeFigure6_3DThresholdDensityRatio()
-%
-% Funxtion to make Figure 6 of the manuscript:
-% TITLE. AUTHORS. JOURNAL. DOI.
+% Function to make Figure 6 of the manuscript:
+%   Radial asymmetries around the visual field: From retina to cortex to 
+%   behavior. By Kupers, Benson, Carrasco, Winawer.
+%    JOURNAL. DOI.
 
-
+% This function requires you to have psychometric functions of the 
+% simulated data. You can run this with:
+% 
+% for ratio = 1:5
+%     plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',ratio, 'plotAvg',true, 'meanPoissonPaddingFlag', true);
+% end
 
 %% 0. Define params and folders
 nrSimConeDensities = 13;
 c2rgc       = 1:5; % Cone 2 RGC ratios
 rgc2c       = 2./c2rgc; % RGC 2 Cone ratios
 expName     = 'conedensity';
-subFolder   = 'average';
+meanPoissonPaddingFlag = true;
 colors      = parula(length(c2rgc)+1);
 labels      = sprintfc('RGC:cone = %1.1f:1.0', rgc2c);
+
+% Change folder names if using mean Poisson padded cone data
+if meanPoissonPaddingFlag
+    extraSubFolder = 'withPaddingBeforeConvolution';
+    subFolder   = 'average_meanPoissonPadded';
+else
+    extraSubFolder = 'noPaddingBeforeConvolution';
+    subFolder   = 'average';
+end
 
 % Folders
 saveFigs     = true;
 baseFolder   = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
-dataFolder   = fullfile(baseFolder,'data',expName,'thresholds');
-figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder);
+dataFolder   = fullfile(baseFolder,'data',expName,'thresholds',extraSubFolder);
+figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder,extraSubFolder);
 if (saveFigs) && ~exist(figureFolder, 'dir')
     mkdir(figureFolder);
 end
@@ -31,6 +46,7 @@ errThresh = allData;
 fct       = allData;
 R2        = NaN(length(c2rgc),1);
 
+% Loop over ratios
 for r = c2rgc
     
     % Load simulated contrast thresholds
@@ -73,14 +89,11 @@ coneDensities_resampled = 10.^linspace(log10(coneDensities(1)),log10(coneDensiti
 
 fct_upsampled2 = griddata(X1,Y1, 10.^fct', X2,Y2, 'linear');
 
-
-
 %% ---------------------------------
 % ---------- Visualize ----------- %
 % ----------------------------------
 
 % Plot threshold fits vs density data for each ratio
-
 fH1 = figure(1); set(gcf, 'Color', 'w', 'Position', [79 39 1522 759]); clf; hold all;
 
 for ii = c2rgc
@@ -97,6 +110,7 @@ for ii = c2rgc
     box off; grid on;
 end
 
+% Plot lines in additional subplot
 subplot(2,3,6); hold all;
 for ii = c2rgc
     plot(coneDensities, 10.^fct(ii,:), '-', 'LineWidth',4, 'Color', colors(ii,:))
@@ -146,7 +160,7 @@ end
 %     print(fH2, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_Data'), '-dpng')
 % end
 
-%% Plot 3D INTERPOLATED data
+%% Plot 3D mesh with INTERPOLATED data
 
 fH3 = figure(3); clf; set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
 surf(X2,Y2,fct_upsampled2, 'FaceLighting', 'gouraud', 'FaceColor',[1 1 1]);% 'DiffuseStrength', 0.5, 'SpecularStrength', 0.2, 'SpecularExponent', 40);
@@ -154,12 +168,15 @@ surf(X2,Y2,fct_upsampled2, 'FaceLighting', 'gouraud', 'FaceColor',[1 1 1]);% 'Di
 % h = light;
 % lightangle(h,90,100)
 
+% Add labels
 xlabel('mRGC:cone ratio', 'FontSize', 20)
 ylabel('Cone density (cells/deg^2)', 'FontSize', 20)
 zlabel('Contrast threshold (%)', 'FontSize', 20)
 title('Interpolated fit to data: Effect of RGC filtering on contrast threshold')
 
-set(gca, 'ZLim',[0,10], 'FontSize', 20, 'LineWidth', 2,'XScale', 'linear', 'YScale', 'log', 'ZScale', 'log', ...
+% Make plot pretty
+set(gca, 'ZLim',[0,10], 'FontSize', 20, 'LineWidth', 2, ...
+    'XScale', 'linear', 'YScale', 'log', 'ZScale', 'log', ...
     'XTick', c2rgc, 'XTickLabel', sprintfc('%1.2f', rgc2c), ...
     'TickDir', 'out','View',[-134.0000   11.2000]);
 grid on;
@@ -167,7 +184,7 @@ set(gca, 'GridAlpha', .1, 'ZMinorGrid', 'on', 'YMinorGrid', 'off', 'XMinorGrid',
 set(gca, 'PlotBoxAspectRatioMode', 'manual', 'PlotBoxAspectRatio', [1 1 1])
 axis square; material shiny;
 
-
+% Save figure if  requested
 if saveFigs
     hgexport(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_view1'))
     savefig(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_view1'))
@@ -186,12 +203,15 @@ end
 
 %%  Predict contrast thresholds for given mRGC density
 
-% mRGC data for different meridia. Order=nasal, superior, temporal,inferior.
-watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg');
+% Get mRGC data for different meridia. 
+% Order = nasal, superior, temporal,inferior.
+watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'), ...
+            'mRGCRFDensityPerDeg2', 'eccDeg');
 assert([length(watson2015.eccDeg) == length(0:0.05:40)]);
 
 % Curcio et al. 1990 (left eye, retina coords, same order as mRGC)
-curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg','angDeg');
+curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'), ...
+            'conesCurcioIsetbio', 'eccDeg','angDeg');
 [~,angIdx] = intersect(curcio1990.angDeg,[0,90,180,270]);
 coneDensityDeg2PerMeridian= curcio1990.conesCurcioIsetbio(angIdx,:);
 
@@ -222,14 +242,13 @@ lm_rs = fitlm(log10(coneDensities_resampled), log10(fct_upsampled2(rs,:))); % su
 lm_rt = fitlm(log10(coneDensities_resampled), log10(fct_upsampled2(rt,:))); % temporal
 lm_ri = fitlm(log10(coneDensities_resampled), log10(fct_upsampled2(ri,:))); % inferior
 
-
 % Predicted threshold
 cThreshold = @(x, a_coeff, b_intcpt) (a_coeff* log10(x)) + b_intcpt;
 
 % Predicted cone density
-predictedDensity = @(y, a_coeff, b_intcpt) (10.^((y-b_intcpt)./a_coeff));
+% predictedDensity = @(y, a_coeff, b_intcpt) (10.^((y-b_intcpt)./a_coeff));
 
-% Get contrast levels from model at 4.5 deg eccen
+% Get contrast levels from model at 4.5 deg eccen:
 % Nasal retina
 predictedContrastThreshold(1) = cThreshold(observedConesAtEccen(1), lm_rn.Coefficients.Estimate(2), lm_rn.Coefficients.Estimate(1));
 % Superior retina
@@ -239,14 +258,12 @@ predictedContrastThreshold(3) = cThreshold(observedConesAtEccen(3), lm_rt.Coeffi
 % Inferior retina
 predictedContrastThreshold(4) = cThreshold(observedConesAtEccen(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
 
-
 % Define error margins in terms of cone density, i.e.:
 % Double (upper bound) or half (lower bound) the difference in cone density from the mean, for each meridian
 averageConeDensity_stimeccen = mean(observedConesAtEccen);
 
 for ii = 1:4
     errorRatioConeDensity(ii) = 2*diff([observedConesAtEccen(ii),averageConeDensity_stimeccen]);
-%     errorRatioConeDensity(ii,2) = 0.5*diff([observedConesAtEccen(ii),mean(observedConesAtEccen)]);
 end
 
 % Get predicted thresholds for those error margins, using their model fits
@@ -263,10 +280,9 @@ predictedError(3,1) = cThreshold(observedConesAtEccen(3)-errorRatioConeDensity(3
 predictedError(3,2) = cThreshold(observedConesAtEccen(3)+errorRatioConeDensity(3), lm_rt.Coefficients.Estimate(2), lm_rt.Coefficients.Estimate(1));
 % Inferior retina
 predictedError(4,1) = cThreshold(observedConesAtEccen(4)-errorRatioConeDensity(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
-predictedError(4,2) = cThreshold(observedConesAtEccen(4)+errorRatioConeDensity(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1));
+predictedError(4,2) = cThreshold(observedConesAtEccen(4)+errorRatioConeDensity(4), lm_ri.Coefficients.Estimate(2), lm_ri.Coefficients.Estimate(1)); %#ok<NASGU>
 
 %% Plot observed/biological variations in cone:mRGC ratios on mesh
-
 figure(fH3); hold all;
 colorsRetina = {'r', 'b', 'g', 'k'};
 zlift        = [0.01, 0.03, 0.01, 0.1]; % lift markers a tiny bit for visibility
@@ -290,8 +306,6 @@ if saveFigs
     savefig(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view1'))
     print(fH3, fullfile(figureFolder, '3Dmesh_Ratio-vs-Density-vs-Threshold_linearFitUpsampled_withDots_view1'), '-dpng')
 end
-
-
 
 %% Make gif of rotating mesh
 %
