@@ -54,12 +54,12 @@ if strcmp(inputType, 'absorptions')
     selectTimePoints = 1:28;
 elseif strcmp(inputType, 'current')
     contrasts = expParams.contrastLevelsPC; % PC stands for photocurrent
-    selectTimePoints = 51:78; % photocurrent responses are temporally delayed
+    selectTimePoints = 1:109; % photocurrent responses are temporally delayed
 end
     
 eccentricities = expParams.eccentricities; % deg
 
-if (ratio == 5) && (any(eccen==[11,12,13]))
+if (ratio == 5) && (any(eccen==[10,11,12,13]))
     contrasts = [contrasts, 0.2:0.1:1];
 end
 
