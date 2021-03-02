@@ -31,9 +31,6 @@ data = reshape(data, [], nrows, ncols, tSamples);
 % permute to rows x cols x (trials x stimuli) x time points
 data  = permute(data, [2 3 1 4]);
 
-% Compute fourier transform the cone array outputs
-data  = abs(fft2(data));
-
 % Apply noiseless template per stimulus phase
 ccwIdx = 1:size(data,3)/2;
 cwIdx = ((size(data,3)/2)+1):size(data,3);
@@ -41,18 +38,42 @@ cwIdx = ((size(data,3)/2)+1):size(data,3);
 dataCCW = NaN(size(data,1),size(data,2),length(ccwIdx),size(data,4));
 for ii = ccwIdx 
     for jj = 1:size(data,4)
-        dataCCW(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.CCW_amps;
+        dataCCW(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.CCW;
     end
 end
 
 dataCW = NaN(size(data,1),size(data,2),length(cwIdx),size(data,4));
 for ii = cwIdx 
     for jj = 1:size(data,4)
-        dataCW(:,:,ii-200,jj) = data(:,:,ii,jj).*stimTemplate.CW_amps;
+        dataCW(:,:,ii-200,jj) = data(:,:,ii,jj).*stimTemplate.CW;
     end
 end
 
 data = cat(3,dataCCW,dataCW);
+
+
+% Compute fourier transform the cone array outputs
+data  = abs(fft2(data));
+
+% % Apply noiseless template per stimulus phase
+% ccwIdx = 1:size(data,3)/2;
+% cwIdx = ((size(data,3)/2)+1):size(data,3);
+% 
+% dataCCW = NaN(size(data,1),size(data,2),length(ccwIdx),size(data,4));
+% for ii = ccwIdx 
+%     for jj = 1:size(data,4)
+%         dataCCW(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.CCW_amps;
+%     end
+% end
+% 
+% dataCW = NaN(size(data,1),size(data,2),length(cwIdx),size(data,4));
+% for ii = cwIdx 
+%     for jj = 1:size(data,4)
+%         dataCW(:,:,ii-200,jj) = data(:,:,ii,jj).*stimTemplate.CW_amps;
+%     end
+% end
+% 
+% data = cat(3,dataCCW,dataCW);
 
 % reshape to all trials x [rows x colums x time] for classification
 data = permute(data, [3 1 2 4]);
