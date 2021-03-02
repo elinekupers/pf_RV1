@@ -1,9 +1,10 @@
 %% s_combineAndMeanCurrentDataConeDensityExperiment
 
 %% 0. Set general experiment parameters
-expName                  = 'conedensity';
-expParams                = loadExpParams(expName, false);
-[xUnits, colors, labels, M] = loadWeibullPlottingParams('current');
+saveData   = false;
+expName    = 'conedensity';
+expParams  = loadExpParams(expName, false);
+[xUnits, colors, labels, coneDensity] = loadWeibullPlottingParams('current');
 
 polarAngles = [0, pi/2, pi, 3*pi/2];
 polarAngleLabels = {'nasal','superior','temporal','inferior'};
@@ -21,7 +22,7 @@ nTotal      = 100;
 lmsRatio    = expParams.cparams.spatialDensity;
 
 
-
+P_all = [];
 % First combine fovea
 for pa = 1:length(polarAngles)
     
@@ -41,29 +42,34 @@ for pa = 1:length(polarAngles)
         P = [P accuracy.P];
         
     end
-    
-    figure; hold all; for ii = 1:size(P,2); plot(expParams.contrastLevelsPC,P(:,ii)); end
+    P_all = cat(3,P_all,P);
     P_SE = std(P,[],2)./sqrt(size(P,2));
-    
     P_AVG = mean(P,2);
+    
+    figure; hold all; 
+    for ii = 1:size(P,2); plot(expParams.contrastLevelsPC,P(:,ii)); end
+    plot(expParams.contrastLevelsPC, P_AVG, 'k', 'lineWidth',2)
+    plot(expParams.contrastLevelsPC, 80*ones(size(expParams.contrastLevelsPC)), 'k')
+
+    if saveData
     fName   = sprintf('current_Classify_coneOutputs_contrast%1.3f_pa%d_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f_AVERAGE.mat', ...
         max(expParams.contrastLevelsPC),rad2deg(polarAngles(pa)),sprintf('%i',expParams.eyemovement'),expParams.eccentricities(5),expParams.defocusLevels,expParams.spatFreq);
     
     fNameSE   = sprintf('current_Classify_coneOutputs_contrast%1.3f_pa%d_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f_SE.mat', ...
         max(expParams.contrastLevelsPC),rad2deg(polarAngles(pa)),sprintf('%i',expParams.eyemovement'),expParams.eccentricities(5),expParams.defocusLevels,expParams.spatFreq);
     
-    
-    if ~exist(fullfile(dataPth, sprintf('average_4.5deg_%s_current',polarAngleLabels{pa})),'dir')
-        mkdir(fullfile(dataPth, sprintf('average_4.5deg_%s_current',polarAngleLabels{pa}))); end;
-    save(fullfile(dataPth,sprintf('average_4.5deg_%s_current',polarAngleLabels{pa}),fName),'P_AVG');
-    save(fullfile(dataPth, sprintf('average_4.5deg_%s_current',polarAngleLabels{pa}),fNameSE),'P_SE');
-    
+        if ~exist(fullfile(dataPth, sprintf('average_4.5deg_%s_current',polarAngleLabels{pa})),'dir')
+            mkdir(fullfile(dataPth, sprintf('average_4.5deg_%s_current',polarAngleLabels{pa}))); end;
+        save(fullfile(dataPth,sprintf('average_4.5deg_%s_current',polarAngleLabels{pa}),fName),'P_AVG');
+        save(fullfile(dataPth, sprintf('average_4.5deg_%s_current',polarAngleLabels{pa}),fNameSE),'P_SE');
+    end  
+
     %% Bootstrap runs with replacement,
     nboot = 1000;
     bootData = bootstrp(nboot, @mean, P');
     
     % fit Weibull to each mean and get threshold
-    [xUnits, ~, ~, ~, ~] = loadWeibullPlottingParams(expName);
+    [xUnits, ~, ~, ~, ~] = loadWeibullPlottingParams('current');
     
     % Prepare fit variables
     fit = [];
@@ -91,16 +97,48 @@ for pa = 1:length(polarAngles)
     
 end
 
-varThresh = std(ctrthresh,[],2);
-fNameSEThresh = sprintf('varThresh_coneResponse_current_5_conedensity.mat');
-baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
+if saveData
+    varThresh = std(ctrthresh,[],2);
+    fNameSEThresh = sprintf('varThresh_coneResponse_current_5_conedensity.mat');
+    baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
 
-saveFolder = fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC');
-if ~exist(saveFolder, 'dir') 
-    mkdir(saveFolder); 
+    saveFolder = fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC');
+    if ~exist(saveFolder, 'dir') 
+        mkdir(saveFolder); 
+    end
+    save(fullfile(saveFolder,fNameSEThresh),'varThresh', 'ctrthresh');
 end
-save(fullfile(saveFolder,fNameSEThresh),'varThresh', 'ctrthresh');
-
-
+% 
+% figure(101);  clf; hold all;
+% for ii = 1:size(P_all,2) 
+%     subplot(411); hold all;
+%     plot(expParams.contrastLevelsPC,P_all(:,ii,1));
+%     set(gca,'XScale', 'log')
+%     title('Nasal')
+%     subplot(412); hold all;
+%     plot(expParams.contrastLevelsPC,P_all(:,ii,2));
+%     set(gca,'XScale', 'log')
+%     title('Superior')
+%     
+%     subplot(413); hold all;
+%     set(gca,'XScale', 'log')
+%     plot(expParams.contrastLevelsPC,P_all(:,ii,3));
+%     title('Temporal')
+%     
+%     subplot(414); hold all;
+%     plot(expParams.contrastLevelsPC,P_all(:,ii,4));
+%     set(gca,'XScale', 'log')
+%     title('Inferior')
+% end
+% 
+% subplot(411);
+% plot(expParams.contrastLevelsPC,mean(P_all(:,:,1),2), 'k', 'lineWidth',2);
+% subplot(412);
+% plot(expParams.contrastLevelsPC,mean(P_all(:,:,2),2), 'k', 'lineWidth',2);
+% subplot(413);
+% plot(expParams.contrastLevelsPC,mean(P_all(:,:,3),2), 'k', 'lineWidth',2);
+% subplot(414);
+% plot(expParams.contrastLevelsPC,mean(P_all(:,:,3),2), 'k', 'lineWidth',2);
+    
 
 
