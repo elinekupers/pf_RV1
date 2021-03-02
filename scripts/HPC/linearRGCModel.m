@@ -91,7 +91,7 @@ cone2RGCRatio           = ratio;
 %% Compute RGC responses from linear layer
 
 if saveData
-    saveFolder = fullfile(baseFolder, 'data',  expName, 'rgc', [subFolder '_meanPoissonPadded']);
+    saveFolder = fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder);
     if ~exist(saveFolder, 'dir')
         mkdir(saveFolder);
     end
