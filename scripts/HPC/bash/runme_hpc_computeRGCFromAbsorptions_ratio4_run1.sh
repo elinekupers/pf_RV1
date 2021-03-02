@@ -2,8 +2,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
-#SBATCH --time 20:00:00 # time (D-HH:MM)
-#SBATCH --mem=125GB # memory pool for all cores
+#SBATCH --time 24:00:00 # time (D-HH:MM)
+#SBATCH --mem=64GB # memory pool for all cores
 #SBATCH --job-name=Ratio4_run1_linearRGCModel
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ek99@nyu.edu

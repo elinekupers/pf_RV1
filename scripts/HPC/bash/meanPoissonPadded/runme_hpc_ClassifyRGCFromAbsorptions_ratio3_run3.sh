@@ -2,8 +2,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
-#SBATCH --time 20:00:00 # time (D-HH:MM)
-#SBATCH --mem=125GB # memory pool for all cores
+#SBATCH --time 10:00:00 # time (D-HH:MM)
+#SBATCH --mem=16GB # memory pool for all cores
 #SBATCH --job-name=Classify_R3_run3_linearRGCModel
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=ek99@nyu.edu
