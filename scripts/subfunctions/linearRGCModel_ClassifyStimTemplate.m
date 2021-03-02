@@ -1,4 +1,4 @@
-function [] = linearRGCModel_ClassifyStimTemplate(baseFolder, subFolder, expName, seed, ratio, eccen)
+function P_svm = linearRGCModel_ClassifyStimTemplate(baseFolder, subFolder, expName, seed, ratio, eccen)
 %
 % Function to classify RGC responses computed by linearRGCmodel.m.
 %
@@ -38,7 +38,7 @@ saveData = true;
 
 % Get experimental params
 expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
-inputType = 'absorptions'; % could also be 'current'
+inputType = 'absorptions';%'absorptions'; % could also be 'current'
 if strcmp(inputType, 'absorptions')
     contrasts = expParams.contrastLevels;
     selectTimePoints = 1:28;
@@ -80,12 +80,6 @@ rgcParams.seed       = seed;
 
 cone2RGCRatio = ratio;
 
-%% Compute RGC responses from linear layer
-
-if ~exist(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder), 'dir')
-    mkdir(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder));
-end
-
 % Subsampling ratio
 fprintf('Ratio %d:1\n', cone2RGCRatio)
 
@@ -100,12 +94,22 @@ P_svm = NaN(1,length(contrasts));
 for c = 1:length(contrasts)
     
     % Load RGC responses
-    load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
-    dataIn = rgcResponse;
+    if strcmp(expName, 'conedensity')
+        load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
+    else    
+        load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio,  contrasts(c), inputType)), 'rgcResponse');
+    end
+    
+    % Truncate time if needed
+    if size(rgcResponse,4) > length(selectTimePoints)
+        dataIn = rgcResponse(:,:,:,selectTimePoints,:);
+    else
+        dataIn = rgcResponse;
+    end
         
     %% Get template from Gabor projected to rgc array
 %     stimTemplate = getStimTemplateForSVMClassification(size(dataIn,2),size(dataIn,3),contrasts(c));
-    stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFolder, cone2RGCRatio, contrasts(c), eccentricities(eccen), selectTimePoints);
+    stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFolder, expName, cone2RGCRatio, contrasts(c), eccentricities(eccen), selectTimePoints);
     
     % Classify!
     P_svm(c) = getClassifierAccuracyStimTemplate(dataIn, stimTemplate);
@@ -115,9 +119,14 @@ end
 
 % Save classification results
 if saveData
-    if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder, 'stimTemplate'), 'dir');
-        mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', subFolder,'stimTemplate')); end
-    parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', subFolder,'stimTemplate', sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
+    if strcmp(expName,'conedensity')
+        extraSubfolder = 'meanPoissonPadded';
+    else
+        extraSubfolder = '';
+    end
+    if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc',  extraSubfolder, 'stimTemplate',subFolder), 'dir');
+        mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', extraSubfolder,'stimTemplate',subFolder)); end
+    parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', extraSubfolder,'stimTemplate',subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
 end
 
 return
