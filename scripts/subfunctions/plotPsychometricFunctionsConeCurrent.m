@@ -6,7 +6,7 @@ function [] = plotPsychometricFunctionsConeCurrent(baseFolder, expName, varargin
 % baseFolder      : path to project
 % expName         : string defining the condition you want to plot.
 %                   (See load expParams for possible conditions)
-% subFolder       : string defining the sub folder you want to plot from.
+% [subFolder]     : string defining the sub folder you want to plot from.
 % [saveFig]       : boolean defining to save figures or not
 % [plotAvg]       : boolean defining to plot average across experiments runs or not
 % [inputType]     : string defining data: absorptions or cone current
@@ -24,6 +24,7 @@ p = inputParser;
 p.KeepUnmatched = true;
 p.addRequired('baseFolder', @ischar);
 p.addRequired('expName', @ischar);
+p.addParameter('subFolder', @ischar);
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
 p.addParameter('inputType', 'current', @ischar);
@@ -32,6 +33,7 @@ p.parse(baseFolder, expName, varargin{:});
 % Rename variables
 baseFolder    = p.Results.baseFolder;
 expName       = p.Results.expName;
+subFolder     = p.Results.subFolder;
 saveFig       = p.Results.saveFig;
 plotAvg       = p.Results.plotAvg;
 inputType     = p.Results.inputType;
@@ -58,7 +60,7 @@ end
 
 % Where to find data and save figures
 dataPth     = fullfile(baseFolder,'data',expName, 'classification', inputType, expName);
-figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, inputType);
+figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, [inputType 'allTimePoints']);
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
 end
@@ -91,21 +93,22 @@ for pa = 1:length(polarAngleLabels)
     
     %% 2. Get correct filename
     if plotAvg
-        subFolder = sprintf('average_4.5deg_%s_current',polarAngleLabels{pa});
+        subFolderName = sprintf('average_4.5deg_%s_currentAllTimePoints',polarAngleLabels{pa});
         fName = sprintf('current_Classify_coneOutputs_contrast1.000_pa%d_eye11_eccen%1.2f_defocus0.00_noise-random_sf4.00_AVERAGE.mat', polarAngles(pa), eccen);
         fNameSE  = sprintf('current_Classify_coneOutputs_contrast1.000_pa%d_eye11_eccen%1.2f_defocus0.00_noise-random_sf4.00_SE.mat', polarAngles(pa), eccen);
         
-        SE{count} = load(fullfile(dataPth, subFolder, fNameSE));
+        SE{count} = load(fullfile(dataPth, subFolderName, fNameSE));
         
     else
-        subFolder = sprintf('run%d_4.5deg_%s_current',run, polarAngleLabels{pa});
+        
+        subFolderName = sprintf('run%d_4.5deg_%s_currentAllTimePoints',subFolder, polarAngleLabels{pa});
         fName = sprintf('current_Classify_coneOutputs_contrast1.000_pa%d_eye11_eccen%1.2f_defocus0.00_noise-random_sf4.00.mat', polarAngles(pa), eccen);
     end
 
     %% 3. Load performance results
     
     % load model performance
-    accuracy = load(fullfile(dataPth,subFolder, fName));
+    accuracy = load(fullfile(dataPth,subFolderName, fName));
     fn = fieldnames(accuracy);
     accuracy.P = squeeze(accuracy.(fn{1}));
     
@@ -186,14 +189,14 @@ if saveFig
 end
 
 % Save thresholds and fits
-thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', 'currentNoRGC',subFolder);
+thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', 'currentNoRGC_allTimePoints',subFolderName);
 if ~exist(thresholdsDir, 'dir'); mkdir(thresholdsDir); end
-save(fullfile(thresholdsDir, sprintf('cThresholds_%s', subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
+save(fullfile(thresholdsDir, sprintf('cThresholds_%s', subFolderName)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
 
 
 % Plot density vs thresholds
 fNameSEThresh = sprintf('varThresh_coneResponse_current_5_conedensity.mat');
-load(fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC',fNameSEThresh),'varThresh');
+load(fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC_allTimePoints',fNameSEThresh),'varThresh');
 
 plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh','inputType',inputType, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 
