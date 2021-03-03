@@ -51,13 +51,15 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     ss_ccw = ((ccw_ph1_mn2.^2) + (ccw_ph2_mn2.^2));
     ss_cw  = ((cw_ph1_mn2.^2) + (cw_ph2_mn2.^2));
     
+    % Take difference between CW and CCW
+    ss_diff = ss_ccw - ss_cw;
+    
     % store absorptions at a template
-    stimTemplate.CCW = ss_ccw;
-    stimTemplate.CW = ss_cw;
+    stimTemplate.absorptions = ss_diff;
     
     % Apply 2D FFT to template, get amplitudes
-    stimTemplate.CCW_amps = abs(fft2(ss_ccw));
-    stimTemplate.CW_amps  = abs(fft2(ss_cw));
+    stimTemplate.amps = abs(fft2(ss_diff));
+
 end
 
 return
