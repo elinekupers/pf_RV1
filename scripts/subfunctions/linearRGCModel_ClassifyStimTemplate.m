@@ -97,6 +97,7 @@ for c = 1:length(contrasts)
     if strcmp(expName, 'conedensity')
         load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
     else    
+        inputType = 'absorptionrate';
         load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio,  contrasts(c), inputType)), 'rgcResponse');
     end
     
@@ -108,7 +109,7 @@ for c = 1:length(contrasts)
     end
         
     %% Get template from Gabor projected to rgc array
-%     stimTemplate = getStimTemplateForSVMClassification(size(dataIn,2),size(dataIn,3),contrasts(c));
+
     stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFolder, expName, cone2RGCRatio, contrasts(c), eccentricities(eccen), selectTimePoints);
     
     % Classify!
