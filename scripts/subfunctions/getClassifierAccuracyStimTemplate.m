@@ -45,14 +45,13 @@ data  = permute(data, [2 3 1 4]);
 data  = abs(fft2(data));
 
 % Apply template in Fourier space
-dataTemplate = NaN(size(data));
-for ii = size(data,3) % trials
-    for jj = 1:size(data,4)% time
-        dataTemplate(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.amps;
+for ii = size(data,3):-1:1 % trials
+    for jj = size(data,4):-1:1 % time
+        dataFilteredByTemplate(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.amps;
     end
 end
 
-data = dataTemplate;
+data = dataFilteredByTemplate;
 
 % reshape to all trials x [rows x colums x time] for classification
 data = permute(data, [3 1 2 4]);
