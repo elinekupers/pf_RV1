@@ -2,12 +2,17 @@
 
 %% 0. Set general experiment parameters
 saveData   = false;
-expName    = 'conedensity';
+expName    = 'defaultnophaseshift'; %'conedensity';
 expParams  = loadExpParams(expName, false);
 [xUnits, colors, labels, coneDensity] = loadWeibullPlottingParams('current');
 
-polarAngles = [0, pi/2, pi, 3*pi/2];
-polarAngleLabels = {'nasal','superior','temporal','inferior'};
+if strcmp(expName, 'conedensity')
+    polarAngles = [0, pi/2, pi, 3*pi/2];
+    polarAngleLabels = {'nasal','superior','temporal','inferior'};
+else
+    polarAngles = 0;
+    polarAngleLabels = {'nasal'};
+end
 
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
 
@@ -26,23 +31,37 @@ P_all = [];
 % First combine fovea
 for pa = 1:length(polarAngles)
     
-    fName   = sprintf('current_Classify_coneOutputs_contrast%1.3f_pa%d_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f.mat', ...
+    if strcmp(expName, 'conedensity')
+        fName   = sprintf('current_Classify_coneOutputs_contrast%1.3f_pa%d_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f.mat', ...
         max(expParams.contrastLevelsPC),polarAngles(1),sprintf('%i',expParams.eyemovement'),expParams.eccentricities(5),expParams.defocusLevels,expParams.spatFreq);
     
-    d = dir(fullfile(dataPth, sprintf('run*_4.5deg_%s_current',polarAngleLabels{pa})));
+        d = dir(fullfile(dataPth, sprintf('run*_4.5deg_%s_current',polarAngleLabels{pa})));
+    
+    elseif strcmp(expName, 'defaultnophaseshift')
+
+        fName = sprintf('current_Classify_coneOutputs_contrast0.1000_pa%d_eye00_eccen%1.2f_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat', pa, expParams.eccentricities(1));
+        d = dir(fullfile(dataPth, 'run*_currentAllTimePoints'));
+    end
+    
     
     P =[];
     for ii = 1:size(d,1)
         
-        accuracy = load(fullfile(d(ii).folder, d(ii).name, fName));
-        if size(accuracy.P,1)<size(accuracy.P,2)
+        if strcmp(expName, 'defaultnophaseshift')
+            tmp = load(fullfile(d(ii).folder, d(ii).name, fName));
+            accuracy.P = tmp.accuracy;
+        else
+            accuracy = load(fullfile(d(ii).folder, d(ii).name, fName));
+        end
+            if size(accuracy.P,1)<size(accuracy.P,2)
             accuracy.P = accuracy.P';
         end
         
         P = [P accuracy.P];
         
     end
-    P_all = cat(3,P_all,P);
+    
+%     P_all = cat(3,P_all,P);
     P_SE = std(P,[],2)./sqrt(size(P,2));
     P_AVG = mean(P,2);
     
