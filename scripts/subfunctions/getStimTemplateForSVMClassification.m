@@ -12,15 +12,12 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     templateNoiseless = load(fullfile(templateDir, templateFile));
     templateRGCResponses = templateNoiseless.rgcResponse;
     
-    if c == 0
-        rows = size(templateRGCResponses,2);
-        cols = size(templateRGCResponses,3);
-        stimTemplate.CCW_amps = ones(rows,cols);
-        stimTemplate.CW_amps = ones(rows,cols);
-        
-        stimTemplate.CCW = ones(rows,cols);
-        stimTemplate.CW = ones(rows,cols);
-    else
+%     if c == 0
+%         rows = size(templateRGCResponses,2);
+%         cols = size(templateRGCResponses,3);
+%         stimTemplate.absorptions = ones(rows,cols);
+%         stimTemplate.amps = ones(rows,cols);
+%     else
     
     
     % Get rgc responses to CW and CCW, 90 and 270 phase shifted Gabors
@@ -52,7 +49,7 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     ss_cw  = ((cw_ph1_mn2.^2) + (cw_ph2_mn2.^2));
     
     % Take difference between CW and CCW
-    ss_diff = ss_ccw - ss_cw;
+    ss_diff = log(ss_ccw./ss_cw);
     
     % store absorptions at a template
     stimTemplate.absorptions = ss_diff;
@@ -60,7 +57,7 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     % Apply 2D FFT to template, get amplitudes
     stimTemplate.amps = abs(fft2(ss_diff));
 
-end
+% end
 
 return
 %
