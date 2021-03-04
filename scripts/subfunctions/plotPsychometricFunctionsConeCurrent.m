@@ -16,7 +16,7 @@ function [] = plotPsychometricFunctionsConeCurrent(baseFolder, expName, varargin
 %
 % Examples:
 % baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
-% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity', 'run1',2)
+% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity', 'subFolder','run1')
 % 
 % plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','plotAvg',true)
 %% 0. Set general experiment parameters
@@ -101,8 +101,14 @@ for pa = 1:length(polarAngleLabels)
         
     else
         
-        subFolderName = sprintf('run%d_4.5deg_%s_currentAllTimePoints',subFolder, polarAngleLabels{pa});
-        fName = sprintf('current_Classify_coneOutputs_contrast1.000_pa%d_eye11_eccen%1.2f_defocus0.00_noise-random_sf4.00.mat', polarAngles(pa), eccen);
+        if strcmp(expName, 'conedensity')
+            subFolderName = sprintf('%s_4.5deg_%s_currentAllTimePoints',subFolder, polarAngleLabels{pa});
+%         fName = sprintf('current_Classify_coneOutputs_contrast1.000_pa%d_eye11_eccen%1.2f_defocus0.00_noise-random_sf4.00.mat', polarAngles(pa), eccen);
+            fName = sprintf('current_Classify_coneOutputs_contrast1.000_pa0_eye11_eccen%1.2f_defocus0.00_noise-random_sf4.00.mat', eccen);
+        elseif strcmp(expName, 'defaultnophaseshift')
+            subFolderName = sprintf('%s_currentAllTimePoints',subFolder);
+            fName = sprintf('current_Classify_coneOutputs_contrast0.1000_pa0_eye00_eccen%1.2f_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat', eccen);
+        end
     end
 
     %% 3. Load performance results
@@ -147,8 +153,11 @@ fit.ctrpred = fit.ctrpred(idx);
 
 % Define a zero point (just a very small number), to plot the 0 contrast,
 % since a log-linear plot does not define 0.
-logzero = 3e-3;
-
+if strcmp(expName, 'conedensity')
+    logzero = 3e-3;
+elseif strcmp(expName, 'defaultnophaseshift')
+    logzero = 3e-5;
+end
 % Only plot first two, 50:50 and last 2 functions for conetypes mixed experiment
 plotIdx = 1:length(fit.ctrpred);
 
@@ -183,23 +192,24 @@ legend([h(end:-2:2)],labels, 'Location','bestoutside'); legend boxoff
 
 if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
-    savefig(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_%s',expName,inputType)))
-    hgexport(gcf,fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_%s.eps',expName,inputType)))
-    print(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_%s',expName,inputType)), '-dpng')
+    savefig(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_%s_%s',expName,inputType, subFolder)))
+    hgexport(gcf,fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_%s_%s.eps',expName,inputType, subFolder)))
+    print(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_%s_%s',expName,inputType, subFolder)), '-dpng')
 end
 
-% Save thresholds and fits
-thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', 'currentNoRGC_allTimePoints',subFolderName);
-if ~exist(thresholdsDir, 'dir'); mkdir(thresholdsDir); end
-save(fullfile(thresholdsDir, sprintf('cThresholds_%s', subFolderName)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
+if plotAvg
+    % Save thresholds and fits
+    thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', 'currentNoRGC_allTimePoints',subFolderName);
+    if ~exist(thresholdsDir, 'dir'); mkdir(thresholdsDir); end
+    save(fullfile(thresholdsDir, sprintf('cThresholds_%s', subFolderName)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
 
 
-% Plot density vs thresholds
-fNameSEThresh = sprintf('varThresh_coneResponse_current_5_conedensity.mat');
-load(fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC_allTimePoints',fNameSEThresh),'varThresh');
+    % Plot density vs thresholds
+    fNameSEThresh = sprintf('varThresh_coneResponse_current_5_conedensity.mat');
+    load(fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC_allTimePoints',fNameSEThresh),'varThresh');
 
-plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh','inputType',inputType, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
-
+    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh','inputType',inputType, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
+end
 %% Define error margins in terms of cone density, i.e.:
 % Double (upper bound) or half (lower bound) the difference in cone density from the mean, for each meridian
 % dataFolder   = fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC');
@@ -243,28 +253,31 @@ thresholdsVF_Horz = [mean(thresholdsVF([1 3])), ... HM
 sensitivityMean_VFHorz  = 1./thresholdsVF_Horz;
 sensitivityMean_Retina  = 1./thresholdsRetina;
 
-% Use variance across simulation iterations to get errorbars  
-errRetina                = varThresh;
-errVF                    = [errRetina(1), ... HM
-                            errRetina(4), ... inferior retina == UVM
-                            errRetina(3), ... HM
-                            errRetina(2)]; ... superior retina == LVM
-errVF_Horz               = [mean(errVF([1 3])), ... HM
-                            errVF(4), ... inferior retina == UVM
-                            errVF(2)]; ... superior retina == LVM
-sensitivityVFHorzErrorUpper  = 1./(thresholdsVF_Horz-errVF_Horz);
-sensitivityVFHorzErrorLower  = 1./(thresholdsVF_Horz+errVF_Horz);
+if plotAvg
+    % Use variance across simulation iterations to get errorbars  
+    errRetina                = varThresh;
+    errVF                    = [errRetina(1), ... HM
+                                errRetina(4), ... inferior retina == UVM
+                                errRetina(3), ... HM
+                                errRetina(2)]; ... superior retina == LVM
+    errVF_Horz               = [mean(errVF([1 3])), ... HM
+                                errVF(4), ... inferior retina == UVM
+                                errVF(2)]; ... superior retina == LVM
+    sensitivityVFHorzErrorUpper  = 1./(thresholdsVF_Horz-errVF_Horz);
+    sensitivityVFHorzErrorLower  = 1./(thresholdsVF_Horz+errVF_Horz);
 
-sensitivityRetinaErrorUpper      = 1./(thresholdsRetina-errRetina');
-sensitivityRetinaErrorLower      = 1./(thresholdsRetina+errRetina');
-
+    sensitivityRetinaErrorUpper      = 1./(thresholdsRetina-errRetina');
+    sensitivityRetinaErrorLower      = 1./(thresholdsRetina+errRetina');
+end
 
 % Bar plot to compare against behavior
 fH3 = figure(3); clf; set(fH3, 'position',[383   356   410   431], 'color', 'w');  hold all;
 
 subplot(121)
 bar(1:3, sensitivityMean_VFHorz,'EdgeColor','none','facecolor',colors(3,:)); hold on
-errorbar(1:3,sensitivityMean_VFHorz,sensitivityMean_VFHorz-sensitivityVFHorzErrorLower,sensitivityVFHorzErrorUpper-sensitivityMean_VFHorz,'.','color', 'k', 'LineWidth',2);
+if plotAvg
+    errorbar(1:3,sensitivityMean_VFHorz,sensitivityMean_VFHorz-sensitivityVFHorzErrorLower,sensitivityVFHorzErrorUpper-sensitivityMean_VFHorz,'.','color', 'k', 'LineWidth',2);
+end
 set(gca,'Xlim',[0.2,3.8],'Ylim',[1, 20], 'TickDir', 'out', ...
     'XTick', [1:3], 'XTickLabel', condNames, ...
     'YTick', [1,10], 'YTickLabel', {'1', '10'}, ...
@@ -275,11 +288,13 @@ box off; ylabel('Contrast sensitivity (%)'); title('Model prediction cone curren
 % (1) EAST (2) NORTH (3) WEST (4) SOUTH
 HVAmean.current = hva(sensitivityMean_Retina);
 VMAmean.current = vma(sensitivityMean_Retina);
-HVAerrorUpper.current = hva(sensitivityRetinaErrorUpper);
-VMAerrorUpper.current = vma(sensitivityRetinaErrorUpper);
-HVAerrorLower.current = hva(sensitivityRetinaErrorLower);
-VMAerrorLower.current = vma(sensitivityRetinaErrorLower);
 
+if plotAvg
+    HVAerrorUpper.current = hva(sensitivityRetinaErrorUpper);
+    VMAerrorUpper.current = vma(sensitivityRetinaErrorUpper);
+    HVAerrorLower.current = hva(sensitivityRetinaErrorLower);
+    VMAerrorLower.current = vma(sensitivityRetinaErrorLower);
+end
 
 % Plot Asymmetries in percent
 subplot(122); hold on; cla
@@ -287,16 +302,22 @@ x_bar = [0.5, 1];
 
 bar(x_bar, [HVAmean.current; VMAmean.current], 0.2, 'EdgeColor','none','facecolor',colors(3,:)); hold on
 
-errorbar(x_bar(1),HVAmean.current, HVAmean.current-HVAerrorLower.current, HVAerrorUpper.current-HVAmean.current, '.','color', 'k', 'LineWidth',2);
-errorbar(x_bar(2), VMAmean.current, VMAmean.current-VMAerrorLower.current, VMAerrorUpper.current-VMAmean.current, '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0,1.5],'Ylim',[-20 5], 'TickDir', 'out', 'XTick', [0.5, 1], ...
+if plotAvg
+    errorbar(x_bar(1),HVAmean.current, HVAmean.current-HVAerrorLower.current, HVAerrorUpper.current-HVAmean.current, '.','color', 'k', 'LineWidth',2);
+    errorbar(x_bar(2), VMAmean.current, VMAmean.current-VMAerrorLower.current, VMAerrorUpper.current-VMAmean.current, '.','color', 'k', 'LineWidth',2);
+end
+
+yl = minmax([HVAmean.current, VMAmean.current]);
+yl(1) = yl(1)-5; yl(2) = yl(2)+5;
+
+set(gca,'Xlim',[0,1.5],'Ylim',yl, 'TickDir', 'out', 'XTick', [0.5, 1], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
 
 
 if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
-    savefig(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s',expName)))
-    hgexport(gcf,fullfile(figurePth,sprintf('sensitivity_conecurrent_%s.eps',expName)))
-    print(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s',expName)), '-dpng')
+    savefig(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s',expName, subFolder)))
+    hgexport(gcf,fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s.eps',expName, subFolder)))
+    print(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s',expName, subFolder)), '-dpng')
 end
