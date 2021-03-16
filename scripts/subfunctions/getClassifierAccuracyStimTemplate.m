@@ -58,16 +58,16 @@ amps  = abs(fft2(zeroMeanData));
 % Apply template in Fourier space
 for nn = size(amps,3):-1:1 % trials
     for tt = size(amps,4):-1:1 % time
-        ampsFilteredByTemplate(:,:,nn,tt) = ...
-            amps(:,:,nn,tt) * stimTemplate.amps;
+        ampsFilteredByTemplate(nn,tt) = ...
+            dot(reshape(amps(:,:,nn,tt),[],1),reshape(stimTemplate.amps,[],1));
     end
 end
 
 data = ampsFilteredByTemplate;
 
 % reshape to all trials x [rows x colums x time] for classification
-data = permute(data, [3 1 2 4]);
-data = reshape(data, nTrials*2, []);
+% data = permute(data, [3 1 2 4]);
+% data = reshape(data, nTrials*2, []);
 
 % permute the trial order within each of the two classes
 idx = [randperm(nTrials) randperm(nTrials)+nTrials];
