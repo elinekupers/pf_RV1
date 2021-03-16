@@ -96,10 +96,22 @@ for c = 1:length(contrasts)
     % Load RGC responses
     if strcmp(expName, 'conedensity')
         load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
+        
+        % Get zero contrast stim for mean RGC response
+        zeroContrast = load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  0, eccentricities(eccen), inputType)), 'rgcResponse');
+        
     else    
         inputType = 'absorptionrate';
         load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio,  contrasts(c), inputType)), 'rgcResponse');
+        
+        % Get zero contrast stim for mean RGC response
+        zeroContrast = load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio,  0, inputType)), 'rgcResponse');
     end
+    
+    % Reshape zero contrast stim to a mean noise template
+    zeroContrastPermuted = permute(zeroContrast.rgcResponse,[2 3 4 1 5]);
+    zeroContrastReshaped = reshape(zeroContrastPermuted, size(zeroContrastPermuted,1), size(zeroContrastPermuted,2), size(zeroContrastPermuted,3),[]);
+    zeroContrastMean = mean(mean(zeroContrastReshaped,3),4);
     
     % Truncate time if needed
     if size(rgcResponse,4) > length(selectTimePoints)
@@ -108,12 +120,12 @@ for c = 1:length(contrasts)
         dataIn = rgcResponse;
     end
         
-    %% Get template from Gabor projected to rgc array
-
+    
+    %% Get template from noiseless stimulus response
     stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFolder, expName, cone2RGCRatio, contrasts(c), eccentricities(eccen), selectTimePoints);
     
     % Classify!
-    P_svm(c) = getClassifierAccuracyStimTemplate(dataIn, stimTemplate);
+    P_svm(c) = getClassifierAccuracyStimTemplate(dataIn, stimTemplate, zeroContrastMean);
     
     fprintf('%3.2f\n',P_svm(c))
 end

@@ -1,4 +1,4 @@
-function P = getClassifierAccuracyStimTemplate(data, stimTemplate)
+function P = getClassifierAccuracyStimTemplate(data, stimTemplate, zeroContrastMean)
 % Function to train and test linear SVM classifier on cone data with 
 % cross-validation. We apply a noiseless stimulus template to the responses
 % before applying the 2D FFT, to see if it improves classifier performance.
@@ -6,8 +6,12 @@ function P = getClassifierAccuracyStimTemplate(data, stimTemplate)
 %       P = getClassifierAccuracyStimTemplate(data)
 %
 % INPUTS: 
-%   data        : 5 dimensional array (with trials x rows x cols x time
-%                                       samples x stimuli) 
+%   data             : 5 dimensional array (trials x rows x cols x time x
+%                       x stimuli) 
+%   stimTemplate     : struct with noiseless RGC response (rows x cols) as 
+%                       a template, and its Fourier amplitudes
+%   zeroContrastMean : single frame of only noise (zero contrast) RGC
+%                       responses averaged across trials and time (rows x cols)
 % OUTPUTS:
 %   P           : classifier accuracy of computational observer model in
 %                   percent correct for given absorption dataset
@@ -41,17 +45,25 @@ data  = permute(data, [2 3 1 4]);
 % 
 % data = dataTemplate;
 
-% Compute fourier transform the cone array outputs
-data  = abs(fft2(data));
-
-% Apply template in Fourier space
-for ii = size(data,3):-1:1 % trials
-    for jj = size(data,4):-1:1 % time
-        dataFilteredByTemplate(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.amps;
+% Remove average
+for n = size(data,3):-1:1 % trials
+    for t = size(data,4):-1:1 % time
+        zeroMeanData(:,:,n,t) = data(:,:,n,t)-zeroContrastMean;
     end
 end
 
-data = dataFilteredByTemplate;
+% Compute fourier transform the cone array outputs
+amps  = abs(fft2(zeroMeanData));
+
+% Apply template in Fourier space
+for nn = size(amps,3):-1:1 % trials
+    for tt = size(amps,4):-1:1 % time
+        ampsFilteredByTemplate(:,:,nn,tt) = ...
+            amps(:,:,nn,tt) * stimTemplate.amps;
+    end
+end
+
+data = ampsFilteredByTemplate;
 
 % reshape to all trials x [rows x colums x time] for classification
 data = permute(data, [3 1 2 4]);
@@ -65,7 +77,8 @@ data = data(idx, :);
 label = [ones(nTrials, 1); -ones(nTrials, 1)];
 
 % Fit the SVM model.
-cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+% cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+cvmdl = fitcsvm(data, label, 'Standardize', false, 'KernelFunction', 'linear', 'kFold', 10);
 
 % predict the data not in the training set.
 classLoss = kfoldLoss(cvmdl);

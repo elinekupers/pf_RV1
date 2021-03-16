@@ -44,7 +44,7 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     ccw_ph2_mn2 = squeeze(ccw_ph2_mn(1,:,:));
     cw_ph2_mn2  = squeeze(cw_ph2_mn(1,:,:));
     
-    % Take sum of squares as a template
+    % Take sum of squares of each phase per orientation
     ss_ccw = ((ccw_ph1_mn2.^2) + (ccw_ph2_mn2.^2));
     ss_cw  = ((cw_ph1_mn2.^2) + (cw_ph2_mn2.^2));
     
