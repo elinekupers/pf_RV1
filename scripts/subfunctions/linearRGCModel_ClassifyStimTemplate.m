@@ -91,7 +91,7 @@ fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 % Preallocate space
 P_svm = NaN(1,length(contrasts));
 
-for c = 1:length(contrasts)
+for c = 10:10:length(contrasts) % 1:length(contrasts)
     
     % Load RGC responses
     if strcmp(expName, 'conedensity')

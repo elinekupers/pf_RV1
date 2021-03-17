@@ -10,47 +10,26 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     end
 
     templateNoiseless = load(fullfile(templateDir, templateFile));
-    templateRGCResponses = templateNoiseless.rgcResponse;
+    templateRGCResponses = squeeze(templateNoiseless.rgcResponse(1,:,:,selectTimePoints,:));
+    
+    % subtract out the mean and average across time
+    templateRGCResponses = templateRGCResponses - mean(templateRGCResponses(:));
+    templateRGCResponses = mean(templateRGCResponses,3);
     
 %     if c == 0
-%         rows = size(templateRGCResponses,2);
-%         cols = size(templateRGCResponses,3);
+%         rows = size(templateRGCResponses,1);
+%         cols = size(templateRGCResponses,2);
 %         stimTemplate.absorptions = ones(rows,cols);
 %         stimTemplate.amps = ones(rows,cols);
 %     else
     
     
     % Get rgc responses to CW and CCW, 90 and 270 phase shifted Gabors
-    ccw_ph1 = templateRGCResponses(:,:,:,selectTimePoints,1);
-    cw_ph1  = templateRGCResponses(:,:,:,selectTimePoints,3);
-    ccw_ph2 = templateRGCResponses(:,:,:,selectTimePoints,2);
-    cw_ph2  = templateRGCResponses(:,:,:,selectTimePoints,4);
-    
-    % Take sum across time points
-    ccw_ph1_mn = sum(ccw_ph1,4);
-    cw_ph1_mn  = sum(cw_ph1,4);
-    ccw_ph2_mn = sum(ccw_ph2,4);
-    cw_ph2_mn  = sum(cw_ph2,4);
-    
-    % Take mean across trials
-    % ccw_ph1_mn2 = squeeze(mean(ccw_ph1_mn,1));
-    % cw_ph1_mn2  = squeeze(mean(cw_ph1_mn,1));
-    % ccw_ph2_mn2 = squeeze(mean(ccw_ph2_mn,1));
-    % cw_ph2_mn2  = squeeze(mean(cw_ph2_mn,1));
-    
-    % Take single trial
-    ccw_ph1_mn2 = squeeze(ccw_ph1_mn(1,:,:));
-    cw_ph1_mn2  = squeeze(cw_ph1_mn(1,:,:));
-    ccw_ph2_mn2 = squeeze(ccw_ph2_mn(1,:,:));
-    cw_ph2_mn2  = squeeze(cw_ph2_mn(1,:,:));
-    
-    % Take sum of squares of each phase per orientation
-    ss_ccw = ((ccw_ph1_mn2.^2) + (ccw_ph2_mn2.^2));
-    ss_cw  = ((cw_ph1_mn2.^2) + (cw_ph2_mn2.^2));
-    
-    % Take difference between CW and CCW
-    ss_diff = log(ss_ccw./ss_cw);
-    
+    ccw_ph1 = templateRGCResponses(:,:,1);
+    cw_ph1  = templateRGCResponses(:,:,3);
+    ccw_ph2 = templateRGCResponses(:,:,2);
+    cw_ph2  = templateRGCResponses(:,:,4);
+               
     % store absorptions at a template
     stimTemplate.absorptions = ss_diff;
     
