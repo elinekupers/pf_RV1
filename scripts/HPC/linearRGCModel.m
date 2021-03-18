@@ -108,7 +108,7 @@ allRGCResponses = cell(1,length(contrasts));
 for c = 1:length(contrasts)
     fprintf('Contrast %1.4f\n', contrasts(c))
     % get filename, load cone responses
-    d     = dir(fullfile(baseFolder, 'data', expName, inputType, expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.3f_*eccen%1.2f_*.mat', preFix, contrasts(c), eccentricities(eccen))));
+    d     = dir(fullfile(baseFolder, 'data', expName, inputType, expName, subFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*eccen%1.2f_*.mat', preFix, contrasts(c), eccentricities(eccen))));
     tmp   = load(fullfile(d.folder, d.name));
     fn    = fieldnames(tmp);
     if strcmp(inputType, 'absorptions')
@@ -131,7 +131,7 @@ for c = 1:length(contrasts)
     rgcParams.stimSF     = expParams.spatFreq; % cpd
     
     % Do it!
-    [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams);
+    [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneResponse, rgcParams, expParams);
     
     if saveData
         if ~exist(fullfile(saveFolder, sprintf('ratio%d',ratio)), 'dir')

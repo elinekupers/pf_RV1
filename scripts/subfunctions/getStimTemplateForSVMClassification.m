@@ -3,11 +3,11 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
 
     if strcmp(expName, 'conedensity')
         templateDir = fullfile(baseFolder, 'data', 'conedensitynonoise', 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',cone2RGCRatio));
-        templateFile = sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%1.2f_%s.mat', cone2RGCRatio, c, eccen, 'absorptions');
     else
-        templateDir = fullfile(baseFolder, 'data', 'idealobserver','rgc', sprintf('ratio%d',cone2RGCRatio));
-        templateFile = sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio, c, 'absorptionrate');
+        templateDir = fullfile(baseFolder, 'data', 'template','rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',cone2RGCRatio));
     end
+    
+    templateFile = sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%1.2f_%s.mat', cone2RGCRatio, c, eccen, 'absorptions');
 
     templateNoiseless = load(fullfile(templateDir, templateFile));
     templateRGCResponses = squeeze(templateNoiseless.rgcResponse(1,:,:,selectTimePoints,:));
@@ -15,29 +15,13 @@ function stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFold
     % subtract out the mean and average across time
     templateRGCResponses = templateRGCResponses - mean(templateRGCResponses(:));
     templateRGCResponses = mean(templateRGCResponses,3);
-    
-%     if c == 0
-%         rows = size(templateRGCResponses,1);
-%         cols = size(templateRGCResponses,2);
-%         stimTemplate.absorptions = ones(rows,cols);
-%         stimTemplate.amps = ones(rows,cols);
-%     else
-    
-    
+        
     % Get rgc responses to CW and CCW, 90 and 270 phase shifted Gabors
-    ccw_ph1 = templateRGCResponses(:,:,1);
-    cw_ph1  = templateRGCResponses(:,:,3);
-    ccw_ph2 = templateRGCResponses(:,:,2);
-    cw_ph2  = templateRGCResponses(:,:,4);
+    stimTemplate.ccw_ph1 = templateRGCResponses(:,:,1);
+    stimTemplate.ccw_ph2 = templateRGCResponses(:,:,2);
+    stimTemplate.cw_ph1  = templateRGCResponses(:,:,3);
+    stimTemplate.cw_ph2  = templateRGCResponses(:,:,4);
                
-    % store absorptions at a template
-    stimTemplate.absorptions = ss_diff;
-    
-    % Apply 2D FFT to template, get amplitudes
-    stimTemplate.amps = abs(fft2(ss_diff));
-
-% end
-
 return
 %
 

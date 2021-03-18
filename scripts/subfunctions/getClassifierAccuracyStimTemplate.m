@@ -46,24 +46,25 @@ data  = permute(data, [2 3 1 4]);
 % data = dataTemplate;
 
 % Remove average
-for n = size(data,3):-1:1 % trials
-    for t = size(data,4):-1:1 % time
-        zeroMeanData(:,:,n,t) = data(:,:,n,t)-zeroContrastMean;
+
+data = data - zeroContrastMean;
+
+data = reshape(data, [], size(data,3), size(data,4));
+
+% Apply template 
+for nn = size(data,2):-1:1 % trials
+    for tt = size(data,3):-1:1 % time
+        x = data(:,nn,tt)';
+        
+        filteredData(nn,tt) = ...
+            (x * stimTemplate.cw_ph1(:))^2 + ...
+            (x * stimTemplate.cw_ph2(:))^2 - ...
+            (x * stimTemplate.ccw_ph1(:))^2 - ...
+            (x * stimTemplate.ccw_ph2(:))^2;            
     end
 end
 
-% Compute fourier transform the cone array outputs
-amps  = abs(fft2(zeroMeanData));
-
-% Apply template in Fourier space
-for nn = size(amps,3):-1:1 % trials
-    for tt = size(amps,4):-1:1 % time
-        ampsFilteredByTemplate(nn,tt) = ...
-            dot(reshape(amps(:,:,nn,tt),[],1),reshape(stimTemplate.amps,[],1));
-    end
-end
-
-data = ampsFilteredByTemplate;
+data = filteredData;
 
 % reshape to all trials x [rows x colums x time] for classification
 % data = permute(data, [3 1 2 4]);
@@ -78,7 +79,7 @@ label = [ones(nTrials, 1); -ones(nTrials, 1)];
 
 % Fit the SVM model.
 % cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
-cvmdl = fitcsvm(data, label, 'Standardize', false, 'KernelFunction', 'linear', 'kFold', 10);
+cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
 
 % predict the data not in the training set.
 classLoss = kfoldLoss(cvmdl);

@@ -1,4 +1,4 @@
-function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneData, rgcParams)
+function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(coneData, rgcParams, expParams)
 % Function that represents a simple RGC layer with linear-nonlinear cascade:
 % RGC layer takes as input the cone current from our previous ISETBIO
 % computational observer model.
@@ -17,6 +17,8 @@ function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinea
 %                           (trials x rows x cols x time x stim phase)
 %   rgcParams           : params that define the DoG filter and the
 %                           cone:RGC ratio
+%   expParams           : structure created by loadExpParams to describe
+%                           experiment
 %
 % OUTPUTS:
 %   rgcResponse         : mRGC responses (i.e. filtered and resampled cone
@@ -68,7 +70,11 @@ for ii = 1:size(reshapedConeData,4)
         
         % mean cone absorption--> get poission noise to pad surround
         mnPad = ones(size(img,1)*2,size(img,2)*2).*mean(img(:));
-        mnPadPoisson = iePoisson(mnPad, 'noiseFlag', 'random', 'seed', rgcParams.seed);
+        if strcmpi(expParams.cparams.noise, 'none')
+            mnPadPoisson = mnPad;
+        else
+            mnPadPoisson = iePoisson(mnPad, 'noiseFlag', 'random', 'seed', rgcParams.seed);
+        end
         rowStart = floor(size(img,1)/2)+1;
         colStart = floor(size(img,2)/2)+1;
         imgMnPadded = mnPadPoisson;
