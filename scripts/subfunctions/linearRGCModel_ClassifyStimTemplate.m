@@ -1,4 +1,5 @@
-function P_svm = linearRGCModel_ClassifyStimTemplate(baseFolder, subFolder, expName, seed, ratio, eccen)
+function [P_svmEnergy, P_svmLinear] = linearRGCModel_ClassifyStimTemplate...
+    (baseFolder, subFolder, expName, seed, ratio, eccen)
 %
 % Function to classify RGC responses computed by linearRGCmodel.m.
 %
@@ -89,9 +90,10 @@ fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 %% Get 2-AFC SVM Linear Classifier accuracy
 
 % Preallocate space
-P_svm = NaN(1,length(contrasts));
+P_svmEnergy  = NaN(1,length(contrasts));
+P_svmLinear  = P_svmEnergy;
 
-for c = 10:10:length(contrasts) % 1:length(contrasts)
+for c = 5:5:29%length(contrasts) % 1:length(contrasts)
     
     % Load RGC responses
     if strcmp(expName, 'conedensity')
@@ -125,9 +127,9 @@ for c = 10:10:length(contrasts) % 1:length(contrasts)
     stimTemplate =  getStimTemplateForSVMClassification(baseFolder, subFolder, expName, cone2RGCRatio, contrasts(c), eccentricities(eccen), selectTimePoints);
     
     % Classify!
-    P_svm(c) = getClassifierAccuracyStimTemplate(dataIn, stimTemplate, zeroContrastMean);
+    [P_svmEnergy(c), P_svmLinear(c)] = getClassifierAccuracyStimTemplate(dataIn, stimTemplate, zeroContrastMean);
     
-    fprintf('%3.2f\n',P_svm(c))
+    fprintf('Energy: %3.2f\tLinear: %3.2f\n',P_svmEnergy(c), P_svmLinear(c))
 end
 
 % Save classification results
@@ -139,7 +141,7 @@ if saveData
     end
     if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc',  extraSubfolder, 'stimTemplate',subFolder), 'dir');
         mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', extraSubfolder,'stimTemplate',subFolder)); end
-    parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', extraSubfolder,'stimTemplate',subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svm',P_svm, 'rgcParams',rgcParams, 'expParams', expParams);
+    parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', extraSubfolder,'stimTemplate',subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svmEnergy',P_svmEnergy, 'P_svmLinear',P_svmLinear, 'rgcParams',rgcParams, 'expParams', expParams);
 end
 
 return

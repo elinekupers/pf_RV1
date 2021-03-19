@@ -14,8 +14,7 @@ seed       = 1; % run1 has rng seed 1, run2 has 2.. etc.
 ratio      = 2; % 2 = cone:mRGC ratio = 1:1 (actually 2:2, as one mRGC = ON + OFF cell)
 eccen      = 1; % equal to 4.5 deg eccen
 
-linearRGCModel_ClassifyStimTemplate(baseFolder, subFolder, expName, seed, ratio, eccen)
-
+[PEnergy, PLinear] = linearRGCModel_ClassifyStimTemplate(baseFolder, subFolder, expName, seed, ratio, eccen);
 
 %% Visualize differences in psychometric functions
 

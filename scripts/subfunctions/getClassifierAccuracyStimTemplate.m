@@ -1,9 +1,9 @@
-function P = getClassifierAccuracyStimTemplate(data, stimTemplate, zeroContrastMean)
+function [PEnergy, PLinear] = getClassifierAccuracyStimTemplate(data, stimTemplate, zeroContrastMean)
 % Function to train and test linear SVM classifier on cone data with 
 % cross-validation. We apply a noiseless stimulus template to the responses
 % before applying the 2D FFT, to see if it improves classifier performance.
 %
-%       P = getClassifierAccuracyStimTemplate(data)
+%       [PEnergy, PLinear] = getClassifierAccuracyStimTemplate(data)
 %
 % INPUTS: 
 %   data             : 5 dimensional array (trials x rows x cols x time x
@@ -13,7 +13,9 @@ function P = getClassifierAccuracyStimTemplate(data, stimTemplate, zeroContrastM
 %   zeroContrastMean : single frame of only noise (zero contrast) RGC
 %                       responses averaged across trials and time (rows x cols)
 % OUTPUTS:
-%   P           : classifier accuracy of computational observer model in
+%   PEnergy          : classifier accuracy of template-energy observer model in
+%                   percent correct for given absorption dataset
+%   PLinear          : classifier accuracy of template-linear observer model in
 %                   percent correct for given absorption dataset
 
 
@@ -35,15 +37,6 @@ data = reshape(data, [], nrows, ncols, tSamples);
 % permute to rows x cols x (trials x stimuli) x time points
 data  = permute(data, [2 3 1 4]);
 
-% % Apply noiseless template per time point before FFT
-% dataTemplate = NaN(size(data));
-% for ii = size(data,3) % trials
-%     for jj = 1:size(data,4) % time
-%         dataTemplate(:,:,ii,jj) = data(:,:,ii,jj).*stimTemplate.absorptions;
-%     end
-% end
-% 
-% data = dataTemplate;
 
 % Remove average
 
@@ -56,36 +49,39 @@ for nn = size(data,2):-1:1 % trials
     for tt = size(data,3):-1:1 % time
         x = data(:,nn,tt)';
         
-        filteredData(nn,tt) = ...
+        energyXform(nn,tt) = ...
             (x * stimTemplate.cw_ph1(:))^2 + ...
             (x * stimTemplate.cw_ph2(:))^2 - ...
             (x * stimTemplate.ccw_ph1(:))^2 - ...
-            (x * stimTemplate.ccw_ph2(:))^2;            
+            (x * stimTemplate.ccw_ph2(:))^2; 
+        
+        linearXform(nn,tt) = ...
+            x * (stimTemplate.cw_ph2(:) - stimTemplate.ccw_ph2(:));
     end
 end
 
-data = filteredData;
 
-% reshape to all trials x [rows x colums x time] for classification
-% data = permute(data, [3 1 2 4]);
-% data = reshape(data, nTrials*2, []);
 
 % permute the trial order within each of the two classes
 idx = [randperm(nTrials) randperm(nTrials)+nTrials];
 
-data = data(idx, :);
+energyXform = energyXform(idx, :);
+linearXform = linearXform(idx, :);
 
 label = [ones(nTrials, 1); -ones(nTrials, 1)];
 
 % Fit the SVM model.
 % cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
-cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+cvmdlEnergy = fitcsvm(energyXform, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+cvmdlLinear = fitcsvm(linearXform, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
 
 % predict the data not in the training set.
-classLoss = kfoldLoss(cvmdl);
+classLossEnergy = kfoldLoss(cvmdlEnergy);
+classLossLinear = kfoldLoss(cvmdlLinear);
 
 % Get percent accuracy
-P = (1-classLoss) * 100;
+PEnergy = (1-classLossEnergy) * 100;
+PLinear = (1-classLossLinear) * 100;
 
 % visualize beta's
 % betas = reshape(cvmdl.Trained{1}.Beta, [nrows, ncols, tSamples]);
