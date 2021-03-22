@@ -37,8 +37,8 @@ for ratio = 1:5
     contrastLevels.withTemplate = a.expParams.contrastLevels;
     contrastLevels.withoutTemplate = b.expParams.contrastLevels;
     
-    performance.templateEnergy = a.PEnergy;
-    performance.templateLinear = a.PLinear;
+    performance.templateEnergy = a.P_svmEnergy;
+    performance.templateLinear = a.P_svmLinear;
     performance.noTemplate = b.P_svm(ratio,:);
     
     logzero = 5.^-4;
