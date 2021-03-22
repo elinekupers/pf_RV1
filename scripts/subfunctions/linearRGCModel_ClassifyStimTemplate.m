@@ -93,22 +93,14 @@ fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 P_svmEnergy  = NaN(1,length(contrasts));
 P_svmLinear  = P_svmEnergy;
 
-for c = 5:5:29%length(contrasts) % 1:length(contrasts)
+for c = 1:length(contrasts) % 1:length(contrasts)
     
     % Load RGC responses
-    if strcmp(expName, 'conedensity')
-        load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
+    load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
         
-        % Get zero contrast stim for mean RGC response
-        zeroContrast = load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  0, eccentricities(eccen), inputType)), 'rgcResponse');
-        
-    else    
-        inputType = 'absorptionrate';
-        load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio,  contrasts(c), inputType)), 'rgcResponse');
-        
-        % Get zero contrast stim for mean RGC response
-        zeroContrast = load(fullfile(baseFolder, 'data',  expName, 'rgc', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio,  0, inputType)), 'rgcResponse');
-    end
+    % Get zero contrast stim for mean RGC response
+    zeroContrast = load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  0, eccentricities(eccen), inputType)), 'rgcResponse');
+       
     
     % Reshape zero contrast stim to a mean noise template
     zeroContrastPermuted = permute(zeroContrast.rgcResponse,[2 3 4 1 5]);
