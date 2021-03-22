@@ -101,7 +101,6 @@ for c = 1:length(contrasts) % 1:length(contrasts)
     % Get zero contrast stim for mean RGC response
     zeroContrast = load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  0, eccentricities(eccen), inputType)), 'rgcResponse');
        
-    
     % Reshape zero contrast stim to a mean noise template
     zeroContrastPermuted = permute(zeroContrast.rgcResponse,[2 3 4 1 5]);
     zeroContrastReshaped = reshape(zeroContrastPermuted, size(zeroContrastPermuted,1), size(zeroContrastPermuted,2), size(zeroContrastPermuted,3),[]);
@@ -138,34 +137,3 @@ end
 
 return
 
-%% Old stuff to make template, not sure if irrelevant yet.
-
-%     % Get template from ideal observer simulation
-%     templateDir = fullfile(baseFolder, 'data', 'conedensitynonoise', 'rgc', sprintf('ratio%d',cone2RGCRatio));
-%     templateFile = sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_%s.mat', cone2RGCRatio, contrasts(c), inputType);
-%
-%     templateNoiseless = load(fullfile(templateDir, templateFile));
-%     template = templateNoiseless.rgcResponse;
-
-%     %% Get the trials and samples (should be the data for all data sets though
-%     nStimuli = size(template,5);
-%     nTrials  = size(template,1) * nStimuli/2;
-%     tSamples = size(template,4);
-%     nrows    = size(template,2);
-%     ncols    = size(template,3);
-%
-%     %   permute to trials x stimuli x rows x cols x time points
-%     template = permute(template, [1 5 2:4]);
-%
-%     %   reshape to (trials x stimuli) x rows x cols x time points
-%     template = reshape(template, [], nrows, ncols, tSamples);
-%
-%     % Label clockwise and counterclockwise trials
-%     label = [ones(nTrials, 1); -ones(nTrials, 1)]; % First set is CW, second set is CCW
-%
-%     templateCW = template(label==1,:,:,selectTimePoints);
-%     templateCW = sum(templateCW(1,:,:,:),4); % sum across all time points to have a fair comparison to the SVM results.
-%     templateCCW = template(label==-1,:,:,selectTimePoints);
-%     templateCCW = sum(templateCCW(1,:,:,:),4); % sum across all time points to have a fair comparison to the SVM results.
-%
-%     stimTemplate = squeeze(templateCW)-squeeze(templateCCW);
