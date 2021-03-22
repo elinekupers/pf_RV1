@@ -8,8 +8,8 @@ function [PEnergy, PLinear] = getClassifierAccuracyStimTemplate(data, stimTempla
 % INPUTS: 
 %   data             : 5 dimensional array (trials x rows x cols x time x
 %                       x stimuli) 
-%   stimTemplate     : struct with noiseless RGC response (rows x cols) as 
-%                       a template, and its Fourier amplitudes
+%   stimTemplate     : struct with noiseless cone/rgc response (rows x cols)
+%                       in quadriture phases
 %   zeroContrastMean : single frame of only noise (zero contrast) RGC
 %                       responses averaged across trials and time (rows x cols)
 % OUTPUTS:
@@ -37,14 +37,13 @@ data = reshape(data, [], nrows, ncols, tSamples);
 % permute to rows x cols x (trials x stimuli) x time points
 data  = permute(data, [2 3 1 4]);
 
-
 % Remove average
-
 data = data - zeroContrastMean;
 
+% Reshape to (cols x rows) x (trials x stimul) x time points
 data = reshape(data, [], size(data,3), size(data,4));
 
-% Apply template 
+% Apply Energy or Linear template 
 for nn = size(data,2):-1:1 % trials
     for tt = size(data,3):-1:1 % time
         x = data(:,nn,tt)';
@@ -60,18 +59,15 @@ for nn = size(data,2):-1:1 % trials
     end
 end
 
-
-
 % permute the trial order within each of the two classes
 idx = [randperm(nTrials) randperm(nTrials)+nTrials];
-
 energyXform = energyXform(idx, :);
 linearXform = linearXform(idx, :);
 
+% Create labels for SVM linear classifier
 label = [ones(nTrials, 1); -ones(nTrials, 1)];
 
 % Fit the SVM model.
-% cvmdl = fitcsvm(data, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
 cvmdlEnergy = fitcsvm(energyXform, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
 cvmdlLinear = fitcsvm(linearXform, label, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
 
@@ -84,7 +80,7 @@ PEnergy = (1-classLossEnergy) * 100;
 PLinear = (1-classLossLinear) * 100;
 
 % visualize beta's
-% betas = reshape(cvmdl.Trained{1}.Beta, [nrows, ncols, tSamples]);
+% betas = reshape(cvmdlEnergy.Trained{1}.Beta, [nrows, ncols, tSamples]);
 % mn_betas = squeeze(mean(betas,3));
 % imagesc(fftshift(mn_betas)); box off; set(gca, 'TickDir', 'out', 'FontSize',12); 
 % colormap gray; axis image; colorbar;
@@ -92,8 +88,7 @@ PLinear = (1-classLossLinear) * 100;
 % title(sprintf('FFT at input freq: %1.3f x10^6', mn_betas(8,3)*10^6));
 % set(gca,'CLim', 1.0e-03 .*[-0.3624,0.3624]);
 %     savePth = fullfile(pfRV1rootPath, 'figures');
-%     print(fullfile(savePth, 'classifierWeights_averagedAcrossTime.eps'),'-depsc')
+%     print(fullfile(savePth, 'classifierWeightsSVMEnergy_averagedAcrossTime.eps'),'-depsc')
 
        
-
 return
