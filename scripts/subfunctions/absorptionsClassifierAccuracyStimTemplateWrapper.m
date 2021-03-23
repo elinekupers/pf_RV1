@@ -105,7 +105,7 @@ for eccen = 1:length(expParams.eccentricities)
     end % contrast
     
     % Save
-    parsave(fullfile(saveFolderClassification, sprintf('%s.mat', fnameClassify)),'P_svmEnergy',P_svmEnergy,'P_svmLinear',P_svmLinear, 'expParams', expParams);
+    parsave(fullfile(saveFolderClassification, fnameClassify),'P_svmEnergy',P_svmEnergy,'P_svmLinear',P_svmLinear, 'expParams', expParams);
 
 end % eccentricities
 
