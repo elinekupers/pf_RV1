@@ -12,7 +12,7 @@ function stimTemplate =  getStimTemplateForSVMClassification(...
 %                       a template
 
 % if ratio is empty, we assume that we deal with cone absorptions, not rgc responses
-if isempty(cone2RGCRatio) || ~exist(cone2RGCRatio, 'var') 
+if isempty(cone2RGCRatio) || ~exist('cone2RGCRatio', 'var') 
     if strcmp(expName, 'conedensity')
         templateDir = fullfile(baseFolder, 'data', 'conedensitytemplate', 'absorptions', subFolder);
     else
