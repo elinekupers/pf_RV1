@@ -3,11 +3,19 @@ function [] = averageConeDensitySimulations(baseFolder, ratio)
 % 0. Set general experiment parameters
 expName                  = 'conedensity';
 expParams                = loadExpParams(expName, false);
+stimTemplateFlag         = true;
 
 % Where to find data and save figures
-subFolder   = 'noPaddingBeforeConvolution';
+subFolder   = 'meanPoissonPadded';
+if stimTemplateFlag 
+    subFolder = [subFolder '/stimTemplate']; 
+    templateName = '_svmEnergy'; % choose from '_svmEnergy' or '_svmLinear'
+else 
+    templateName = [];
+end
+    
 dataPth     = fullfile(baseFolder,'data',expName,'classification','rgc',subFolder);
-averageDataPth = fullfile(dataPth,'average');
+averageDataPth = fullfile(dataPth,['average' templateName]);
 
 % Number of total trials in computational observer model (50 clockwise, 50 counterclockwise)
 nTotal      = 100;
@@ -17,22 +25,32 @@ nrEccen     = length(expParams.eccentricities);
 
 for ec = 1:nrEccen
     
-    fName   = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_run*.mat', ratio, ec);
+    fName   = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptions_%d_conedensity_run*.mat', ratio, ec);
     
     P  =[];
     for ii = 1:5
         d = dir(fullfile(dataPth,sprintf('run%d',ii), fName));        
         
-        load(fullfile(d.folder, d.name));
+        tmp = load(fullfile(d.folder, d.name));
+        
+        if stimTemplateFlag
+            fn = fieldnames(tmp);
+            P_svm = tmp.(fn{strcmpi(fn,['P' templateName])});
+        end 
+            
         if size(P_svm,1)<size(P_svm,2)
             P_svm =P_svm';
-        end  
-        P = [P P_svm]; 
+        end
+        
+        P = [P P_svm];
     end
     
     if (ratio == 5) && (any(ec==[10,11,12,13]))
-        expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
+        if length(expParams.contrastLevels) < size(P,1)
+            expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
+        end
     end
+    
     figure; hold all; for ii = 1:size(P,2); plot(expParams.contrastLevels,P(:,ii)); end
     P_SE = std(P,[],2)./sqrt(size(P,2));
     
@@ -60,9 +78,6 @@ for ec = 1:nrEccen
     fit.thresh = 0.75;
     
     if (ratio == 5) && (any(ec==[10,11,12,13]))
-        if length(expParams.contrastLevels)<size(P,1)
-            expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
-        end
         xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
     end
     
@@ -82,8 +97,8 @@ for ec = 1:nrEccen
 end
 
 varThresh = std(ctrthresh,[],2);
-fNameSEThresh = sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity.mat', ratio, ec);
-thresholdDir = fullfile(baseFolder,'data',expName,'thresholds',subFolder);
+fNameSEThresh = sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptions_%d_%s.mat', ratio, ec, expName);
+thresholdDir = fullfile(baseFolder,'data',expName,'thresholds',subFolder, ['average' templateName]);
 if ~exist(thresholdDir, 'dir'); mkdir(thresholdDir); end
 save(fullfile(thresholdDir,fNameSEThresh),'varThresh', 'ctrthresh');
     

@@ -22,6 +22,7 @@ function [] = plotPsychometricFunctionsRGCModel(baseFolder, expName, subFolder, 
 % plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'run1',2)
 %
 % plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',1, 'plotAvg',true, 'meanPoissonPaddingFlag', true)
+% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average_svmEnergy',1, 'plotAvg',true, 'meanPoissonPaddingFlag', true, 'stimTemplateFlag', true)
 %% 0. Set general experiment parameters
 validScalarPosNum = @(x) isnumeric(x) && isscalar(x) && (x > 0);
 
@@ -35,6 +36,7 @@ p.addParameter('inputType', 'absorptionrate', @ischar);
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
 p.addParameter('meanPoissonPaddingFlag', false, @islogical);
+p.addParameter('stimTemplateFlag', false, @islogical);
 p.parse(baseFolder, expName, subFolder, ratio, varargin{:});
 
 % Rename variables
@@ -46,6 +48,7 @@ inputType     = p.Results.inputType;
 saveFig       = p.Results.saveFig;
 plotAvg       = p.Results.plotAvg;
 meanPoissonPaddingFlag = p.Results.meanPoissonPaddingFlag;
+stimTemplateFlag = p.Results.stimTemplateFlag;
 
 % Load specific experiment parameters
 expParams    = loadExpParams(expName, false);
@@ -56,20 +59,19 @@ else
 end
 
 if meanPoissonPaddingFlag
-    extraSubFolder = 'withPaddingBeforeConvolution';
-    subFolder = [subFolder '_meanPoissonPadded'];
+    extraSubFolder = 'meanPoissonPadded';
 else
     extraSubFolder = 'noPaddingBeforeConvolution';
 end
 
-% Where to find data and save figures
-if plotAvg
-    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, 'average');
-else
-    dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, subFolder);
+if stimTemplateFlag
+    extraSubFolder = [extraSubFolder '/stimTemplate'];
 end
 
-figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, extraSubFolder, subFolder, sprintf('ratio%d', ratio));
+% Where to find data and save thresholds figures
+dataPth       = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, subFolder);
+thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', extraSubFolder, subFolder);
+figurePth     = fullfile(baseFolder,'figures','psychometricCurves', expName, extraSubFolder, subFolder, sprintf('ratio%d', ratio));
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
 end
@@ -217,14 +219,13 @@ if saveFig
 end
 
 % Save thresholds and fits
-thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', extraSubFolder);
 if ~exist(thresholdsDir, 'dir'); mkdir(thresholdsDir); end
 save(fullfile(thresholdsDir, sprintf('cThresholds_ratio%d_%s', ratio, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
 
 
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName)
-    load(fullfile(thresholdsDir, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_13_conedensity', ratio)), 'varThresh');
+    load(fullfile(thresholdsDir, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptions_13_conedensity', ratio)), 'varThresh');
     plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 elseif strcmp('default',expName) || strcmp('defaultnophaseshift',expName) || strcmp('idealobserver',expName)
     plotCone2RGCRatioVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
