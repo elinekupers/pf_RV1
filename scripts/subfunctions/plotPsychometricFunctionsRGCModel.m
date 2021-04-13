@@ -51,7 +51,7 @@ meanPoissonPaddingFlag = p.Results.meanPoissonPaddingFlag;
 stimTemplateFlag = p.Results.stimTemplateFlag;
 
 % Load specific experiment parameters
-expParams    = loadExpParams(expName, false);
+expParams    = loadExpParams(expName);
 if strcmp(inputType, 'current')
     [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('current');
 else
@@ -65,8 +65,11 @@ else
 end
 
 if stimTemplateFlag
-    extraSubFolder = [extraSubFolder '/stimTemplate'];
+    preFix = 'SVM-Energy';
+else
+    preFix = 'SVM-Fourier';
 end
+extraSubFolder = [extraSubFolder '/' preFix];
 
 % Where to find data and save thresholds figures
 dataPth       = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, subFolder);
@@ -87,7 +90,6 @@ fit = [];
 % Predefine cell arrays
 fit.ctrpred = cell(size(colors,1),1);
 fit.ctrvar  = cell(size(colors,1),1);
-fit.ctrr2   = cell(size(colors,1),1);
 fit.data    = cell(size(colors,1),1);
 
 % Set inital slope, threshold for first stage fitting
@@ -111,8 +113,8 @@ for eccen = 1:nrEccen
         SE{count} = load(fullfile(dataPth, fNameSE));
         
     else
-            fName = sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', ...
-            ratio, inputType, eccen, expName, subFolder);
+            fName = sprintf('classify%s_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', ...
+            preFix, ratio, inputType, eccen, expName, subFolder);
     end
     
     
@@ -128,14 +130,15 @@ for eccen = 1:nrEccen
         accuracy.P = accuracy.P';
     end
     
-    
     if (ratio == 5) && (any(eccen==[10,11,12,13]))
-        if length(expParams.contrastLevels)<length(accuracy.P)
+        if ~stimTemplateFlag && (length(expParams.contrastLevels)<length(accuracy.P))
             expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
+        elseif stimTemplateFlag && (length(expParams.contrastLevels)<length(accuracy.P))
+            accuracy.P((length(expParams.contrastLevels)+1):end) = [];
         end
         xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
     end
-    
+        
     %% 4. Fit Weibull
     % Make a Weibull function first with contrast levels and then search for
     % the best fit with the classifier data
@@ -152,6 +155,29 @@ for eccen = 1:nrEccen
     count = count +1;
     
 end % eccen
+
+% check for unfitted data per eccentricity 
+for ii = 1:nrEccen
+    allslopes(ii) = fit.ctrvar{ii}(1); 
+    poorfits(ii) = allslopes(ii)<1;
+end
+
+assumedSlope = geomean(allslopes(~poorfits));
+fit.poorFits = poorfits;
+
+if any(poorfits)
+    for pfIdx = find(poorfits)        
+            
+        ctrvar_tmp = fminsearch(@(x) ogFitWeibullFixedSlope(x, assumedSlope, expParams.contrastLevels, fit.data{pfIdx}, nTotal), fit.init(2));
+        fit.ctrvar{pfIdx} = [assumedSlope, ctrvar_tmp];
+        fit.ctrpred{pfIdx} = ogWeibull(fit.ctrvar{pfIdx}, xUnits);
+    
+        %% 5. Find contrast threshold
+        fit.ctrthresh{pfIdx} = fit.ctrvar{pfIdx}(2);
+    end
+end
+    
+
 
 
 %% 6. Visualize psychometric curves
@@ -174,8 +200,10 @@ plotIdx = 1:length(fit.ctrpred);
 for ii = plotIdx
     
     if (ratio == 5) && (any(ii==[10,11,12,13]))
-        if length(expParams.contrastLevels)<length(accuracy.P)
+        if ~stimTemplateFlag && length(expParams.contrastLevels)<length(accuracy.P)
             expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
+        elseif stimTemplateFlag && (length(expParams.contrastLevels)<length(SE{ii}.P_SE))
+            SE{ii}.P_SE((length(expParams.contrastLevels)+1):end) = [];
         end
         xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
     elseif strcmp(expName, 'default')
@@ -226,7 +254,7 @@ save(fullfile(thresholdsDir, sprintf('cThresholds_ratio%d_%s', ratio, subFolder)
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName)
     load(fullfile(thresholdsDir, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptions_13_conedensity', ratio)), 'varThresh');
-    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
+    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log', 'RGCflag', true);    
 elseif strcmp('default',expName) || strcmp('defaultnophaseshift',expName) || strcmp('idealobserver',expName)
     plotCone2RGCRatioVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 end
