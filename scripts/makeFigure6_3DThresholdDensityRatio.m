@@ -12,28 +12,35 @@ function makeFigure6_3DThresholdDensityRatio()
 % end
 
 %% 0. Define params and folders
-nrSimConeDensities = 13;
+meanPoissonPaddingFlag = true;
+stimTemplateFlag       = true;
+nrSimConeDensities     = 13;
 c2rgc       = 1:5; % Cone 2 RGC ratios
 rgc2c       = 2./c2rgc; % RGC 2 Cone ratios
 expName     = 'conedensity';
-meanPoissonPaddingFlag = true;
+
 colors      = parula(length(c2rgc)+1);
 labels      = sprintfc('RGC:cone = %1.1f:1.0', rgc2c);
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
-    extraSubFolder = 'withPaddingBeforeConvolution';
-    subFolder   = 'average_meanPoissonPadded';
+    extraSubFolder = 'meanPoissonPadded';
 else
     extraSubFolder = 'noPaddingBeforeConvolution';
-    subFolder   = 'average';
+end
+
+if stimTemplateFlag
+    subFolder = 'SVM-Energy';
+    postFix = 'average_svmEnergy';
+else
+    subFolder = 'SVM-Fourier';
 end
 
 % Folders
 saveFigs     = true;
-baseFolder   = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
-dataFolder   = fullfile(baseFolder,'data',expName,'thresholds',extraSubFolder);
-figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder,extraSubFolder);
+baseFolder   = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model';
+dataFolder   = fullfile(baseFolder,'data',expName,'thresholds',extraSubFolder,subFolder);
+figureFolder = fullfile(baseFolder,'figures','surface3D', expName, extraSubFolder, subFolder);
 if (saveFigs) && ~exist(figureFolder, 'dir')
     mkdir(figureFolder);
 end
@@ -50,26 +57,35 @@ R2        = NaN(length(c2rgc),1);
 for r = c2rgc
     
     % Load simulated contrast thresholds
-    load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_%s', r, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
+    load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_%s.mat', r, postFix)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
     allData(r,:) = [reshape(cell2mat(fit.ctrthresh),[],length(fit.ctrthresh))].*100;
     
     % Load variance in simulated contrast thresholds computed by
     % bootstrapping simulation iterations starting with different rng seeds
-    load(fullfile(dataFolder, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_13_conedensity', r)), 'varThresh');
+    load(fullfile(dataFolder, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptions_13_conedensity', r)), 'varThresh');
     errThresh(r,:) = varThresh.*100;
     
     % Fit a linear function in log-log space (so a powerlaw) for each simulated mrgc2cone ratio
     contrastThresh = cell2mat(fit.ctrthresh).*100; 
     coneDensities  = xThresh;
-    lm = fitlm(log10(coneDensities),log10(contrastThresh));
-    
-    % Get fitted contrast thresholds (fct)
-    fct(r,:) = lm.Coefficients.Estimate(2).*log10(xThresh) + lm.Coefficients.Estimate(1);
-    
-    % Get R2 of fits
-    R2(r,:) = lm.Rsquared.ordinary;
+    if stimTemplateFlag
+        [b stats] = robustfit(log10(coneDensities),log10(contrastThresh));
+        fct(r,:) = b(2).*log10(xThresh) + b(1);
+        R2(r,:) = corr(log10(contrastThresh)',fct(r,:)')^2;
+        
+        % alternative R2 computation
+%         sse = stats.dfe*stats.robust_s^2; % ss error
+%         ssr = norm(fct(r,:)-mean(fct(r,:)))^2; % ss fitted around mean
+%         R2(r,:) = 1 - sse / (sse + ssr); % ss total = sse + ssr
+    else
+       lm = fitlm(log10(coneDensities),log10(contrastThresh));
+       
+       % Get fitted contrast thresholds (fct)
+       fct(r,:) = lm.Coefficients.Estimate(2).*log10(xThresh) + lm.Coefficients.Estimate(1);
+        
+       % Get R2 of fits
+       R2(r,:) = lm.Rsquared.ordinary;    
 end
-
 % clean up 
 clear fit xThresh fitToPlot dataToPlot;
 
@@ -95,15 +111,22 @@ fct_upsampled2 = griddata(X1,Y1, 10.^fct', X2,Y2, 'linear');
 
 % Plot threshold fits vs density data for each ratio
 fH1 = figure(1); set(gcf, 'Color', 'w', 'Position', [79 39 1522 759]); clf; hold all;
-
+if stimTemplateFlag
+    ylimit = [0.5 100]; 
+    yticks = [1 10 100];
+else
+    ylimit = [0.5, 20];
+    yticks = [1 10];
+end
 for ii = c2rgc
     subplot(2,3,ii); hold on;
     scatter(coneDensities,  allData(ii,:), 40, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',1)
     errorbar(coneDensities, allData(ii,:), errThresh(ii,:), 'Color', 'k', 'LineStyle','none', 'LineWidth', 1);
     plot(coneDensities, 10.^fct(ii,:), 'r-', 'LineWidth',4)
     
-    set(gca, 'XScale', 'log','YScale','log', 'FontSize', 14, 'LineWidth', 2, 'TickDir', 'out')
-    ylim([0.5, 20]);
+    set(gca, 'XScale', 'log','YScale','log', 'FontSize', 14, 'LineWidth', 2, 'TickDir', 'out', ...
+        'YTick',[1 10], 'YTickLabel',yticks)
+    ylim(ylimit);
     title(sprintf('%1.1f mRGCs vs 1 cone', 2/ii));
     xlabel('Cone array density (cells/deg^2)');
     ylabel('Contrast thresholds (%)');
@@ -119,7 +142,8 @@ end
 h = findobj(gca,'Type','line');
 legend([h(end:-1:1)],labels, 'Location','Best');
 legend boxoff;
-set(gca, 'XScale', 'log','YScale','log', 'FontSize', 14, 'LineWidth', 2, 'TickDir', 'out')
+set(gca, 'XScale', 'log','YScale','log', 'FontSize', 14, 'LineWidth', 2, 'TickDir', 'out', ...
+    'YTick',ylimit, 'YTickLabel',yticks)
 ylim([0.5, 20]);
 title('All 5 mRGC : cones ratios')
 xlabel('Cone array density (cells/deg^2)');
