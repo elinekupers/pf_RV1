@@ -16,7 +16,7 @@ p.KeepUnmatched = true;
 p.addRequired('expName', @ischar);
 p.addRequired('fit', @isstruct);
 p.addRequired('xThresh', @isvector);
-p.addParameter('decisionmaker','SVM',  @ischar);
+p.addParameter('decisionmaker','SVM-Fourier',  @ischar);
 p.addParameter('varThresh',[],  @isvector);
 p.addParameter('fitTypeName', 'linear', @ischar);
 p.addParameter('yScale', 'log', @ischar);
@@ -80,15 +80,9 @@ box off;
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,'XScale','linear', 'YScale', yScale)
 xlabel('mRGC : Cone ratio','FontSize',20); ylabel('Contrast threshold (%)','FontSize',25)
 set(gca, 'XTick',xticks,'XTickLabel',xticklbls, 'XLim', [0.1 2.2]);
-if strcmp(yScale, 'log')
-   if strcmp('SNR',decisionmaker)
-       yrange = [0.01, 0.1, 1];
-   elseif strcmp('SVM',decisionmaker)
-       yrange = [0.001, 0.01];
-   elseif strcmp('Ideal',decisionmaker)
-       yrange = [0.0001, 0.001];
-   end
-   set(gca,'YLim', [min(yrange), max(yrange)], 'YTick',yrange,'YTickLabel',sprintfc('%1.3f',yrange.*100));
+if strcmp(yScale, 'log'); 
+   yrange = [0.0001, 0.001, 0.01, 0.1, 1]; 
+   set(gca,'YLim', [min(yrange), max(yrange)], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange.*100));
    set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
        'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 else
