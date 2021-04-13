@@ -38,7 +38,7 @@ rng(seed);
 saveData = true;
 
 % Get experimental params
-expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
+expParams = loadExpParams(expName);   % (false argument is for not saving params in separate matfile)
 inputType = 'absorptions';%'absorptions'; % could also be 'current'
 if strcmp(inputType, 'absorptions')
     contrasts = expParams.contrastLevels;
@@ -93,7 +93,7 @@ fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 P_svmEnergy  = NaN(1,length(contrasts));
 P_svmLinear  = P_svmEnergy;
 
-for c = 1:length(contrasts) % 1:length(contrasts)
+for c = 1:length(contrasts)
     
     % Load RGC responses
     load(fullfile(baseFolder, 'data',  expName, 'rgc', 'meanPoissonPadded', subFolder, sprintf('ratio%d',ratio), sprintf('rgcResponse_Cones2RGC%d_contrast%1.4f_eccen%2.2f_%s.mat', cone2RGCRatio,  contrasts(c), eccentricities(eccen), inputType)), 'rgcResponse');
@@ -125,14 +125,11 @@ end
 
 % Save classification results
 if saveData
-    if strcmp(expName,'conedensity')
-        extraSubfolder = 'meanPoissonPadded';
-    else
-        extraSubfolder = '';
-    end
-    if ~exist(fullfile(baseFolder, 'data',  expName, 'classification','rgc',  extraSubfolder, 'stimTemplate',subFolder), 'dir');
-        mkdir(fullfile(baseFolder, 'data',  expName, 'classification','rgc', extraSubfolder,'stimTemplate',subFolder)); end
-    parsave(fullfile(baseFolder, 'data', expName, 'classification', 'rgc', extraSubfolder,'stimTemplate',subFolder, sprintf('classifySVM_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', cone2RGCRatio, inputType, eccen, expName, subFolder)), 'P_svmEnergy',P_svmEnergy, 'P_svmLinear',P_svmLinear, 'rgcParams',rgcParams, 'expParams', expParams);
+    saveDir = fullfile(baseFolder, 'data',  expName, 'classification','rgc',  'meanPoissonPadded', 'SVM-Energy',subFolder);
+    if ~exist(saveDir, 'dir'); mkdir(saveDir); end
+    parsave(fullfile(saveDir, sprintf('classifySVM-Energy_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', ...
+        cone2RGCRatio, inputType, eccen, expName, subFolder)), ...
+        'P_svmEnergy',P_svmEnergy, 'P_svmLinear',P_svmLinear, 'rgcParams',rgcParams, 'expParams', expParams);
 end
 
 return
