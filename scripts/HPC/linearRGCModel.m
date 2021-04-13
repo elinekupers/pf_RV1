@@ -48,7 +48,7 @@ rng(seed);
 saveData = true;
 
 % Get experimental params
-expParams = loadExpParams(expName, false);   % (false argument is for not saving params in separate matfile)
+expParams = loadExpParams(expName);
 inputType = 'absorptions'; % could be 'absorptions' or 'current'
 if strcmp(inputType, 'absorptions')
     contrasts = expParams.contrastLevels;
@@ -60,11 +60,12 @@ end
     
 eccentricities = expParams.eccentricities; % deg
 
-% We use extra (high) contrast for high cone2rgc ratios at low cone 
+% We use extra (high) contrast for highest cone2rgc ratios at low cone 
 % densities to reach 100% classifier accuracy.
 if (ratio == 5) && (any(eccen==[10,11,12,13]))
     contrasts = [contrasts, 0.2:0.1:1];
 end
+
 
 % Add string to filename when using current data
 if strcmp(inputType, 'current')
@@ -88,10 +89,9 @@ rgcParams.DoG.ks     = rgcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > 
 rgcParams.DoG.wc     = 0.64;               % DoG center Gauss weight. Range: [0,1]. (Bradley et al. 2014 paper has ws = 0.53)
 rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
 rgcParams.inputType  = inputType;          % are we dealing with cone absorptions or current?
-
 rgcParams.cone2RGCRatio = ratio;           % linear ratio
-rgcParams.seed          = seed;
-cone2RGCRatio           = ratio;
+rgcParams.seed       = seed;
+cone2RGCRatio        = ratio;
 
 %% Compute RGC responses from linear layer
 
@@ -102,22 +102,22 @@ if saveData
     end
 end
 
-% Subsampling ratio
+% Subsampling ratio and eccentricity
 fprintf('Ratio %d:1\n', cone2RGCRatio)
-
 fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
 
+% preallocate space
 allRGCResponses = cell(1,length(contrasts));
 
 % Load cone responses (current or absorption rates)
 for c = 1:length(contrasts)
     fprintf('Contrast %1.4f\n', contrasts(c))
+    
     % get filename, load cone responses
     dataFolder = fullfile(baseFolder, 'data', expName, inputType, subFolder);
     d = dir(fullfile(dataFolder,sprintf('%sOGconeOutputs_contrast%1.4f_*eccen%1.2f_*.mat', preFix, contrasts(c), eccentricities(eccen))));
     
-    % Some folders are symbolic links, in that case we need an extra
-    % subfolder
+    % Some folders are symbolic links, in that case we need an extra subfolder
     if isempty(d)
         try
             dataFolder = fullfile(baseFolder, 'data', expName, inputType, expName, subFolder);
