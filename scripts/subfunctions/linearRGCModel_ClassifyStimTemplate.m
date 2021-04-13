@@ -50,6 +50,7 @@ end
 
 eccentricities = expParams.eccentricities; % deg (should be 4.5 deg)
 
+% Add higher contrasts for lowest rgc:cone ratio for psychometric functions to saturate
 if (ratio == 5) && (any(eccen==[10,11,12,13]))
     contrasts = [contrasts, 0.2:0.1:1];
 end
@@ -75,17 +76,13 @@ rgcParams.DoG.ks     = rgcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > 
 rgcParams.DoG.wc     = 0.64;               % DoG center Gauss weight. Range: [0,1]. (Bradley et al. 2014 paper has ws = 0.53)
 rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
 rgcParams.inputType  = inputType;          % are we dealing with cone absorptions or current?
-
 rgcParams.cone2RGCRatio = ratio;           % linear ratio
 rgcParams.seed       = seed;
+cone2RGCRatio        = ratio;
 
-cone2RGCRatio = ratio;
-
-% Subsampling ratio
+% Print subsampling ratio and eccentricity
 fprintf('Ratio %d:1\n', cone2RGCRatio)
-
 fprintf('Eccentricity %2.2f\n', eccentricities(eccen))
-
 
 %% Get 2-AFC SVM Linear Classifier accuracy
 
