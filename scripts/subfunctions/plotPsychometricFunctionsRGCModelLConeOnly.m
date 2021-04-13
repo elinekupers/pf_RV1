@@ -12,11 +12,20 @@ function [] = plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, expName, su
 % OUTPUTS:
 % none
 %
-% Example:
-% baseFolder =
-% subFolder = 
-% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'idealobserver', subFolder, 'Ideal')
+% Example 1 - ideal observer with L-cone only mosaic:
+% baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'idealobserver', 'onlyL', 'Ideal')
 %
+% Example 2 - SNR observer with L-cone only mosaic:
+% baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SNR')
+%
+% Example 3 - SVM observer with L-cone only mosaic:
+% baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM')
+%
+% Written by EK @NYU (2020)
+
 %% 0. Set general experiment parameters
 validScalarPosNum = @(x) isnumeric(x) && isscalar(x) && (x > 0);
 
@@ -26,7 +35,7 @@ p.addRequired('baseFolder', @ischar);
 p.addRequired('expName', @ischar);
 p.addRequired('subFolder', @ischar);
 p.addRequired('decisionmaker', @ischar);
-p.addParameter('inputType', 'absorptionrate', @ischar);
+p.addParameter('inputType', 'absorptions', @ischar);
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
 p.parse(baseFolder, expName, subFolder, decisionmaker, varargin{:});
@@ -41,12 +50,12 @@ saveFig       = p.Results.saveFig;
 plotAvg       = p.Results.plotAvg;
 
 % Load specific experiment parameters
-expParams    = loadExpParams(expName, false);
+expParams    = loadExpParams(expName);
 [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('rgcratios');
 
 % Where to find data and save figures
-dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc',subFolder);
-figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, subFolder);
+dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', 'meanPoissonPadded', decisionmaker, subFolder);
+figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, 'meanPoissonPadded', subFolder);
 if ~exist(figurePth, 'dir')
     mkdir(figurePth);
 end
@@ -63,72 +72,56 @@ fit.ctrpred = cell(size(colors,1),1);
 fit.ctrvar  = cell(size(colors,1),1);
 fit.ctrr2   = cell(size(colors,1),1);
 fit.data    = cell(size(colors,1),1);
+fit.thresh  = 0.75;
 
 % Set inital slope, threshold for first stage fitting
-if strcmp('SNR', decisionmaker)
+if strcmp('Ideal', decisionmaker)
+    fitType = 'poly2';
+    % Define a zero point (just a very small number), to plot the 0 contrast,
+    % since a log-linear plot does not define 0.
+    logzero = 3e-5;
+    fit.init    = [5, 0.0006]; % slope, threshold at ~80%    
+    scaleFactor = 1; % to put data in percentage (not needed here)
+    nTotal      = 100;
+elseif strcmp('SVM-Fourier', decisionmaker)     
+    fitType = 'linear';
+    logzero = 3e-5;
+    fit.init   = [5, 0.0006]; % slope, threshold at ~80%
+    scaleFactor = 1; % to put data in percentage
+elseif strcmp('SVM-Energy', decisionmaker)     
+    fitType = 'linear';
+    logzero = 3e-5;
+    fit.init   = [5, 0.0006]; % slope, threshold at ~80%
+    scaleFactor = 1; % to put data in percentage
+elseif strcmp('SNR', decisionmaker) 
+    fitType = 'linear';
+    logzero = 3e-5;
     fit.init = [3, 0.01];
-else
-    fit.init   = [4, 0.005]; % slope, threshold at ~80%
+    scaleFactor = 100; % to put data in percentage
 end
-fit.thresh = 0.75;
 
+for ratio = 1:5
+    % 2. Get correct filename
+    fName = sprintf('classify%s_rgcResponse_Cones2RGC%d_%s_1_%s_%s.mat', ...
+        decisionmaker, ratio, inputType, expName, subFolder);
 
-%% 2. Get correct filename
-
-fName = sprintf('classify%s_rgcResponse_Cones2RGC5_%s.mat', ...
-    decisionmaker, inputType);
-
-
-%% 3. Load performance results
-
-% load model performance
-accuracy = load(fullfile(dataPth, fName));
-fn = fieldnames(accuracy);
-accuracy.P = squeeze(accuracy.(fn{1}));
+    % 3. Load performance results
+    tmp = load(fullfile(dataPth,fName));
+    fn = fieldnames(tmp);
+    accuracy.P(ratio,:) = squeeze(tmp.(fn{1}))*scaleFactor;
+end
 
 % Transpose matrix if necessary
 if size(accuracy.P,1)<size(accuracy.P,2)
     accuracy.P = accuracy.P';
 end
 
-if strcmp('SNR', decisionmaker) || strcmp('Ideal', decisionmaker)
-    accuracy.P = accuracy.P.*100;
-end
+% Resample x-axis of Weibull function to get enough low contrast values
+xUnits = [linspace(min(expParams.contrastLevels),0.04, 800),linspace(0.0401, max(expParams.contrastLevels), 400)];
 
-expParams.contrastLevels = accuracy.expParams.contrastLevels;
-if strcmp('Ideal', decisionmaker)
-    idx = find(expParams.contrastLevels == 0.004);
-    expParams.contrastLevels = expParams.contrastLevels(1:idx);
-    accuracy.P = accuracy.P(1:idx,:);
-    fitType = 'poly2';
-    % Define a zero point (just a very small number), to plot the 0 contrast,
-    % since a log-linear plot does not define 0.
-    logzero = 3e-5;
-
-elseif strcmp('SVM', decisionmaker) 
-    idx1 = find(expParams.contrastLevels == 0.001);
-    idx2 = find(expParams.contrastLevels == 0.04);
-    expParams.contrastLevels = expParams.contrastLevels(idx1:idx2);
-    accuracy.P = accuracy.P(idx1:idx2,:);
-    fitType = 'linear';
-    logzero = 3e-4;
-
-elseif strcmp('SNR', decisionmaker) 
-    idx = find(expParams.contrastLevels == 0.001);
-    expParams.contrastLevels = expParams.contrastLevels([idx:end]);
-    accuracy.P = accuracy.P([idx:end],:);
-    fitType = 'linear';
-    logzero = 3e-4;
-
-end
-
-xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 800);
-
-
+%% 4. Fit Weibull
 count = 1;
-
 for ii = 1:size(accuracy.P,2)
-    %% 4. Fit Weibull
     % Make a Weibull function first with contrast levels and then search for
     % the best fit with the classifier data
     fit.ctrvar{count} = fminsearch(@(x) ogFitWeibull(x, expParams.contrastLevels, accuracy.P(:,ii), nTotal), fit.init);
@@ -147,30 +140,25 @@ end % ratios
 
 
 %% 6. Visualize psychometric curves
-
 figure(3); clf; set(gcf,'Color','w', 'Position',  [218   316   986   488], 'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s %s', expName, decisionmaker)); hold all;
 
 % Remove empty cells
 idx = ~cellfun(@isempty, fit.ctrpred);
 fit.ctrpred = fit.ctrpred(idx);
 
-
-
-
 % Only plot first two, 50:50 and last 2 functions for conetypes mixed experiment
 plotIdx = 1:length(fit.ctrpred);
-
 
 % Loop over all functions to plot
 for ii = plotIdx
     
-    % What to plot?
+    % What data and fit to plot?
     dataToPlot = fit.data{ii};
     fitToPlot  = fit.ctrpred{ii}*100;
     
     plot(xUnits(2:end), fitToPlot(2:end), 'Color', colors(ii,:), 'LineWidth',2, 'LineStyle', lineStyles{ii});
     scatter(expParams.contrastLevels(2:end), dataToPlot(2:end), 80, colors(ii,:), 'filled');
-    
+    % add zero contrast point
     plot(logzero,dataToPlot(1),'o','Color',colors(ii,:), 'MarkerSize', 8, 'MarkerFaceColor',colors(ii,:))
     
     if plotAvg
@@ -178,8 +166,13 @@ for ii = plotIdx
     end
 end
 
-set(gca, 'XScale','log','XLim',[logzero, max(expParams.contrastLevels)],'YLim', [40 100], 'TickDir','out','TickLength',[.015 .015],'FontSize',17, 'LineWidth',2);
-set(gca, 'XTick', [logzero, expParams.contrastLevels(2:2:end)], 'XTickLabel',sprintfc('%1.3f',[0 expParams.contrastLevels(2:2:end)]*100))
+set(gca, 'XScale','log','XLim',[logzero, 1], ...
+         'YLim', [40 100], ...
+         'TickDir','out',...
+         'TickLength',[.015 .015], ...
+         'XTick', [logzero, 0.0001, 0.001, 0.01, 0.1 1], ...
+         'XTickLabel',sprintfc('%1.2f',[0 0.0001, 0.001, 0.01, 0.1 1]*100), ...
+         'FontSize',17, 'LineWidth',2)
 
 ylabel('Classifier Accuracy (% Correct)', 'FontSize',17)
 xlabel('Stimulus Contrast (%)', 'FontSize',17);
@@ -195,8 +188,11 @@ if saveFig
 end
 
 % Save thresholds and fits
-if ~exist(fullfile(baseFolder,'data',expName,'thresholds'), 'dir'); mkdir(fullfile(baseFolder,'data',expName,'thresholds')); end
-save(fullfile(baseFolder,'data',expName,'thresholds', sprintf('cThresholds_%s_%s', decisionmaker, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
+if ~exist(fullfile(baseFolder,'data',expName,'thresholds','meanPoissonPadded',subFolder), 'dir')
+    mkdir(fullfile(baseFolder,'data',expName,'thresholds','meanPoissonPadded',subFolder)); 
+end
+    save(fullfile(baseFolder,'data',expName,'thresholds','meanPoissonPadded',subFolder, ...
+    sprintf('cThresholds_%s_%s', decisionmaker, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
 
 
 %% 7. Plot density thresholds
