@@ -8,10 +8,10 @@ stimTemplateFlag         = true;
 % Where to find data and save figures
 subFolder   = 'meanPoissonPadded';
 if stimTemplateFlag 
-    subFolder = [subFolder '/stimTemplate']; 
+    subFolder = [subFolder '/SVM-Energy']; 
     templateName = '_svmEnergy'; % choose from '_svmEnergy' or '_svmLinear'
 else 
-    templateName = [];
+    templateName = '/SVM-Fourier';
 end
     
 dataPth     = fullfile(baseFolder,'data',expName,'classification','rgc',subFolder);
@@ -24,48 +24,61 @@ nTotal      = 100;
 nrEccen     = length(expParams.eccentricities);
 
 for ec = 1:nrEccen
-    
     fName   = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptions_%d_conedensity_run*.mat', ratio, ec);
     
-    P  =[];
+    P = [];
+    % Loop over runs (i.e. experiment iterations)
     for ii = 1:5
+        % Get file and load it
         d = dir(fullfile(dataPth,sprintf('run%d',ii), fName));        
-        
         tmp = load(fullfile(d.folder, d.name));
         
+        % Get percent correct  
         if stimTemplateFlag
             fn = fieldnames(tmp);
             P_svm = tmp.(fn{strcmpi(fn,['P' templateName])});
         end 
-            
+        
+        % Transpose if necessary
         if size(P_svm,1)<size(P_svm,2)
             P_svm =P_svm';
         end
         
+        % Accumulate
         P = [P P_svm];
     end
     
-    if (ratio == 5) && (any(ec==[10,11,12,13]))
+    % Deal with higher contrast levels for high cone to RGC ratio and low
+    % cone densities
+    if ~stimTemplateFlag && (ratio == 5) && (any(ec==[10,11,12,13]))
         if length(expParams.contrastLevels) < size(P,1)
             expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
         end
+    elseif stimTemplateFlag && (ratio == 5) && (any(ec==[10,11,12,13]))
+        if length(expParams.contrastLevels) < size(P,1)
+            P = P(1:length(expParams.contrastLevels),:);
+        else
+            P = P(1:length(setdiff(expParams.contrastLevels,0.2:0.1:1)),:);
+        end
     end
     
+    % Plot accuracy
     figure; hold all; for ii = 1:size(P,2); plot(expParams.contrastLevels,P(:,ii)); end
-    P_SE = std(P,[],2)./sqrt(size(P,2));
     
+    % Compute standard error and mean
+    P_SE = std(P,[],2)./sqrt(size(P,2));
     P_AVG = mean(P,2);
+    
+    % Save sample mean output
     fNameAVG = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_AVERAGE.mat', ratio, ec);
     fNameSE  = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_SE.mat', ratio, ec);
-
     if ~exist(averageDataPth,'dir'), mkdir(averageDataPth); end;
     save(fullfile(averageDataPth,fNameAVG),'P_AVG');
     save(fullfile(averageDataPth,fNameSE),'P_SE');
     
-    
     %% Bootstrap runs with replacement, 
     nboot = 1000;
-    bootData = bootstrp(nboot, @mean, P');
+    bootData{ec} = bootstrp(nboot, @mean, P');
     
     % fit Weibull to each mean and get threshold 
     [xUnits, ~, ~, ~, ~] = loadWeibullPlottingParams(expName);
@@ -81,20 +94,30 @@ for ec = 1:nrEccen
         xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 100);
     end
     
-    for ii = 1:nboot
+    for boot = 1:nboot
         %% 4. Fit Weibull
         % Make a Weibull function first with contrast levels and then search for
         % the best fit with the classifier data
-        ctrvar = fminsearch(@(x) ogFitWeibull(x, expParams.contrastLevels, bootData(ii,:)', nTotal), fit.init);
-
-        % Then fit a Weibull function again, but now with the best fit parameters
-        % from the previous step.
-        ctrpred = ogWeibull(ctrvar, xUnits);
+        ctrvar(ec,:) = fminsearch(@(x) ogFitWeibull(x, expParams.contrastLevels, bootData{ec}(boot,:)', nTotal), fit.init);
 
         %% 5. Find contrast threshold
-        ctrthresh(ec,ii) = ctrvar(2);
+        ctrthresh(ec,boot) = ctrvar(ec,2);
     end
 end
+
+% check for unfitted data per eccentricity 
+poorfits = ctrvar(:,1)<1;
+assumedSlope = geomean(ctrvar(~poorfits,1));
+
+if any(poorfits)
+    for pfIdx = find(poorfits')        
+        for boot = 1:nboot
+            ctrvar_tmp = fminsearch(@(x) ogFitWeibullFixedSlope(x, assumedSlope, expParams.contrastLevels, bootData{pfIdx}(boot,:)', nTotal), fit.init(2));
+            ctrthresh(pfIdx,boot) = ctrvar_tmp;
+        end
+    end
+end
+
 
 varThresh = std(ctrthresh,[],2);
 fNameSEThresh = sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptions_%d_%s.mat', ratio, ec, expName);
