@@ -29,6 +29,7 @@ p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
 p.addParameter('inputType', 'current', @ischar);
 p.addParameter('stimTemplateFlag',false, @islogical);
+p.addParameter('fitTypeName','linear',@ischar);
 p.parse(baseFolder, expName, varargin{:});
 
 % Rename variables
@@ -39,6 +40,7 @@ saveFig       = p.Results.saveFig;
 plotAvg       = p.Results.plotAvg;
 inputType     = p.Results.inputType;
 stimTemplateFlag = p.Results.stimTemplateFlag;
+fitTypeName   = p.Results.fitTypeName;
 
 % Load specific experiment parameters
 expParams    = loadExpParams(expName, false);
@@ -52,7 +54,7 @@ end
 
 % Where to find data and save figures
 dataPth     = fullfile(baseFolder,'data',expName, 'classification', inputType, preFix,subFolder);
-figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, inputType, [subFolder '_' preFix]);
+figurePth   = fullfile(baseFolder,'figures','psychometricCurves', expName, inputType, [subFolder '_' preFix '_' fitTypeName]);
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
 end
@@ -82,7 +84,7 @@ fit.thresh = 0.75;
 
 count = 1;
 eccentricities = expParams.eccentricities;
-for eccen = 4:length(eccentricities)
+for eccen = 1:length(eccentricities)
     
     %% 2. Get correct filename
     if plotAvg
@@ -112,12 +114,18 @@ for eccen = 4:length(eccentricities)
         accuracy.P = accuracy.P';
     end
     
-     xUnits = linspace(min(expParams.contrastLevelsPC),max(expParams.contrastLevelsPC), 800);
+    if eccen == 1
+        contrasts = expParams.contrastLevels;
+        xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 200);
+    else
+        contrasts = expParams.contrastLevelsPC;
+        xUnits = linspace(min(expParams.contrastLevelsPC),max(expParams.contrastLevelsPC), 800);
+    end
     
     %% 4. Fit Weibull
     % Make a Weibull function first with contrast levels and then search for
     % the best fit with the classifier data
-    fit.ctrvar{count} = fminsearch(@(x) ogFitWeibull(x, expParams.contrastLevelsPC, accuracy.P, nTotal), fit.init);
+    fit.ctrvar{count} = fminsearch(@(x) ogFitWeibull(x, contrasts, accuracy.P(1:length(contrasts)), nTotal), fit.init);
     
     % Then fit a Weibull function again, but now with the best fit parameters
     % from the previous step.
@@ -153,18 +161,24 @@ plotIdx = 1:length(fit.ctrpred);
 
 % Loop over all functions to plot
 for ii = plotIdx
-
+    
+    if ii == 1
+        xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 200);
+    else
+        xUnits = linspace(min(expParams.contrastLevelsPC),max(expParams.contrastLevelsPC), 800);
+    end
+    
     % What to plot?
     dataToPlot = fit.data{ii};
     fitToPlot  = fit.ctrpred{ii}*100;
     
-    plot(xUnits(2:end), fitToPlot(2:end), 'Color', colors(ii+3,:), 'LineWidth',2, 'LineStyle', '-');
-    scatter(expParams.contrastLevelsPC(2:end), dataToPlot(2:end), 80, colors(ii+3,:), 'filled');
+    plot(xUnits(2:end), fitToPlot(2:end), 'Color', colors(ii,:), 'LineWidth',2, 'LineStyle', '-');
+    scatter(expParams.contrastLevelsPC(2:end), dataToPlot(2:end), 80, colors(ii,:), 'filled');
     
-    plot(logzero,dataToPlot(1),'o','Color',colors(ii+3,:), 'MarkerSize', 8, 'MarkerFaceColor',colors(ii,:))
+    plot(logzero,dataToPlot(1),'o','Color',colors(ii,:), 'MarkerSize', 8, 'MarkerFaceColor',colors(ii,:))
     
     if plotAvg
-        errorbar([logzero, expParams.contrastLevelsPC(2:end)], dataToPlot, SE{ii}.P_SE,'Color', colors(ii+3,:), 'LineStyle','none');
+        errorbar([logzero, expParams.contrastLevelsPC(2:end)], dataToPlot, SE{ii}.P_SE,'Color', colors(ii,:), 'LineStyle','none');
     end
 end
 
@@ -175,7 +189,7 @@ ylabel('Classifier Accuracy (% Correct)', 'FontSize',17)
 xlabel('Stimulus Contrast (%)', 'FontSize',17);
 
 h = findobj(gca,'Type','line');
-legend([h(end:-2:2)],labels(4:end), 'Location','bestoutside'); legend boxoff
+legend([h(end:-2:2)],labels, 'Location','bestoutside'); legend boxoff
 
 if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
@@ -195,7 +209,7 @@ if plotAvg
     fNameSEThresh = sprintf('varThresh_coneResponse_current_13_conedensity.mat');
     load(fullfile(baseFolder,'data',expName,'thresholds','currentNoRGC',preFix,fNameSEThresh),'varThresh');
 
-    plotConeDensityVSThreshold(expName, fit, xThresh(4:end), 'varThresh', varThresh(4:end)','inputType',inputType, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
+    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh','inputType',inputType, 'fitTypeName',fitTypeName, 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 end
 
 
@@ -203,7 +217,11 @@ end
 %% Get simulated thresholds and error for cone model only 
 % Cone data are from JWLOrientedGabor toolbox
 % To get these data, run plotPsychometricFunctions('conedensity')
-load(fullfile(thresholdsDir,'conecurrentOnly_predictedMeanAndError_stimeccen'),'modelPredictionForPF','predictedError')
+source = fullfile(ogRootPath,'data','current',expName, sprintf('conecurrentOnly_predictedMeanAndError_stimeccen_%s.mat',fitTypeName));
+destination = fullfile(thresholdsDir,sprintf('conecurrentOnly_predictedMeanAndError_stimeccen_%s.mat', fitTypeName));
+eval(sprintf('!mv %s %s', source, destination));
+
+load(fullfile(destination),'modelPredictionForPF','predictedError')
 
 % MODELED CONE Current 
 conesPredContrastThreshMEAN_retina        = modelPredictionForPF; % nasal, superior, temporal, inferior
@@ -260,7 +278,7 @@ box off;ylabel('Asymmetry (%)');  title('Polar angle asymmetry');
 
 if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
-    savefig(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s',expName, subFolder)))
-    hgexport(gcf,fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s.eps',expName, subFolder)))
-    print(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s',expName, subFolder)), '-dpng')
+    savefig(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s_%s',expName, subFolder, fitTypeName)))
+    hgexport(gcf,fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s_%s.eps',expName, subFolder, fitTypeName)))
+    print(fullfile(figurePth,sprintf('sensitivity_conecurrent_%s_%s_%s',expName, subFolder, fitTypeName)), '-dpng')
 end

@@ -19,12 +19,11 @@ else
     subFolder    = 'SVM-Fourier';
     templateName = [];
 end
-dataPth     = fullfile(baseFolder,'data',expName,'classification','current');
+dataPth     = fullfile(baseFolder,'data',expName,'classification','current',subFolder);
 
 % Where to save data and figures
 figurePth   = fullfile(ogRootPath,'figs', expName, 'current',['average' templateName]);
-dataSavePth = fullfile(dataPth, subFolder, ['average' templateName]);
-
+dataSavePth = fullfile(dataPth, ['average' templateName]);
 
 % Number of total trials in computational observer model (50 clockwise, 50 counterclockwise)
 nTotal      = 100;
@@ -38,29 +37,34 @@ nboot = 1000;
 ctrthresh = NaN(nrEccen,nboot);
 
 % Loop over eccentricities
-for ec = 4:nrEccen
+for ec = 1:nrEccen
     P = NaN(nrContrasts,5);
     d = dir(fullfile(dataPth, 'run*'));
     for ii = 1:size(d,1)
         for c = 1:nrContrasts
             fName   = sprintf('current_Classify_coneOutputs_contrast%1.4f_pa%d_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f.mat', ...
                 expParams.contrastLevelsPC(c),polarAngles,sprintf('%i',expParams.eyemovement'),expParams.eccentricities(ec),expParams.defocusLevels,expParams.spatFreq);
+            
+            if exist(fullfile(d(ii).folder, d(ii).name, fName))
+                tmp = load(fullfile(d(ii).folder, d(ii).name, fName));
 
-            tmp = load(fullfile(d(ii).folder, d(ii).name, fName));
-
-            if stimTemplateFlag
-                fn = fieldnames(tmp);
-                P(c,ii) = tmp.(fn{strcmpi(fn,['P' templateName])});
+                if stimTemplateFlag
+                    fn = fieldnames(tmp);
+                    P(c,ii) = tmp.(fn{strcmpi(fn,['P' templateName])});
+                else
+                    P(c,ii) = squeeze(tmp.P);
+                end
             else
-                P(c,ii) = squeeze(tmp.P);
-            end 
+                warning('%s %s does not exist', d(ii).name, fName)
+            end
         end
     end
     
-    figure; hold all; for ii = 1:size(P,2); plot(expParams.contrastLevelsPC,P(:,ii)); end
-    P_SE = std(P,[],2)./sqrt(size(P,2));
+%     figure; hold all; for ii = 1:size(P,2); plot(expParams.contrastLevelsPC,P(:,ii)); end
+    nrContrastsSimulated = sum(any(~isnan(P),2));
+    P_SE = std(P,[],2, 'omitnan')./sqrt(nrContrastsSimulated);
     
-    P_AVG = mean(P,2);
+    P_AVG = mean(P,2, 'omitnan');
     fName   = sprintf('current_Classify_coneOutputs_contrast%1.3f_pa%d_eye%s_eccen%1.2f_defocus%1.2f_noise-random_sf%1.2f_lms-%1.1f%1.1f%1.1f_AVERAGE.mat', ...
         max(expParams.contrastLevelsPC),polarAngles,sprintf('%i',expParams.eyemovement'),expParams.eccentricities(ec),expParams.defocusLevels,expParams.spatFreq, lmsRatio(2),lmsRatio(3),lmsRatio(4));
     
@@ -73,11 +77,16 @@ for ec = 4:nrEccen
     save(fullfile(dataSavePth, fNameSE),'P_SE');
     
     %% Bootstrap runs with replacement,
-    bootData = bootstrp(nboot, @mean, P');
+    bootData = bootstrp(nboot, @nanmean, P(1:nrContrastsSimulated,:)');
     
     % fit Weibull to each mean and get threshold
-    xUnits = linspace(min(expParams.contrastLevelsPC),max(expParams.contrastLevelsPC), 800);
-    
+    if ec == 1
+        contrasts = expParams.contrastLevels;
+        xUnits = linspace(min(expParams.contrastLevels),max(expParams.contrastLevels), 200);
+    else
+        contrasts = expParams.contrastLevelsPC;
+        xUnits = linspace(min(expParams.contrastLevelsPC),max(expParams.contrastLevelsPC), 800);
+    end
     % Prepare fit variables
     fit = [];
     
@@ -89,7 +98,7 @@ for ec = 4:nrEccen
         %% 4. Fit Weibull
         % Make a Weibull function first with contrast levels and then search for
         % the best fit with the classifier data
-        ctrvar = fminsearch(@(x) ogFitWeibull(x, expParams.contrastLevelsPC, bootData(ii,:)', nTotal), fit.init);
+        ctrvar = fminsearch(@(x) ogFitWeibull(x, contrasts, bootData(ii,:)', nTotal), fit.init);
         
         % Then fit a Weibull function again, but now with the best fit parameters
         % from the previous step.
