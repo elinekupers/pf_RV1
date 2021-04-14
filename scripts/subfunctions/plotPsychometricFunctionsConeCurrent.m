@@ -30,7 +30,7 @@ function [] = plotPsychometricFunctionsConeCurrent(baseFolder, expName, varargin
 % plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true)
 %
 % Using robust linear fit:
-% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true, 'fitTypeName', 'robust-linear')
+% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true, 'fitTypeName', 'linear-robust')
 %% 0. Set general experiment parameters
 p = inputParser;
 p.KeepUnmatched = true;
