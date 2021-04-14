@@ -3,13 +3,22 @@ function [] = plotPsychometricFunctionsConeCurrent(baseFolder, expName, varargin
 % observer model.
 %
 % INPUTS:
-% baseFolder      : path to project
-% expName         : string defining the condition you want to plot.
-%                   (See load expParams for possible conditions)
-% [subFolder]     : string defining the sub folder you want to plot from.
-% [saveFig]       : boolean defining to save figures or not
-% [plotAvg]       : boolean defining to plot average across experiments runs or not
-% [inputType]     : string defining data: absorptions or cone current
+% baseFolder         : path to project
+% expName            : (string) the condition you want to plot.
+%                       (See load expParams for possible conditions)
+% [subFolder]        : (string) sub folder you want to plot data from.
+% [saveFig]          : (boolean) save figures or not
+% [plotAvg]          : (boolean) plot average across experiments runs or not
+% [inputType]        : (string) use cone absorptions or cone current data
+% [stimTemplateFlag] : (boolean) use SVM-Fourier (false) or stimulus based 
+%                       energy template (true). Default is false. 
+% [fitTypeName]      : (string) fitting function used to summarize cone 
+%                       density vs thresholds: 
+%                       for linearfit in log-log use 'linear',
+%                       for robust linear fit in log-log (i.e. detecting 
+%                       outliers and downweighting those) use 'linear-robust',
+%                       for 2nd degree polynomial use 'poly2'. Default is
+%                       'linear'.
 %
 % OUTPUTS:
 % none
@@ -19,6 +28,9 @@ function [] = plotPsychometricFunctionsConeCurrent(baseFolder, expName, varargin
 % plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity', 'subFolder','run1')
 % 
 % plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true)
+%
+% Using robust linear fit:
+% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true, 'fitTypeName', 'robust-linear')
 %% 0. Set general experiment parameters
 p = inputParser;
 p.KeepUnmatched = true;
@@ -29,7 +41,7 @@ p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
 p.addParameter('inputType', 'current', @ischar);
 p.addParameter('stimTemplateFlag',false, @islogical);
-p.addParameter('fitTypeName','linear',@ischar);
+p.addParameter('fitTypeName','linear',@(x) ismember(x,{'linear','linear-robust','poly2'}));
 p.parse(baseFolder, expName, varargin{:});
 
 % Rename variables
