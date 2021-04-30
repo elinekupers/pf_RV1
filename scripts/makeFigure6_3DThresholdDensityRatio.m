@@ -67,8 +67,8 @@ errThresh = allData;
 for r = 1:length(c2rgc)
     
     % Load simulated contrast thresholds
-    load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_average.mat', r)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
-    allData(r,:) = [reshape(cell2mat(fit.ctrthresh),[],length(fit.ctrthresh))].*100;
+    tmp = load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_average.mat', r)),'fit', 'xThresh');
+    allData(r,:) = [reshape(cell2mat(tmp.fit.ctrthresh),[],length(tmp.fit.ctrthresh))].*100;
     
     % Load variance in simulated contrast thresholds computed by
     % bootstrapping simulation iterations starting with different rng seeds
@@ -80,7 +80,7 @@ for r = 1:length(c2rgc)
 
 end
 % clean up 
-clear fit xThresh fitToPlot dataToPlot;
+clear tmp;
 
 %% Construct 3D fit
 
