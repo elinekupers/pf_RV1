@@ -37,6 +37,7 @@ p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
 p.addParameter('meanPoissonPaddingFlag', false, @islogical);
 p.addParameter('stimTemplateFlag', false, @islogical);
+p.addParameter('fitTypeName','lowess-mesh',@(x) ismember(x,{'linear','linear-robust','poly2','lowess-mesh'}));
 p.parse(baseFolder, expName, subFolder, ratio, varargin{:});
 
 % Rename variables
@@ -49,6 +50,7 @@ saveFig       = p.Results.saveFig;
 plotAvg       = p.Results.plotAvg;
 meanPoissonPaddingFlag = p.Results.meanPoissonPaddingFlag;
 stimTemplateFlag = p.Results.stimTemplateFlag;
+fitTypeName   = p.Results.fitTypeName;
 
 % Load specific experiment parameters
 expParams    = loadExpParams(expName);
@@ -73,8 +75,8 @@ extraSubFolder = [extraSubFolder '/' preFix];
 
 % Where to find data and save thresholds figures
 dataPth       = fullfile(baseFolder,'data',expName, 'classification', 'rgc', extraSubFolder, subFolder);
-thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds', extraSubFolder, subFolder);
-figurePth     = fullfile(baseFolder,'figures','psychometricCurves', expName, extraSubFolder, subFolder, sprintf('ratio%d', ratio));
+thresholdsDir = fullfile(baseFolder,'data',expName,'thresholds','rgc', extraSubFolder, subFolder);
+figurePth     = fullfile(baseFolder,'figures','psychometricCurves', expName,'rgc', extraSubFolder, subFolder, sprintf('ratio%d', ratio));
 if ~exist(figurePth, 'dir')
     mkdir(figurePth); 
 end
@@ -99,8 +101,6 @@ fit.thresh = 0.75;
 % Get nr of conditions
 nrEccen  = length(expParams.eccentricities);
 
-% Check if different fitting accuracy for different cone types is requested
-
 count = 1;
 for eccen = 1:nrEccen
     
@@ -116,7 +116,6 @@ for eccen = 1:nrEccen
             fName = sprintf('classify%s_rgcResponse_Cones2RGC%d_%s_%d_%s_%s.mat', ...
             preFix, ratio, inputType, eccen, expName, subFolder);
     end
-    
     
     %% 3. Load performance results
     
@@ -156,7 +155,10 @@ for eccen = 1:nrEccen
     
 end % eccen
 
-% check for unfitted data per eccentricity 
+%% Sometimes the psychometric function does not saturate and slope can't 
+% be fitted. We check for those data per eccentricity and assume slope from 
+% as the geomean of slopes from well fitted data.
+
 for ii = 1:nrEccen
     allslopes(ii) = fit.ctrvar{ii}(1); 
     poorfits(ii) = allslopes(ii)<1;
@@ -172,12 +174,20 @@ if any(poorfits)
         fit.ctrvar{pfIdx} = [assumedSlope, ctrvar_tmp];
         fit.ctrpred{pfIdx} = ogWeibull(fit.ctrvar{pfIdx}, xUnits);
     
-        %% 5. Find contrast threshold
+        % Find contrast threshold
         fit.ctrthresh{pfIdx} = fit.ctrvar{pfIdx}(2);
     end
 end
-    
-
+   
+% There is one eccentricity for ratio 3 that just fails, we should not use
+% this data point
+if ~stimTemplateFlag && ratio == 3
+    fit.ctrthresh{12} = NaN;
+elseif stimTemplateFlag && ratio == 1
+    fit.ctrthresh{2} = NaN;
+elseif stimTemplateFlag && ratio == 3
+    fit.ctrthresh{12} = NaN;
+end
 
 
 %% 6. Visualize psychometric curves
@@ -254,7 +264,7 @@ save(fullfile(thresholdsDir, sprintf('cThresholds_ratio%d_%s', ratio, subFolder)
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName)
     load(fullfile(thresholdsDir, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptions_13_conedensity', ratio)), 'varThresh');
-    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log', 'RGCflag', true);    
+    plotConeDensityVSThreshold(expName, fit, xThresh, 'varThresh', varThresh', 'fitTypeName',fitTypeName, 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log', 'RGCflag', true);    
 elseif strcmp('default',expName) || strcmp('defaultnophaseshift',expName) || strcmp('idealobserver',expName)
     plotCone2RGCRatioVSThreshold(expName, fit, xThresh, 'fitTypeName','linear', 'saveFig', saveFig, 'figurePth', figurePth, 'yScale', 'log');    
 end
