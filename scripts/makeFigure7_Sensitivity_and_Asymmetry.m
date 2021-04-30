@@ -7,13 +7,9 @@ function makeFigure7_Sensitivity_and_Asymmetry()
 
 %% 0. Define params and folders
 nrSimConeDensities = 13;
-c2rgc       = 1:5; % Cone 2 RGC ratios
-rgc2c       = 2./c2rgc; % RGC 2 Cone ratios
+c2rgc       = (1:5).^2; % Cone 2 RGC ratios
 expName     = 'conedensity';
 meanPoissonPaddingFlag = true;
-
-% colors      = parula(length(c2rgc)+1);
-% labels      = sprintfc('RGC:cone = %1.1f:1.0', rgc2c);
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
@@ -28,7 +24,7 @@ end
 saveFigs     = true;
 baseFolder   = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model';
 dataFolder   = fullfile(baseFolder,'data',expName,'thresholds','rgc',extraSubFolder, 'SVM-Fourier',subFolder);
-figureFolder = fullfile(baseFolder,'figures','surface3D', expName, subFolder, extraSubFolder,'SVM-Fourier',[subFolder '_lowess']);
+figureFolder = fullfile(baseFolder,'figures','surface3D_fixedRatios_rgc2c', expName, subFolder, extraSubFolder,'SVM-Fourier',[subFolder '_lowess']);
 if (saveFigs) && ~exist(figureFolder, 'dir')
     mkdir(figureFolder);
 end
@@ -41,7 +37,7 @@ errThresh = allData;
 fct       = allData;
 R2        = NaN(length(c2rgc),1);
 
-for r = c2rgc
+for r = 1:length(c2rgc)
     
     % Load simulated contrast thresholds
     load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_%s.mat', r, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
@@ -52,31 +48,14 @@ for r = c2rgc
     
     % Make "dummy" 2D grid
     [X,Y] = meshgrid(1:2,log10(coneDensities));
-    Z = repmat(allData(r,:)',1,2);
+    Z = repmat(log10(allData(r,:))',1,2);
     idx = isfinite(Z);     % Find NaNs
-    [meshFit, gof] = fit([X(idx) Y(idx)], Z(idx), 'lowess','span',0.4);
+    [meshFit, gof] = fit([X(idx) Y(idx)], Z(idx), 'lowess','span',0.3);
     
     % Extract single lines for separate ratio's
     fct(r,:) = meshFit(X(:,1),Y(:,1))';
     R2(r,:) = gof.rsquare;
 end
-
-    
-
-%     % Load variance in simulated contrast thresholds computed by
-%     % bootstrapping simulation iterations starting with different rng seeds
-%     load(fullfile(dataFolder, sprintf('varThresh_rgcResponse_Cones2RGC%d_absorptionrate_13_conedensity', r)), 'varThresh');
-%     errThresh(r,:) = varThresh.*100;
-%     
-%     % Fit a linear function in log-log space (so a powerlaw) for each simulated mrgc2cone ratio
-%     contrastThresh = cell2mat(fit.ctrthresh).*100; 
-%     lm = fitlm(log10(coneDensities),log10(contrastThresh));
-%     
-%     % Get fitted contrast thresholds (fct)
-%     fct(r,:) = lm.Coefficients.Estimate(2).*log10(xThresh) + lm.Coefficients.Estimate(1);
-%     
-%     % Get R2 of fits
-%     R2(r,:) = lm.Rsquared.ordinary;
  
 %% Now fit a mesh to all points
 
@@ -84,7 +63,7 @@ end
 idx = isfinite(allData');
 
 % Make 2D grid
-[X,Y] = meshgrid(c2rgc,log10(coneDensities));
+[X,Y] = meshgrid(log10(c2rgc),log10(coneDensities));
 Z = log10(allData');
 
 % Fit it!
@@ -108,7 +87,7 @@ rgc2coneRatio = watson2015.mRGCRFDensityPerDeg2./coneDensityDeg2PerMeridian;
 % Get rgc:cone ratio at chosen eccentricity
 eccToCompute = 4.5; % deg
 idxEccen     = find(watson2015.eccDeg==eccToCompute); % index
-ratioAtIdx = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
+ratioAtIdx   = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
 
 % Get cone density at chosen eccentricity for each meridian
 observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
@@ -116,8 +95,11 @@ observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
 % Check: should be equal to curcio data
 isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
 
+% take reciprocal for plotting -- meshfit expects cone2rgc ratio
+ratioAtIdx = (1./ratioAtIdx);
+
 % Find contrast threshold data for all meridians: Nasal, Superior,temporal, inferior
-predictedContrastThreshold = 10.^meshFit(ratioAtIdx,log10(observedConesAtEccen));
+predictedContrastThreshold = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen));
 predictedContrastThreshold = predictedContrastThreshold./100;
 
 %% Define error margins in terms of cone density, i.e.:
@@ -132,8 +114,8 @@ end
 predictedError = NaN(4,2);
 
 % Nasal, superior, temporal, inferior retina (bounds: upper=1, lower=2) 
-predictedError(:,1) = 10.^meshFit(ratioAtIdx,log10(observedConesAtEccen'-errorRatioConeDensity));
-predictedError(:,2) = 10.^meshFit(ratioAtIdx,log10(observedConesAtEccen'+errorRatioConeDensity));
+predictedError(:,1) = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'-errorRatioConeDensity));
+predictedError(:,2) = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'+errorRatioConeDensity));
 predictedError = predictedError./100;
 
 %% Convert mean and error mRGC thresholds to sensitivity
@@ -251,7 +233,7 @@ for ii = 1:3
 end
 errorbar(x_bar(1,:), combHVA, diff([combHVA;errorCombHVA(1,:)]), diff([errorCombHVA(2,:);combHVA]), '.','color', 'k', 'LineWidth',2);
 errorbar(x_bar(2,:), combVMA, diff([combVMA;errorCombVMA(1,:)]), diff([errorCombVMA(2,:);combVMA]), '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0,4],'Ylim',[-6, 50], 'TickDir', 'out', 'XTick', [1, 2.5], ...
+set(gca,'Xlim',[0,4],'Ylim',[-7, 50], 'TickDir', 'out', 'XTick', [1, 2.5], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
 

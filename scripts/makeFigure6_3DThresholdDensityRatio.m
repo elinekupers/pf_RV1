@@ -13,15 +13,24 @@ function makeFigure6_3DThresholdDensityRatio()
 
 %% 0. Define params and folders
 meanPoissonPaddingFlag = true;
-stimTemplateFlag       = true;
-nrSimConeDensities     = 13;
-lowessSpan              = 0.4; % how smoothe should 3D fit be
-c2rgc                  = 1:5; % Cone 2 RGC ratios
-rgc2c                  = 2./c2rgc; % RGC 2 Cone ratios
-expName                = 'conedensity';
+stimTemplateFlag       = false;
+plotRGC2Cones          = true; % if false, plot cone2rgcs
+saveFigs               = true;
 
-colors      = parula(length(c2rgc)+1);
-labels      = sprintfc('RGC:cone = %1.1f:1.0', rgc2c);
+nrSimConeDensities     = 13;
+lowessSpan             = 0.4; % how smooth should 3D fit be
+c2rgc                  = (1:5).^2; % Cone 2 RGC ratios
+expName                = 'conedensity';
+colors                 = parula(length(c2rgc)+1);
+
+if plotRGC2Cones
+    ratiosToPlot       = 2./c2rgc; % RGC 2 Cone ratios
+    labels             = sprintfc('RGC:cone = %1.2f:1.0', ratiosToPlot);
+else
+    ratiosToPlot       = c2rgc;
+    labels             = sprintfc('Cone:RGC = 1.0:%1.2f', ratiosToPlot);
+end
+
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
@@ -37,10 +46,13 @@ else
 end
 
 % Folders
-saveFigs     = true;
 baseFolder   = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model';
 dataFolder   = fullfile(baseFolder,'data',expName,'thresholds','rgc',extraSubFolder,subFolder,'average');
-figureFolder = fullfile(baseFolder,'figures','surface3D', expName, extraSubFolder, subFolder,'average');
+if plotRGC2Cones
+    figureFolder = fullfile(baseFolder,'figures','surface3D_fixedRatios_rgc2c', expName, extraSubFolder, subFolder,'average');
+else
+    figureFolder = fullfile(baseFolder,'figures','surface3D_fixedRatios_c2rgc', expName, extraSubFolder, subFolder,'average');
+end
 if (saveFigs) && ~exist(figureFolder, 'dir')
     mkdir(figureFolder);
 end
@@ -52,7 +64,7 @@ allData   = NaN(length(c2rgc), nrSimConeDensities);
 errThresh = allData;
 
 % Loop over ratios
-for r = c2rgc
+for r = 1:length(c2rgc)
     
     % Load simulated contrast thresholds
     load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_average.mat', r)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
@@ -76,7 +88,7 @@ clear fit xThresh fitToPlot dataToPlot;
 idx = isfinite(allData');
 
 % Make 2D grid
-[x,y] = meshgrid(c2rgc,log10(coneDensities));
+[x,y] = meshgrid(log10(c2rgc),log10(coneDensities));
 z = log10(allData');
 
 % Fit it!
@@ -100,7 +112,7 @@ else
     ylimit = [0.5, 20];
     yticks = [1 10];
 end
-for ii = c2rgc
+for ii = 1:length(c2rgc)
     subplot(2,3,ii); hold on;
     errorbar(coneDensities, allData(ii,:), errThresh(ii,:), 'Color', 'k', 'LineStyle','none', 'LineWidth', 0.5, 'CapSize',2);
     scatter(coneDensities,  allData(ii,:), 30, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',0.5)
@@ -109,7 +121,7 @@ for ii = c2rgc
     set(gca, 'XScale', 'log','YScale','log', 'FontSize', 14, 'LineWidth', 0.5, 'TickDir', 'out', ...
         'YTick',[1 10], 'YTickLabel',yticks)
     ylim(ylimit);
-    title(sprintf('%1.1f mRGCs vs 1 cone', 2/ii));
+    title(labels{ii});
     xlabel('Cone array density (cells/deg^2)');
     ylabel('Contrast thresholds (%)');
     box off; grid on;
@@ -117,7 +129,7 @@ end
 
 % Plot lines in additional subplot
 subplot(2,3,6); hold all;
-for ii = c2rgc
+for ii = 1:length(c2rgc)
     plot(coneDensities, 10.^singleRatioMeshfit(:,ii)', '-', 'LineWidth',4, 'Color', colors(ii,:))
 end
 
@@ -126,7 +138,7 @@ legend([h(end:-1:1)],labels, 'Location','Best');
 legend boxoff;
 set(gca, 'XScale', 'log','YScale','log', 'FontSize', 14, 'LineWidth', 0.5, 'TickDir', 'out', ...
     'YTick',ylimit, 'YTickLabel',yticks)
-ylim([0.5, 20]);
+ylim([0.5, 20]); xlim([10.^2,10.^5]);
 title('All 5 mRGC : cones ratios')
 xlabel('Cone array density (cells/deg^2)');
 ylabel('Contrast thresholds (%)');
@@ -150,7 +162,11 @@ ax(1).FaceColor = [1 1 1];
 ax(2).Marker = 'none';
 
 % Add labels
-xlabel('mRGC:cone ratio', 'FontSize', 20)
+if plotRGC2Cones
+    xlabel('mRGC:cone ratio', 'FontSize', 20)
+else
+    xlabel('Cone:mRGC ratio', 'FontSize', 20)
+end
 ylabel('Cone density (cells/deg^2)', 'FontSize', 20)
 zlabel('Contrast threshold (%)', 'FontSize', 20)
 title('Interpolated fit to data: Effect of RGC filtering on contrast threshold')
@@ -158,7 +174,7 @@ title('Interpolated fit to data: Effect of RGC filtering on contrast threshold')
 % Make plot pretty
 set(gca, 'ZLim',[log10(0.7) 1.1],'FontSize', 20, 'LineWidth', 2, ...
     'XScale', 'linear', 'YScale', 'linear', 'ZScale', 'linear', ...
-    'XTick', c2rgc, 'XTickLabel', sprintfc('%1.2f', rgc2c), 'XDir','reverse',...'YDir','reverse',...
+    'XTick', log10(c2rgc), 'XTickLabel', sprintfc('%1.2f', ratiosToPlot), 'XDir','reverse',...'YDir','reverse',...
     'YLim',[2 5],'YTick',[2:1:5],'YTickLabel',{'10^2','10^3','10^4','10^5'},...
     'ZTick', log10([0.7:0.1:1,2:1:10]), 'ZTickLabel',[0.7:0.1:1,2:1:10],...
     'TickDir', 'out','View',[-134.4000   11.2000]);
@@ -197,29 +213,45 @@ curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesC
 [~,angIdx] = intersect(curcio1990.angDeg,[0,90,180,270]);
 coneDensityDeg2PerMeridian= curcio1990.conesCurcioIsetbio(angIdx,:);
 
-% Compute RGC:cone ratio
-rgc2coneRatio = watson2015.mRGCRFDensityPerDeg2./coneDensityDeg2PerMeridian;
-
 % Get rgc:cone ratio at chosen eccentricity
 eccToCompute = 4.5; % deg
 idxEccen     = find(watson2015.eccDeg==eccToCompute); % index
-ratioAtIdx   = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
 
-% Get cone density at chosen eccentricity for each meridian
-observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
-
-% Check: should be equal to curcio data
-isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
+if plotRGC2Cones
+    % Compute cone:RGC ratio
+    rgc2coneRatio = watson2015.mRGCRFDensityPerDeg2./coneDensityDeg2PerMeridian;
+    ratioAtIdx   = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
+    
+    % Get cone density at chosen eccentricity for each meridian
+    observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
+    
+    % Check: should be equal to curcio data
+    isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
+    
+    % take reciprocal for plotting -- meshfit expects cone2rgc ratio
+    ratioAtIdx = (1./ratioAtIdx);
+else
+    % Compute RGC:cone ratio
+    cone2RGCRatio = coneDensityDeg2PerMeridian./watson2015.mRGCRFDensityPerDeg2;
+    ratioAtIdx = cone2RGCRatio(:,idxEccen);
+    
+    % Get cone density at chosen eccentricity for each meridian
+    observedConesAtEccen = ratioAtIdx.*watson2015.mRGCRFDensityPerDeg2(:,idxEccen);
+    
+    % Check: should be equal to curcio data
+    isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
+end
 
 % Find contrast threshold data for all meridians: Nasal, Superior,temporal, inferior
-predictedContrastThreshold = meshFit(2./ratioAtIdx,log10(observedConesAtEccen));
+predictedContrastThreshold = meshFit(log10(ratioAtIdx),log10(observedConesAtEccen));
 
 %% Plot observed/biological variations in cone:mRGC ratios on mesh
 figure(fH3); hold all;
 colorsRetina = {'r', 'b', 'g', 'k'};
 zlift        = [0.01, 0.01, 0.01, 0.01]; % lift markers a tiny bit for visibility
+
 for jj = 1:4
-    scatter3(2./ratioAtIdx(jj),log10(observedConesAtEccen(jj)),predictedContrastThreshold(jj)+zlift(jj), 300, 'MarkerFaceColor', colorsRetina{jj}, 'MarkerEdgeColor','k', 'LineWidth',0.1, 'Marker', 'p')
+    scatter3(log10(ratioAtIdx(jj)),log10(observedConesAtEccen(jj)),predictedContrastThreshold(jj)+zlift(jj), 300, 'MarkerFaceColor', colorsRetina{jj}, 'MarkerEdgeColor','k', 'LineWidth',0.1, 'Marker', 'p')
 end
 
 % Save figure 3 again with dots
