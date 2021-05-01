@@ -3,9 +3,12 @@ function [] = plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, expName, su
 % observer model.
 %
 % INPUTS:
+% baseFolder      : Where does project with data live? 
 % expName         : string defining the condition you want to plot.
 %                   (See load expParams for possible conditions)
-% [subFolderName] : string defining the sub folder you want to plot from.
+% subFolder       : string defining the sub folder you want to plot from.
+% decisionmaker   : string defining what decisionmaker to use. Choose from:
+%                    'Ideal', 'SNR', 'SVM-Fourier','SVM-Energy'
 % [saveFig]       : boolean defining to save figures or not
 % [plotAvg]      : boolean defining to plot average across experiments runs or not
 %
@@ -20,21 +23,24 @@ function [] = plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, expName, su
 % baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
 % plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SNR')
 %
-% Example 3 - SVM observer with L-cone only mosaic:
+% Example 3 - SVM-Fourier observer with L-cone only mosaic:
 % baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
-% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM')
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM-Fourier')
+%
+% Example 4 - SVM-Energy observer with L-cone only mosaic:
+% baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM-Energy')
 %
 % Written by EK @NYU (2020)
 
 %% 0. Set general experiment parameters
 validScalarPosNum = @(x) isnumeric(x) && isscalar(x) && (x > 0);
-
 p = inputParser;
 p.KeepUnmatched = true;
 p.addRequired('baseFolder', @ischar);
 p.addRequired('expName', @ischar);
 p.addRequired('subFolder', @ischar);
-p.addRequired('decisionmaker', @ischar);
+p.addRequired('decisionmaker', 'SVM-Fourier',@(x) ismember(x, {'Ideal', 'SNR', 'SVM-Fourier','SVM-Energy'}));
 p.addParameter('inputType', 'absorptions', @ischar);
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
@@ -51,7 +57,7 @@ plotAvg       = p.Results.plotAvg;
 
 % Load specific experiment parameters
 expParams    = loadExpParams(expName);
-[xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('rgcratios');
+[~, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams('rgcratios');
 
 % Where to find data and save figures
 dataPth     = fullfile(baseFolder,'data',expName, 'classification', 'rgc', 'meanPoissonPadded', decisionmaker, subFolder);
@@ -134,10 +140,8 @@ for ii = 1:size(accuracy.P,2)
     fit.ctrthresh{count} = fit.ctrvar{count}(2);
     fit.data{count} = accuracy.P(:,ii);
     
-    count = count +1;
-    
+    count = count +1;  
 end % ratios
-
 
 %% 6. Visualize psychometric curves
 figure(3); clf; set(gcf,'Color','w', 'Position',  [218   316   986   488], 'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s %s', expName, decisionmaker)); hold all;
@@ -165,7 +169,7 @@ for ii = plotIdx
         errorbar([logzero, expParams.contrastLevels(2:end)], dataToPlot, SE{ii}.P_SE,'Color', colors(ii,:), 'LineStyle','none');
     end
 end
-
+% Make axes pretty
 set(gca, 'XScale','log','XLim',[logzero, 1], ...
          'YLim', [40 100], ...
          'TickDir','out',...
@@ -177,6 +181,7 @@ set(gca, 'XScale','log','XLim',[logzero, 1], ...
 ylabel('Classifier Accuracy (% Correct)', 'FontSize',17)
 xlabel('Stimulus Contrast (%)', 'FontSize',17);
 
+% Add legend
 h = findobj(gca,'Type','line');
 legend([h(end:-2:2)],labels{plotIdx}, 'Location','bestoutside'); legend boxoff
 
@@ -193,7 +198,6 @@ if ~exist(fullfile(baseFolder,'data',expName,'thresholds','meanPoissonPadded',su
 end
     save(fullfile(baseFolder,'data',expName,'thresholds','meanPoissonPadded',subFolder, ...
     sprintf('cThresholds_%s_%s', decisionmaker, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
-
 
 %% 7. Plot density thresholds
 if strcmp('default',expName) || strcmp('defaultnophaseshift',expName) || strcmp('idealobserver',expName)

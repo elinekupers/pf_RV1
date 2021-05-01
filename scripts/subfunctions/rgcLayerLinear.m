@@ -10,7 +10,7 @@ function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinea
 % Abrams and Geisler (2014) in JoV, and has two stages:
 %
 %   1.  Cone current -> filtered by Difference of Gaussians (DoG) (Linear)
-%   2.  Filtered response --> sub sampling (Non-linear)
+%   2.  Filtered response --> sub sampling (Linear)
 %
 % INPUTS:
 %   coneData            : 5 dimensional array of cone currents
@@ -28,9 +28,11 @@ function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinea
 %   DoGfilter           : Difference of Gaussian filter used to filter cone
 %                           data
 %   filteredConeCurrent : Filtered, but not resampled, mRGC data.
+%
+%
+% Written by EK @ NYU, 2020
 
-
-% reshape cone data
+%% reshape cone data
 % original: trials x rows x cols x time x stim phase
 % reshaped: rows x cols x time x all trials
 permutedConeData = permute(coneData, [2, 3, 4, 1, 5]);
@@ -103,11 +105,6 @@ if rgcParams.verbose
     
     % Plot array, filter and response
     [X,Y] = meshgrid(1:rgcParams.cRows,1:rgcParams.cCols);
-%     if strcmp(rgcParams.inputType, 'current')
-%         timepointsToAverage = 51:78;
-%     else
-%         timepointsToAverage = 1:28;
-%     end
     rgcResponse_mn = squeeze(mean(mean(rgcResponse(:,:,:,:,1),1),4));
     
     fH = figure(99); clf; set(gcf, 'Position', [244,680,2316,665], 'Color', 'w');

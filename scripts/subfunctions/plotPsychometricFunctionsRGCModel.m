@@ -8,34 +8,53 @@ function [] = plotPsychometricFunctionsRGCModel(baseFolder, expName, subFolder, 
 %                   (See load expParams for possible conditions)
 % subFolder       : string defining the sub folder you want to plot from.
 % ratio           : integer from 1-5, to choose mRGC:cone ratio
-% [inputType]     : choose from 'current' or 'absorptionrate'
+% [inputType]     : choose from 'current' or 'absorptions' (default)
 % [saveFig]       : boolean defining to save figures or not
 % [plotAvg]       : boolean defining to plot average across experiments runs or not
-% [meanPoissonPaddingFlag]   : string to define what simulation results to use (with
-%                       or without padding before convolution).
+% [meanPoissonPaddingFlag]   : boolean defining if you want to use results
+%                       with (true, default) or without padding (false) before convolution)
+% [stimTemplateFlag]   : boolean defining if you want use results from  
+%                          SVM-Energy template observer (true) or SVM-Fourier (true, default).
+% [fitTypeName]   : string defining what function to fit contrast threshold data 
+%                   Choose from:
+%                   - 'lowess-mesh': locally weighted regression (default)
+%                   - 'linear': powerfunction (line in log-log)
+%                   - 'linear-robust': same as linear, but with detecting 
+%                   and down-weighting outliers before fitting
+%                   - 'poly2': 2nd-degree polynomial (in log-log)
 %
 % OUTPUTS:
 % none
 %
-% Examples:
+% Example 1 - plot psychometric function for single run of simulating cone
+% density variations, classified with SVM-Fourier:
 % baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
 % plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'run1',2)
 %
-% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',1, 'plotAvg',true, 'meanPoissonPaddingFlag', true)
-% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average_svmEnergy',1, 'plotAvg',true, 'meanPoissonPaddingFlag', true, 'stimTemplateFlag', true)
+% Example 2 - plot psychometric function for average across 5 runs of 
+% simulating cone density variations, classified with SVM-Fourier:
+% baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
+% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',1)
+%
+% Example 3 - plot psychometric function for average across 5 runs of 
+% simulating cone density variations, classified with SVM-Energy template:
+% baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
+% plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',1, 'stimTemplateFlag', true)
+%
+% Written by EK @ NYU
+
 %% 0. Set general experiment parameters
 validScalarPosNum = @(x) isnumeric(x) && isscalar(x) && (x > 0);
-
 p = inputParser;
 p.KeepUnmatched = true;
 p.addRequired('baseFolder', @ischar);
 p.addRequired('expName', @ischar);
 p.addRequired('subFolder', @ischar);
 p.addRequired('ratio', validScalarPosNum);
-p.addParameter('inputType', 'absorptionrate', @ischar);
-p.addParameter('saveFig', true, @islogical);
-p.addParameter('plotAvg', false, @islogical);
-p.addParameter('meanPoissonPaddingFlag', false, @islogical);
+p.addParameter('inputType', 'absorptions', @ischar);
+p.addParameter('saveFig', false, @islogical);
+p.addParameter('plotAvg', true, @islogical);
+p.addParameter('meanPoissonPaddingFlag', true, @islogical);
 p.addParameter('stimTemplateFlag', false, @islogical);
 p.addParameter('fitTypeName','lowess-mesh',@(x) ismember(x,{'linear','linear-robust','poly2','lowess-mesh'}));
 p.parse(baseFolder, expName, subFolder, ratio, varargin{:});
@@ -59,7 +78,7 @@ if strcmp(inputType, 'current')
 else
     [xUnits, colors, labels, xThresh, lineStyles] = loadWeibullPlottingParams(expName);
 end
-
+% Get correct subfolder names
 if meanPoissonPaddingFlag
     extraSubFolder = 'meanPoissonPadded';
 else
@@ -128,7 +147,8 @@ for eccen = 1:nrEccen
     if size(accuracy.P,1)<size(accuracy.P,2)
         accuracy.P = accuracy.P';
     end
-    
+    % Allow for higher contrasts when using ratio 5 (1 mRGC for 25 cones)
+    % for lowest simulated cone densities
     if (ratio == 5) && (any(eccen==[10,11,12,13]))
         if ~stimTemplateFlag && (length(expParams.contrastLevels)<length(accuracy.P))
             expParams.contrastLevels = [expParams.contrastLevels, 0.2:0.1:1];
@@ -158,7 +178,6 @@ end % eccen
 %% Sometimes the psychometric function does not saturate and slope can't 
 % be fitted. We check for those data per eccentricity and assume slope from 
 % as the geomean of slopes from well fitted data.
-
 for ii = 1:nrEccen
     allslopes(ii) = fit.ctrvar{ii}(1); 
     poorfits(ii) = allslopes(ii)<1;
@@ -191,7 +210,6 @@ end
 
 
 %% 6. Visualize psychometric curves
-
 figure(3); clf; set(gcf,'Color','w', 'Position',  [218   316   986   488], 'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s ratio %d', expName, ratio)); hold all;
 
 % Remove empty cells
@@ -204,7 +222,6 @@ logzero = 3e-3;
 
 % Only plot first two, 50:50 and last 2 functions for conetypes mixed experiment
 plotIdx = 1:length(fit.ctrpred);
-
 
 % Loop over all functions to plot
 for ii = plotIdx
@@ -240,15 +257,17 @@ for ii = plotIdx
     end
 end
 
+% Make axes pretty
 set(gca, 'XScale','log','XLim',[logzero, max(expParams.contrastLevels)],'YLim', [40 100], 'TickDir','out','TickLength',[.015 .015],'FontSize',17, 'LineWidth',2);
 set(gca, 'XTick', [logzero, expParams.contrastLevels(2:2:end)], 'XTickLabel',sprintfc('%1.1f',[0 expParams.contrastLevels(2:2:end)]*100))
-
 ylabel('Classifier Accuracy (% Correct)', 'FontSize',17)
 xlabel('Stimulus Contrast (%)', 'FontSize',17);
 
+% Add legend
 h = findobj(gca,'Type','line');
 legend([h(end:-2:2)],labels{plotIdx}, 'Location','bestoutside'); legend boxoff
 
+% Save figures if requested
 if saveFig
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
     savefig(fullfile(figurePth,sprintf('WeibullFit_contrastVSperformance_%s_ratio%d',expName,ratio)))
@@ -259,7 +278,6 @@ end
 % Save thresholds and fits
 if ~exist(thresholdsDir, 'dir'); mkdir(thresholdsDir); end
 save(fullfile(thresholdsDir, sprintf('cThresholds_ratio%d_%s', ratio, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh'); 
-
 
 %% 7. Plot density thresholds
 if strcmp('conedensity',expName)

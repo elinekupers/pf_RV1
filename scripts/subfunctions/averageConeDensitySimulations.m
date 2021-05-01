@@ -1,9 +1,7 @@
-function [] = averageConeDensitySimulations(baseFolder, ratio)
+function [] = averageConeDensitySimulations(baseFolder, expName, stimTemplateFlag, ratio)
 
 % 0. Set general experiment parameters
-expName                  = 'conedensity';
 expParams                = loadExpParams(expName, false);
-stimTemplateFlag         = true;
 
 % Where to find data and save figures
 subFolder   = 'meanPoissonPadded';

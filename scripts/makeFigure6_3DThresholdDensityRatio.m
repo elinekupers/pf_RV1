@@ -1,21 +1,19 @@
-function makeFigure6_3DThresholdDensityRatio()
+function makeFigure6_3DThresholdDensityRatio(stimTemplateFlag,saveFigs)
 % Function to make Figure 6 of the manuscript:
 %   Radial asymmetries around the visual field: From retina to cortex to 
 %   behavior. By Kupers, Benson, Carrasco, Winawer.
-%    JOURNAL. DOI.
+%    YEAR. JOURNAL. DOI.
 
 % This function requires you to have psychometric functions of the 
 % simulated data. You can run this with:
 % 
 % for ratio = 1:5
-%     plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', 'average',ratio, 'plotAvg',true, 'meanPoissonPaddingFlag', true);
+%     plotPsychometricFunctionsRGCModel(baseFolder, 'conedensity', ratio);
 % end
-
+%
 %% 0. Define params and folders
 meanPoissonPaddingFlag = true;
-stimTemplateFlag       = false;
 plotRGC2Cones          = true; % if false, plot cone2rgcs
-saveFigs               = true;
 
 nrSimConeDensities     = 13;
 lowessSpan             = 0.4; % how smooth should 3D fit be

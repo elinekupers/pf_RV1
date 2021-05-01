@@ -1,6 +1,5 @@
 function [P_svmEnergy, P_svmLinear] = linearRGCModel_ClassifyStimTemplate...
     (baseFolder, subFolder, expName, seed, ratio, eccen)
-%
 % Function to classify RGC responses computed by linearRGCmodel.m.
 %
 % Our classifier determines whether the responses belong to a trial with a
@@ -21,15 +20,22 @@ function [P_svmEnergy, P_svmLinear] = linearRGCModel_ClassifyStimTemplate...
 %                   because one mRGC = ON + OFF cell, 1 = 2:1, 2 = 1:1, 3 = 0.67:1, 4 = 0.5:1, 5 = 0.4:1
 % eccen         :   index of eccentricity vector, for conedensity exp, eccentricies = [0 0.5 1 2 4.5 5 10:5:40]
 %
+% OUTPUTS
+% P_svmEnergy   :   Percent correct for each contrast, using SVM-Energy
+%                   template decision maker
+% P_svmLinear   :   Percent correct for each contrast, using SVM-linear
+%                   template decision maker
+%
 % Example:
 % baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
 % subFolder  = 'run1';
 % expName    = 'conedensity';
 % seed       = 1; % run1 has rng seed 1, run2 has 2.. etc.
-% ratio      = 2; % cone:mRGC ratio = 1:1 (actually 2:2, as one mRGC = ON + OFF cell)
+% ratio      = 2; % cone:mRGC ratio = 1:4 (or mRGC:cone=1:0.5, as one mRGC = ON + OFF cell)
 % eccen      = 5; % equal to 4.5 deg eccen
-
 % linearRGCModel_ClassifyStimTemplate(baseFolder, subFolder, expName, seed, ratio, eccen)
+%
+% Written by EK @ NYU 2020
 
 %% 0. Define params
 % set random number generator seed and general flags

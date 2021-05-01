@@ -1,9 +1,8 @@
 function makeFigure7_Sensitivity_and_Asymmetry()
-%
 % Function to make Figure 7 of the manuscript:
 % Radial asymmetries around the visual field: From retina to cortex to 
 %   behavior. By Kupers, Benson, Carrasco, Winawer.
-%    JOURNAL. DOI.
+%    YEAR. JOURNAL. DOI.
 
 %% 0. Define params and folders
 nrSimConeDensities = 13;
@@ -82,8 +81,8 @@ Z = log10(allData');
 %% 3. Predict contrast thresholds for given mRGC density
 % if data does not exist, try syncDataFromServer()
 % mRGC data for different meridia. Order=nasal, superior, temporal,inferior.
-watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
-watson2015.eccDeg = (0:0.05:60);
+watson2014 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
+watson2014.eccDeg = (0:0.05:40);
 
 % Curcio et al. 1990 (left eye, retina coords, same order as mRGC)
 curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg','angDeg');
@@ -91,40 +90,40 @@ curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesC
 coneDensityDeg2PerMeridian= curcio1990.conesCurcioIsetbio(angIdx,:);
 
 % Compute RGC:cone ratio
-rgc2coneRatio = watson2015.mRGCRFDensityPerDeg2./coneDensityDeg2PerMeridian;
+rgc2coneRatio = watson2014.mRGCRFDensityPerDeg2./coneDensityDeg2PerMeridian;
 
 % Get rgc:cone ratio at chosen eccentricity
 eccToCompute = 4.5; % deg
-idxEccen     = find(watson2015.eccDeg==eccToCompute); % index
+idxEccen     = find(watson2014.eccDeg==eccToCompute); % index
 ratioAtIdx   = rgc2coneRatio(:,idxEccen); % mRGC:cone ratio at index
 
 % Get cone density at chosen eccentricity for each meridian
-observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
+observedConeDensitiesAtEccen = watson2014.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
 
 % Check: should be equal to curcio data
-isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
+isequal(observedConeDensitiesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
 
 % take reciprocal for plotting -- meshfit expects cone2rgc ratio
 ratioAtIdx = (1./ratioAtIdx);
 
 % Find contrast threshold data for all meridians: Nasal, Superior,temporal, inferior
-predictedContrastThreshold = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen));
+predictedContrastThreshold = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen));
 predictedContrastThreshold = predictedContrastThreshold./100;
 
 %% Define error margins in terms of cone density, i.e.:
 % Double (upper bound) or half (lower bound) the difference in cone density from the mean, for each meridian
-averageConeDensity_stimeccen = mean(observedConesAtEccen);
+averageConeDensity_stimeccen = mean(observedConeDensitiesAtEccen);
 
 for ii = 1:4
-    errorRatioConeDensity(ii) = 2*diff([observedConesAtEccen(ii),averageConeDensity_stimeccen]);
+    errorRatioConeDensity(ii) = 2*diff([observedConeDensitiesAtEccen(ii),averageConeDensity_stimeccen]);
 end
 
 % Get predicted thresholds for upper/lower error margins, using mesh fit
 predictedError = NaN(4,2);
 
 % Nasal, superior, temporal, inferior retina (bounds: upper=1, lower=2) 
-predictedError(:,1) = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'-errorRatioConeDensity));
-predictedError(:,2) = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'+errorRatioConeDensity));
+predictedError(:,1) = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen'-errorRatioConeDensity));
+predictedError(:,2) = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen'+errorRatioConeDensity));
 predictedError = predictedError./100;
 
 %% Convert mean and error mRGC thresholds to sensitivity
