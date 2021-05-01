@@ -10,21 +10,30 @@ nrSimConeDensities = 13;
 c2rgc       = (1:5).^2; % Cone 2 RGC ratios
 expName     = 'conedensity';
 meanPoissonPaddingFlag = true;
+stimTemplateFlag       = false;
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
     extraSubFolder = 'meanPoissonPadded';
-    subFolder   = 'average';
 else
     extraSubFolder = 'noPaddingBeforeConvolution';
-    subFolder   = 'average';
+end
+
+if stimTemplateFlag
+    subFolder = 'SVM-Energy';
+    yl =  [0, 1.7];
+    yl_asym = [-10, 50];
+else
+    subFolder = 'SVM-Fourier';
+    yl =  [1.3, 1.7];
+    yl_asym = [-7, 50];
 end
 
 % Folders
 saveFigs     = true;
 baseFolder   = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model';
-dataFolder   = fullfile(baseFolder,'data',expName,'thresholds','rgc',extraSubFolder, 'SVM-Fourier',subFolder);
-figureFolder = fullfile(baseFolder,'figures','surface3D_fixedRatios_rgc2c', expName, subFolder, extraSubFolder,'SVM-Fourier',[subFolder '_lowess']);
+dataFolder   = fullfile(baseFolder,'data',expName,'thresholds','rgc',extraSubFolder, subFolder,'average');
+figureFolder = fullfile(baseFolder,'figures','surface3D_fixedRatios_rgc2c', expName, 'average', extraSubFolder,subFolder,'averge_lowess');
 if (saveFigs) && ~exist(figureFolder, 'dir')
     mkdir(figureFolder);
 end
@@ -40,7 +49,7 @@ R2        = NaN(length(c2rgc),1);
 for r = 1:length(c2rgc)
     
     % Load simulated contrast thresholds
-    load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_%s.mat', r, subFolder)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
+    load(fullfile(dataFolder, sprintf('cThresholds_ratio%d_average.mat', r)), 'expName','expParams', 'dataToPlot', 'fitToPlot','fit', 'xThresh');
     allData(r,:) = [reshape(cell2mat(fit.ctrthresh),[],length(fit.ctrthresh))].*100;
     coneDensities  = xThresh;
     
@@ -71,7 +80,7 @@ Z = log10(allData');
 
 
 %% 3. Predict contrast thresholds for given mRGC density
-
+% if data does not exist, try syncDataFromServer()
 % mRGC data for different meridia. Order=nasal, superior, temporal,inferior.
 watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2');
 watson2015.eccDeg = (0:0.05:60);
@@ -144,7 +153,7 @@ obsContrastSensitivityERROR_wHorz_VF = visualField2visualFieldWithMeanHorz(obsCo
 %% Get simulated thresholds and error for cone model only 
 % Cone data are from JWLOrientedGabor toolbox
 % To get these data, run plotPsychometricFunctions('conedensity')
-dataFolderConesOnly   = fullfile(baseFolder,'data',expName,'thresholds','absorptionsOnly','SVM-Fourier');
+dataFolderConesOnly   = fullfile(baseFolder,'data',expName,'thresholds','absorptionsOnly',subFolder);
 load(fullfile(dataFolderConesOnly,'coneabsorptionsOnly_predictedMeanAndError_stimeccen_linear'),'modelPredictionForPF','predictedError')
 
 % MODELED CONE ONLY
@@ -202,7 +211,7 @@ errorbar(1:3,conesPredContrastSensitivityMEAN_wHorz_VF,...
              diff([conesPredContrastSensitivityMEAN_wHorz_VF;conesPredContrastSensitivityERROR_wHorz_VF_lower]), ...
              diff([conesPredContrastSensitivityMEAN_wHorz_VF;conesPredContrastSensitivityERROR_wHorz_VF_upper]),...
              '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[1.3, 1.7], 'TickDir', 'out', 'XTick', [1:3], ...
+set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Cones');
 
@@ -213,7 +222,7 @@ errorbar(1:3,rgcPredContrastSensitivityMEAN_wHorz_VF,...
              diff([rgcPredContrastSensitivityMEAN_wHorz_VF;rgcPredContrastSensitivityERROR_wHorz_VF_lower]), ...
             diff([rgcPredContrastSensitivityMEAN_wHorz_VF;rgcPredContrastSensitivityERROR_wHorz_VF_upper]), ...
             '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[1.3, 1.7], 'TickDir', 'out', 'XTick', [1:3], ...
+set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction mRGCs');
 
@@ -221,7 +230,7 @@ box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction mRGCs');
 subplot(143)
 bar(1:3, obsContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(3,:)); hold on
 errorbar(1:3,obsContrastSensitivityMEAN_wHorz_VF,obsContrastSensitivityERROR_wHorz_VF, '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[1.3, 1.7], 'TickDir', 'out', 'XTick', [1:3], ...
+set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
 box off; ylabel('Contrast sensitivity (%)'); title('Behavior');
 
@@ -233,7 +242,7 @@ for ii = 1:3
 end
 errorbar(x_bar(1,:), combHVA, diff([combHVA;errorCombHVA(1,:)]), diff([errorCombHVA(2,:);combHVA]), '.','color', 'k', 'LineWidth',2);
 errorbar(x_bar(2,:), combVMA, diff([combVMA;errorCombVMA(1,:)]), diff([errorCombVMA(2,:);combVMA]), '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0,4],'Ylim',[-7, 50], 'TickDir', 'out', 'XTick', [1, 2.5], ...
+set(gca,'Xlim',[0,4],'Ylim',[yl_asym], 'TickDir', 'out', 'XTick', [1, 2.5], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
 
