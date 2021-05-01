@@ -76,7 +76,7 @@ for r = 1:length(c2rgc)
     errThresh(r,:) = varThresh.*100;
     
 %     contrastThresh = cell2mat(fit.ctrthresh).*100; 
-    coneDensities  = xThresh';
+    coneDensities  = tmp.xThresh';
 
 end
 % clean up 
