@@ -18,7 +18,6 @@ runComputationalObserverModel('defaultnophaseshift', 'saveFolder', 'onlyL', 'see
 % randomization, run 1, ideal observer
 runComputationalObserverModel('idealobserver', 'saveFolder', 'onlyL', 'seed', 1)
 
-
 % 1.3 Get cone responses for energy template
 runComputationalObserverModel('template','saveFolder','run1','seed',1)
 
@@ -42,14 +41,18 @@ end
 % nasal retina of the left eye, ~500 cones/deg2).
 
 % 2.1 Filter cone absorptions from cone density experiment for single ratio
-% and single eccentricity.
+% and single eccentricity at a time
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
-subFolder  = 'run1';
 expName    = 'conedensity';
-seed       = 1; % we match run1 to rng seed 1, run2 to 2.. etc.
-ratio      = 2; % equal to 1:4 cone:mRGC or 1:0.5 mRGC:cone
-eccen      = 5; % equal to 4.5 deg eccen
-linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen)
+for eccen  = 1:13
+    for ratio = 1:5
+        for runNr = 1:5
+            seed = runNr; % we match run1 to rng seed 1, run2 to 2.. etc.
+            saveFolder = sprintf('run%d',runNr);
+            linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen);
+        end
+    end
+end
 
 % 2.2 Filter cone absorptions from simple scenario with L-cone mosaic for
 % single ratio and single eccentricity
@@ -59,6 +62,7 @@ expName    = 'defaultnophaseshift';
 seed       = 1; % only one run, so use seed =1
 ratio      = 1; % equal to 1:2 = cone:mRGC ratio, or 2:1  mRGC:cone
 eccen      = 1; % equal to 4.5 deg eccen
+linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen);
 
 % 2.3 Filter cone absorptions from ideal observer
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
@@ -67,6 +71,21 @@ expName    = 'idealobserver';
 seed       = 1; % only one run, so use seed =1
 ratio      = 1; % equal to 1:2 = cone:mRGC ratio, or 2:1  mRGC:cone
 eccen      = 1; % equal to 4.5 deg eccen
+linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen);
+
+% 2.4 Filter cone absorptions from template (needed to run SVM-Energy
+% template)
+baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
+expName    = 'template';
+for eccen = 1:13
+    for ratio = 1:5
+        for runNr = 1:5
+            seed = runNr; % we match run1 to rng seed 1, run2 to 2.. etc.
+            saveFolder = sprintf('run%d',runNr);
+            linearRGCModel(baseFolder, subFolder, expName, seed, ratio, eccen);
+        end
+    end
+end
 
 %% 3. FIGURE 5: RGC responses --> IDEAL/SVM-Fourier/SVM-Energy performance
 % For Figure 5, we demonstrate 3 classifiers:
@@ -137,7 +156,7 @@ expName    = 'conedensity';
 seed       = 1; % run1 has rng seed 1, run2 has 2.. etc.
 
 [P_svmEnergy, P_svmLinear] = absorptionsClassifierAccuracyStimTemplateWrapper...
-    (baseFolder, subFolder, expName, seed)
+    (baseFolder, subFolder, expName, seed);
 
 
 %% 7. Combining percent accuracy across 5 runs
