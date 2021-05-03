@@ -17,12 +17,12 @@ plotRGC2Cones          = true; % if false, plot cone2rgcs
 
 nrSimConeDensities     = 13;
 lowessSpan             = 0.4; % how smooth should 3D fit be
-c2rgc                  = (1:5).^2; % Cone 2 RGC ratios
+c2rgc                  = 0.5*(1:5).^2; % Cone 2 RGC ratios
 expName                = 'conedensity';
 colors                 = parula(length(c2rgc)+1);
 
 if plotRGC2Cones
-    ratiosToPlot       = 2./c2rgc; % RGC 2 Cone ratios
+    ratiosToPlot       = 1./c2rgc; % RGC 2 Cone ratios
     labels             = sprintfc('RGC:cone = %1.2f:1.0', ratiosToPlot);
 else
     ratiosToPlot       = c2rgc;

@@ -6,10 +6,10 @@ function makeFigure7_Sensitivity_and_Asymmetry()
 
 %% 0. Define params and folders
 nrSimConeDensities = 13;
-c2rgc       = (1:5).^2; % Cone 2 RGC ratios
+c2rgc       = 0.5*(1:5).^2; % Cone 2 RGC ratios
 expName     = 'conedensity';
 meanPoissonPaddingFlag = true;
-stimTemplateFlag       = false;
+stimTemplateFlag       = true;
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
@@ -20,12 +20,12 @@ end
 
 if stimTemplateFlag
     subFolder = 'SVM-Energy';
-    yl =  [0, 1.7];
-    yl_asym = [-10, 50];
+    yl =  [1.3, 1.7];
+    yl_asym = [-12, 50];
 else
     subFolder = 'SVM-Fourier';
     yl =  [1.3, 1.7];
-    yl_asym = [-7, 50];
+    yl_asym = [-10, 50];
 end
 
 % Folders
@@ -115,21 +115,21 @@ predictedContrastThreshold = predictedContrastThreshold./100;
 averageConeDensity_stimeccen = mean(observedConeDensitiesAtEccen);
 
 for ii = 1:4
-    errorRatioConeDensity(ii) = 2*diff([observedConeDensitiesAtEccen(ii),averageConeDensity_stimeccen]);
+    errorRatioConeDensity(ii) = 2*abs(diff([observedConeDensitiesAtEccen(ii),averageConeDensity_stimeccen]));
 end
 
 % Get predicted thresholds for upper/lower error margins, using mesh fit
-predictedError = NaN(4,2);
+predictedErrorRGC = NaN(4,2);
 
 % Nasal, superior, temporal, inferior retina (bounds: upper=1, lower=2) 
-predictedError(:,1) = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen'-errorRatioConeDensity));
-predictedError(:,2) = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen'+errorRatioConeDensity));
-predictedError = predictedError./100;
+predictedErrorRGC(:,1) = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen'-errorRatioConeDensity));
+predictedErrorRGC(:,2) = 10.^meshFit(log10(ratioAtIdx),log10(observedConeDensitiesAtEccen'+errorRatioConeDensity));
+predictedErrorRGC = predictedErrorRGC./100;
 
 %% Convert mean and error mRGC thresholds to sensitivity
 rgcPredContrastSensitivityMEAN_retina        = 1./predictedContrastThreshold;
-rgcPredContrastSensitivityERROR_retina_upperBound = 1./predictedError(:,1);
-rgcPredContrastSensitivityERROR_retina_lowerBound = 1./predictedError(:,2);
+rgcPredContrastSensitivityERROR_retina_upperBound = 1./predictedErrorRGC(:,1);
+rgcPredContrastSensitivityERROR_retina_lowerBound = 1./predictedErrorRGC(:,2);
 
 retina2ToVisualFieldWithMeanHorz = @(x) [mean([x(1),x(3)]),x(4),x(2)];
 visualField2Retina = @(x) [x(1),x(4),x(3),x(2)];
@@ -154,11 +154,12 @@ obsContrastSensitivityERROR_wHorz_VF = visualField2visualFieldWithMeanHorz(obsCo
 % To get these data, run plotPsychometricFunctions('conedensity')
 dataFolderConesOnly   = fullfile(baseFolder,'data',expName,'thresholds','absorptionsOnly',subFolder);
 load(fullfile(dataFolderConesOnly,'coneabsorptionsOnly_predictedMeanAndError_stimeccen_linear'),'modelPredictionForPF','predictedError')
+predictedErrorCones = predictedError; clear predictedError;
 
 % MODELED CONE ONLY
 conesPredContrastThreshMEAN_retina        = modelPredictionForPF; % nasal, superior, temporal, inferior
-conesPredContrastThreshERROR_retina_lower = predictedError(:,1); % - doubling diff in cone density from the mean
-conesPredContrastThreshERROR_retina_upper = predictedError(:,2); % + doubling diff in cone density from the mean
+conesPredContrastThreshERROR_retina_lower = predictedErrorCones(:,1); % - doubling diff in cone density from the mean
+conesPredContrastThreshERROR_retina_upper = predictedErrorCones(:,2); % + doubling diff in cone density from the mean
 
 % Get sensivity for retinal coords
 conesPredContrastSensitivityMEAN_retina          = 1./conesPredContrastThreshMEAN_retina;
@@ -189,7 +190,7 @@ VMAerror.predCones = [vma(conesPredContrastSensitivityERROR_retina_lower), vma(c
 
 combHVA = [HVAmean.predCones, HVAmean.predRGC, HVAmean.obs];
 combVMA = [VMAmean.predCones, VMAmean.predRGC, VMAmean.obs];
-errorCombHVA = [HVAerror.predCones(1), HVAerror.predRGC(1), HVAerror.obs(1); HVAerror.predCones(2), HVAerror.predRGC(2), HVAerror.obs(2)];
+errorCombHVA = [HVAerror.predCones(2), HVAerror.predRGC(1), HVAerror.obs(1); HVAerror.predCones(1), HVAerror.predRGC(2), HVAerror.obs(2)];
 errorCombVMA = [VMAerror.predCones(1), VMAerror.predRGC(1), VMAerror.obs(1); VMAerror.predCones(2), VMAerror.predRGC(2), VMAerror.obs(2)];
 
 
@@ -239,8 +240,8 @@ x_bar = [0.5, 1, 1.5; 2.5, 3, 3.5];
 for ii = 1:3
     bar(x_bar(:,ii), [combHVA(ii); combVMA(ii)], 0.2, 'EdgeColor','none','facecolor',condColor(ii,:)); hold on
 end
-errorbar(x_bar(1,:), combHVA, diff([combHVA;errorCombHVA(1,:)]), diff([errorCombHVA(2,:);combHVA]), '.','color', 'k', 'LineWidth',2);
-errorbar(x_bar(2,:), combVMA, diff([combVMA;errorCombVMA(1,:)]), diff([errorCombVMA(2,:);combVMA]), '.','color', 'k', 'LineWidth',2);
+errorbar(x_bar(1,:), combHVA, combHVA-errorCombHVA(1,:), errorCombHVA(2,:)-combHVA, '.','color', 'k', 'LineWidth',2);
+errorbar(x_bar(2,:), combVMA, combVMA-errorCombVMA(1,:), errorCombVMA(2,:)-combVMA, '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0,4],'Ylim',[yl_asym], 'TickDir', 'out', 'XTick', [1, 2.5], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
