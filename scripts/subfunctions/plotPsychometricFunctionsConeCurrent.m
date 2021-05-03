@@ -30,7 +30,7 @@ function [] = plotPsychometricFunctionsConeCurrent(baseFolder, expName, varargin
 % plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true)
 %
 % Using lowess mesh fit:
-% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average','plotAvg',true, 'fitTypeName', 'lowess-mesh')
+% plotPsychometricFunctionsConeCurrent(baseFolder, 'conedensity','subFolder','average')
 
 %% 0. Set general experiment parameters
 p = inputParser;
@@ -38,11 +38,11 @@ p.KeepUnmatched = true;
 p.addRequired('baseFolder', @ischar);
 p.addRequired('expName', @ischar);
 p.addParameter('subFolder', @ischar);
-p.addParameter('saveFig', true, @islogical);
-p.addParameter('plotAvg', false, @islogical);
+p.addParameter('saveFig', false, @islogical);
+p.addParameter('plotAvg', true, @islogical);
 p.addParameter('inputType', 'current', @ischar);
 p.addParameter('stimTemplateFlag',false, @islogical);
-p.addParameter('fitTypeName','linear',@(x) ismember(x,{'linear','linear-robust','poly2', 'lowess-mesh'}));
+p.addParameter('fitTypeName','lowess-mesh',@(x) ismember(x,{'linear','linear-robust','poly2', 'lowess-mesh'}));
 p.parse(baseFolder, expName, varargin{:});
 
 % Rename variables
@@ -274,8 +274,8 @@ fH4 = figure(4); set(fH4, 'position',[383, 245, 1129, 542], 'color', 'w'); clf;
 subplot(121); hold all;
 % Plot prediction for cones
 bar(1:3, conesPredContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor); hold on
-errorbar(1:3,conesPredContrastSensitivityMEAN_wHorz_VF,diff([conesPredContrastSensitivityMEAN_wHorz_VF;conesPredContrastSensitivityERROR_wHorz_VF_lower]), ...
-            diff([conesPredContrastSensitivityERROR_wHorz_VF_upper;conesPredContrastSensitivityMEAN_wHorz_VF]),'.','color', 'k', 'LineWidth',2);
+errorbar(1:3,conesPredContrastSensitivityMEAN_wHorz_VF,(conesPredContrastSensitivityMEAN_wHorz_VF-conesPredContrastSensitivityERROR_wHorz_VF_lower), ...
+            (conesPredContrastSensitivityERROR_wHorz_VF_upper-conesPredContrastSensitivityMEAN_wHorz_VF),'.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^[0.1, 1.4], 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
 box off; ylabel('Contrast sensitivity'); title({'Model Prediction up to','cone phototransduction'});
@@ -284,8 +284,8 @@ box off; ylabel('Contrast sensitivity'); title({'Model Prediction up to','cone p
 subplot(122); hold on; cla
 bar([0.5, 1], [HVAmean VMAmean], 0.2, 'EdgeColor','none','facecolor',condColor(1,:)); hold on
 
-errorbar(0.5, HVAmean, diff([HVAmean,HVAerror(1)]), diff([HVAerror(2),HVAmean]), '.','color', 'k', 'LineWidth',2);
-errorbar(1, VMAmean, diff([VMAmean,VMAerror(1)]), diff([VMAmean,VMAerror(2)]), '.','color', 'k', 'LineWidth',2);
+errorbar(0.5, HVAmean, [HVAmean-HVAerror(1)], [HVAerror(2)-HVAmean], '.','color', 'k', 'LineWidth',2);
+errorbar(1, VMAmean, [VMAmean-VMAerror(1)], [VMAerror(2)-VMAmean], '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0,1.5],'Ylim',[-25, 25], 'TickDir', 'out', 'XTick', [0.5, 1], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Polar angle asymmetry');
