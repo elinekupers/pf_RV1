@@ -9,7 +9,7 @@ nrSimConeDensities = 13;
 c2rgc       = 0.5*(1:5).^2; % Cone 2 RGC ratios
 expName     = 'conedensity';
 meanPoissonPaddingFlag = true;
-stimTemplateFlag       = true;
+stimTemplateFlag       = false;
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
@@ -158,8 +158,8 @@ predictedErrorCones = predictedError; clear predictedError;
 
 % MODELED CONE ONLY
 conesPredContrastThreshMEAN_retina        = modelPredictionForPF; % nasal, superior, temporal, inferior
-conesPredContrastThreshERROR_retina_lower = predictedErrorCones(:,1); % - doubling diff in cone density from the mean
-conesPredContrastThreshERROR_retina_upper = predictedErrorCones(:,2); % + doubling diff in cone density from the mean
+conesPredContrastThreshERROR_retina_lowerBound = predictedErrorCones(:,1); % - doubling diff in cone density from the mean
+conesPredContrastThreshERROR_retina_upperBound = predictedErrorCones(:,2); % + doubling diff in cone density from the mean
 
 % Get sensivity for retinal coords
 conesPredContrastSensitivityMEAN_retina          = 1./conesPredContrastThreshMEAN_retina;
@@ -168,10 +168,10 @@ conesPredContrastSensitivityMEAN_retina          = 1./conesPredContrastThreshMEA
 conesPredContrastSensitivityMEAN_wHorz_VF   = retina2ToVisualFieldWithMeanHorz(conesPredContrastSensitivityMEAN_retina);
 
 % Do the same for upper/lower bounds of error margins
-conesPredContrastSensitivityERROR_wHorz_VF_lower = 1./retina2ToVisualFieldWithMeanHorz(conesPredContrastThreshERROR_retina_lower);
-conesPredContrastSensitivityERROR_wHorz_VF_upper = 1./retina2ToVisualFieldWithMeanHorz(conesPredContrastThreshERROR_retina_upper);
-conesPredContrastSensitivityERROR_retina_lower   = 1./conesPredContrastThreshERROR_retina_lower; % - doubling diff in cone density from the mean
-conesPredContrastSensitivityERROR_retina_upper   = 1./conesPredContrastThreshERROR_retina_upper; % + doubling diff in cone density from the mean
+conesPredContrastSensitivityERROR_wHorz_VF_lowerBound = 1./retina2ToVisualFieldWithMeanHorz(conesPredContrastThreshERROR_retina_lowerBound);
+conesPredContrastSensitivityERROR_wHorz_VF_upperBound = 1./retina2ToVisualFieldWithMeanHorz(conesPredContrastThreshERROR_retina_upperBound);
+conesPredContrastSensitivityERROR_retina_lowerBound  = 1./conesPredContrastThreshERROR_retina_lowerBound; % - doubling diff in cone density from the mean
+conesPredContrastSensitivityERROR_retina_upperBound   = 1./conesPredContrastThreshERROR_retina_upperBound; % + doubling diff in cone density from the mean
 
 %% HVA VMA calc
 HVAmean.obs       = hva(obsContrastSensitivityMEAN_retina);
@@ -185,12 +185,12 @@ HVAerror.obs       = HVAmean.obs + [-6.90, 6.90]; %  From Himmelberg et al. (202
 VMAerror.obs       = VMAmean.obs + [-5.65,5.65];  %  From Himmelberg et al. (2020)
 HVAerror.predRGC   = [hva(rgcPredContrastSensitivityERROR_retina_lowerBound), hva(rgcPredContrastSensitivityERROR_retina_upperBound)];
 VMAerror.predRGC   = [vma(rgcPredContrastSensitivityERROR_retina_lowerBound), vma(rgcPredContrastSensitivityERROR_retina_upperBound)];
-HVAerror.predCones = [hva(conesPredContrastSensitivityERROR_retina_lower), hva(conesPredContrastSensitivityERROR_retina_upper)];
-VMAerror.predCones = [vma(conesPredContrastSensitivityERROR_retina_lower), vma(conesPredContrastSensitivityERROR_retina_upper)];
+HVAerror.predCones = [hva(conesPredContrastSensitivityERROR_retina_lowerBound), hva(conesPredContrastSensitivityERROR_retina_upperBound)];
+VMAerror.predCones = [vma(conesPredContrastSensitivityERROR_retina_lowerBound), vma(conesPredContrastSensitivityERROR_retina_upperBound)];
 
 combHVA = [HVAmean.predCones, HVAmean.predRGC, HVAmean.obs];
 combVMA = [VMAmean.predCones, VMAmean.predRGC, VMAmean.obs];
-errorCombHVA = [HVAerror.predCones(2), HVAerror.predRGC(1), HVAerror.obs(1); HVAerror.predCones(1), HVAerror.predRGC(2), HVAerror.obs(2)];
+errorCombHVA = [HVAerror.predCones(1), HVAerror.predRGC(1), HVAerror.obs(1); HVAerror.predCones(2), HVAerror.predRGC(2), HVAerror.obs(2)];
 errorCombVMA = [VMAerror.predCones(1), VMAerror.predRGC(1), VMAerror.obs(1); VMAerror.predCones(2), VMAerror.predRGC(2), VMAerror.obs(2)];
 
 
@@ -208,8 +208,8 @@ fH4 = figure(4); set(fH4, 'position',[383, 245, 1129, 542], 'color', 'w'); clf; 
 subplot(141)
 bar(1:3, conesPredContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(1,:)); hold on
 errorbar(1:3,conesPredContrastSensitivityMEAN_wHorz_VF,...
-             diff([conesPredContrastSensitivityMEAN_wHorz_VF;conesPredContrastSensitivityERROR_wHorz_VF_lower]), ...
-             diff([conesPredContrastSensitivityMEAN_wHorz_VF;conesPredContrastSensitivityERROR_wHorz_VF_upper]),...
+             (conesPredContrastSensitivityMEAN_wHorz_VF-conesPredContrastSensitivityERROR_wHorz_VF_lowerBound), ...
+             (conesPredContrastSensitivityERROR_wHorz_VF_upperBound-conesPredContrastSensitivityMEAN_wHorz_VF),...
              '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
@@ -219,8 +219,8 @@ box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Cones');
 subplot(142)
 bar(1:3, rgcPredContrastSensitivityMEAN_wHorz_VF,'EdgeColor','none','facecolor',condColor(2,:)); hold on
 errorbar(1:3,rgcPredContrastSensitivityMEAN_wHorz_VF,...
-             diff([rgcPredContrastSensitivityMEAN_wHorz_VF;rgcPredContrastSensitivityERROR_wHorz_VF_lower]), ...
-            diff([rgcPredContrastSensitivityMEAN_wHorz_VF;rgcPredContrastSensitivityERROR_wHorz_VF_upper]), ...
+             (rgcPredContrastSensitivityMEAN_wHorz_VF-rgcPredContrastSensitivityERROR_wHorz_VF_lower), ...
+            (rgcPredContrastSensitivityERROR_wHorz_VF_upper-rgcPredContrastSensitivityMEAN_wHorz_VF), ...
             '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
