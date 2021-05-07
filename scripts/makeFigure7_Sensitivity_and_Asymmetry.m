@@ -9,7 +9,7 @@ nrSimConeDensities = 13;
 c2rgc       = 0.5*(1:5).^2; % Cone 2 RGC ratios
 expName     = 'conedensity';
 meanPoissonPaddingFlag = true;
-stimTemplateFlag       = false;
+stimTemplateFlag       = true;
 
 % Change folder names if using mean Poisson padded cone data
 if meanPoissonPaddingFlag
@@ -153,7 +153,7 @@ obsContrastSensitivityERROR_wHorz_VF = visualField2visualFieldWithMeanHorz(obsCo
 % Cone data are from JWLOrientedGabor toolbox
 % To get these data, run plotPsychometricFunctions('conedensity')
 dataFolderConesOnly   = fullfile(baseFolder,'data',expName,'thresholds','absorptionsOnly',subFolder);
-load(fullfile(dataFolderConesOnly,'coneabsorptionsOnly_predictedMeanAndError_stimeccen_linear'),'modelPredictionForPF','predictedError')
+load(fullfile(dataFolderConesOnly,sprintf('coneabsorptionsOnly_predictedMeanAndError_stimeccen_linear%s',subFolder)),'modelPredictionForPF','predictedError')
 predictedErrorCones = predictedError; clear predictedError;
 
 % MODELED CONE ONLY

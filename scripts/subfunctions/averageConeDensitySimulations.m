@@ -5,13 +5,13 @@ expParams                = loadExpParams(expName, false);
 
 % Where to find data and save figures
 subFolder   = 'meanPoissonPadded';
-if stimTemplateFlag 
+if stimTemplateFlag
     subFolder = [subFolder '/SVM-Energy']; 
-    templateName = '_svmEnergy'; % choose from '_svmEnergy' or '_svmLinear'
+    templateName = '_svmLinear'; % choose from '_svmEnergy' or '_svmLinear'
 else 
     templateName = '/SVM-Fourier';
 end
-    
+
 dataPth     = fullfile(baseFolder,'data',expName,'classification','rgc',subFolder);
 averageDataPth = fullfile(dataPth,['average' templateName]);
 
@@ -21,14 +21,29 @@ nTotal      = 100;
 % Get nr of conditions
 nrEccen     = length(expParams.eccentricities);
 
+if strcmp(expName, 'conedensity')
+    extraSubfolder = 'run';
+elseif strcmp(expName, 'defaultnophaseshift')
+    extraSubfolder = 'onlyL';
+end
+
 for ec = 1:nrEccen
-    fName   = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptions_%d_conedensity_run*.mat', ratio, ec);
+    
+
+    fName   = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptions_%d_%s_%s*.mat', ratio, ec, expName, extraSubfolder);
     
     P = [];
     % Loop over runs (i.e. experiment iterations)
     for ii = 1:5
+        
+        if strcmp(expName, 'conedensity')
+            extraSubfolder = sprintf('run%d',ii);
+        elseif strcmp(expName, 'defaultnophaseshift')
+            extraSubfolder = 'onlyL';
+        end
+   
         % Get file and load it
-        d = dir(fullfile(dataPth,sprintf('run%d',ii), fName));        
+        d = dir(fullfile(dataPth, extraSubfolder, fName));        
         tmp = load(fullfile(d.folder, d.name));
         
         % Get percent correct  
@@ -68,8 +83,8 @@ for ec = 1:nrEccen
     P_AVG = mean(P,2);
     
     % Save sample mean output
-    fNameAVG = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_AVERAGE.mat', ratio, ec);
-    fNameSE  = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptionrate_%d_conedensity_SE.mat', ratio, ec);
+    fNameAVG = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptions_%d_conedensity_AVERAGE.mat', ratio, ec);
+    fNameSE  = sprintf('classifySVM_rgcResponse_Cones2RGC%d_absorptions_%d_conedensity_SE.mat', ratio, ec);
     if ~exist(averageDataPth,'dir'), mkdir(averageDataPth); end;
     save(fullfile(averageDataPth,fNameAVG),'P_AVG');
     save(fullfile(averageDataPth,fNameSE),'P_SE');

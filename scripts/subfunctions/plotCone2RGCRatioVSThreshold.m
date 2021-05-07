@@ -61,7 +61,7 @@ end
 %% 2. Visualize plot
 xrange = xThresh;
 xticks = fliplr(xrange);
-colormap = parula(length(xThresh));
+colormap = parula(length(xThresh)+1);
 for ii = 1:length(xticks); xticklbls{ii} = sprintf('%1.3f', xticks(ii)); end% get x axis range
 
 % Plot it!
@@ -77,12 +77,12 @@ end
 
 
 box off;
-set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,'XScale','linear', 'YScale', yScale)
+set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,'XScale','log', 'YScale', yScale)
 xlabel('mRGC : Cone ratio','FontSize',20); ylabel('Contrast threshold (%)','FontSize',25)
-set(gca, 'XTick',xticks,'XTickLabel',xticklbls, 'XLim', [0.1 2.2]);
-if strcmp(yScale, 'log'); 
-   yrange = [0.0001, 0.001, 0.01, 0.1, 1]; 
-   set(gca,'YLim', [min(yrange), max(yrange)], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange.*100));
+set(gca, 'XTick',xticks,'XTickLabel',xticklbls, 'XLim', [0.05 2.2]);
+if strcmp(yScale, 'log')
+   yrange = [0.0001, 0.001, 0.01]; 
+   set(gca,'YLim', [min(yrange), max(yrange)], 'YTick',yrange,'YTickLabel',sprintfc('%1.2f',yrange.*100));
    set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
        'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 else

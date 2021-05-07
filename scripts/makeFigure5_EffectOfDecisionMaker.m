@@ -11,6 +11,6 @@ function [] = makeFigure5_EffectOfDecisionMaker()
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model';
 subfolder  = 'onlyL';
 
-plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'idealobserver', subfolder, 'Ideal')
+plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', subfolder, 'SVM-Linear')
 plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', subfolder, 'SVM-Fourier')
 plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', subfolder, 'SVM-Energy')

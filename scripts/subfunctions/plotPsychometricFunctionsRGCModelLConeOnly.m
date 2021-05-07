@@ -15,19 +15,15 @@ function [] = plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, expName, su
 % OUTPUTS:
 % none
 %
-% Example 1 - ideal observer with L-cone only mosaic:
+% Example 1 - SVM-Linear observer with L-cone only mosaic:
 % baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
-% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'idealobserver', 'onlyL', 'Ideal')
+% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM-Linear')
 %
-% Example 2 - SNR observer with L-cone only mosaic:
-% baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
-% plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SNR')
-%
-% Example 3 - SVM-Fourier observer with L-cone only mosaic:
+% Example 2 - SVM-Fourier observer with L-cone only mosaic:
 % baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
 % plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM-Fourier')
 %
-% Example 4 - SVM-Energy observer with L-cone only mosaic:
+% Example 3 - SVM-Energy observer with L-cone only mosaic:
 % baseFolder = '/Volumes/server-1/Projects/PerformanceFields_RetinaV1Model/';
 % plotPsychometricFunctionsRGCModelLConeOnly(baseFolder, 'defaultnophaseshift', 'onlyL', 'SVM-Energy')
 %
@@ -40,7 +36,7 @@ p.KeepUnmatched = true;
 p.addRequired('baseFolder', @ischar);
 p.addRequired('expName', @ischar);
 p.addRequired('subFolder', @ischar);
-p.addRequired('decisionmaker', 'SVM-Fourier',@(x) ismember(x, {'Ideal', 'SNR', 'SVM-Fourier','SVM-Energy'}));
+p.addRequired('decisionmaker', @(x) ismember(x, {'Ideal', 'SNR', 'SVM-Fourier','SVM-Energy', 'SVM-Linear'}));
 p.addParameter('inputType', 'absorptions', @ischar);
 p.addParameter('saveFig', true, @islogical);
 p.addParameter('plotAvg', false, @islogical);
@@ -81,14 +77,15 @@ fit.data    = cell(size(colors,1),1);
 fit.thresh  = 0.75;
 
 % Set inital slope, threshold for first stage fitting
-if strcmp('Ideal', decisionmaker)
-    fitType = 'poly2';
+if strcmp('SVM-Linear', decisionmaker)
+    fitType = 'linear';
     % Define a zero point (just a very small number), to plot the 0 contrast,
     % since a log-linear plot does not define 0.
     logzero = 3e-5;
     fit.init    = [5, 0.0006]; % slope, threshold at ~80%    
     scaleFactor = 1; % to put data in percentage (not needed here)
     nTotal      = 100;
+    templateName = '_svmLinear';
 elseif strcmp('SVM-Fourier', decisionmaker)     
     fitType = 'linear';
     logzero = 3e-5;
@@ -99,6 +96,7 @@ elseif strcmp('SVM-Energy', decisionmaker)
     logzero = 3e-5;
     fit.init   = [5, 0.0006]; % slope, threshold at ~80%
     scaleFactor = 1; % to put data in percentage
+    templateName = '_svmEnergy';
 elseif strcmp('SNR', decisionmaker) 
     fitType = 'linear';
     logzero = 3e-5;
@@ -111,10 +109,18 @@ for ratio = 1:5
     fName = sprintf('classify%s_rgcResponse_Cones2RGC%d_%s_1_%s_%s.mat', ...
         decisionmaker, ratio, inputType, expName, subFolder);
 
-    % 3. Load performance results
-    tmp = load(fullfile(dataPth,fName));
-    fn = fieldnames(tmp);
-    accuracy.P(ratio,:) = squeeze(tmp.(fn{1}))*scaleFactor;
+    % 3. Load performance results 
+    if strcmp('SVM-Energy', decisionmaker) || strcmp('SVM-Linear', decisionmaker)
+        tmp = load(fullfile(dataPth,fName));
+        fn = fieldnames(tmp);
+        accuracy.P(ratio,:) = tmp.(fn{strcmpi(fn,['P' templateName])});
+    else 
+
+        tmp = load(fullfile(dataPth,fName));
+        fn = fieldnames(tmp);
+        accuracy.P(ratio,:) = squeeze(tmp.(fn{1}))*scaleFactor;
+    end
+    
 end
 
 % Transpose matrix if necessary
@@ -170,12 +176,12 @@ for ii = plotIdx
     end
 end
 % Make axes pretty
-set(gca, 'XScale','log','XLim',[logzero, 1], ...
+set(gca, 'XScale','log','XLim',[logzero, 0.1], ...
          'YLim', [40 100], ...
          'TickDir','out',...
          'TickLength',[.015 .015], ...
-         'XTick', [logzero, 0.0001, 0.001, 0.01, 0.1 1], ...
-         'XTickLabel',sprintfc('%1.2f',[0 0.0001, 0.001, 0.01, 0.1 1]*100), ...
+         'XTick', [logzero, 0.0001, 0.001, 0.01, 0.1], ...
+         'XTickLabel',sprintfc('%1.2f',[0 0.0001, 0.001, 0.01, 0.1]*100), ...
          'FontSize',17, 'LineWidth',2)
 
 ylabel('Classifier Accuracy (% Correct)', 'FontSize',17)
