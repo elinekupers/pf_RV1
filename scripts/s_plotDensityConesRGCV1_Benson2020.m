@@ -27,14 +27,14 @@ cd(pfRV1rootPath)
 % Define general parameters
 saveData               = true;
 saveFigures            = true;
-loadDataFromServer     = false; % if false, we will recompute the density and surface area numbers (takes 20min+)
+loadDataFromServer     = true; % if false, we will recompute the density and surface area numbers (takes 20min+)
 
 % Make figure dir if doesnt exist
-figureDir = fullfile(pfRV1rootPath, 'figures', 'BensonFigure3Asymmetries');
+figureDir = fullfile(pfRV1rootPath, 'figures', 'BensonFigure4Asymmetries');
 if ~exist(figureDir, 'dir'); mkdir(figureDir); end
 
 % Plotting params
-yl = [-20,100]; % y-axis limit (percent)
+yl = [-20,110]; % y-axis limit (percent)
 lw = 1;         % line width
 visualFieldFlag = false; % false = retinal numbers are in retinal coordinates, not visual field coordinates
 
@@ -46,13 +46,12 @@ cardinalMeridianAngles = [0 90 180 270]; % deg: 0=nasal, 90=superior, 180=tempor
 meridianLabel          = {'nasal meridian','superior meridian','temporal meridian','inferior meridian'};
 
 % Get eccentricity range
+eccen = [0,40]; % degrees visual angle
 eccenBoundary = [0,8]; % degrees visual angle
-dt            = 0.1; % sample rate, degrees visual angle
-eccDeg        = eccenBoundary(1):dt:eccenBoundary(2); % degrees visual angle
+dt    = 0.1; % sample rate, degrees visual angle
 
 % Polar angle range
 angDeg           = 0:dt:360;  % degrees visual angle
-[~,meridiansIdx] = intersect(angDeg,cardinalMeridianAngles);
 
 %% -----------------------------------------------------------------
 %  --------- CONES from Curcio et al (1990) using ISETBIO ----------
@@ -63,19 +62,26 @@ dataSet = 'Curcio1990';
 % Load data from ISETBIO (takes a few minutes)
 if loadDataFromServer
     % load data from mat-file
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg')
+    load(fullfile(pfRV1rootPath, 'external', 'data','isetbio', 'conesCurcioISETBIO.mat'),'conesCurcioIsetbio', 'eccDeg')
     coneDensity = conesCurcioIsetbio;
     clear conesCurcioIsetbio;
     
-    [~,eccenBoundary] = intersect(eccDeg,[eccenBoundary(1)+1,eccenBoundary(2)+1]);
-    eccenLimits = [eccenBoundary(1):eccenBoundary(2)];
-    
+    [~,eccenBoundaryIdx] = intersect(eccDeg,[eccenBoundary(1),eccenBoundary(2)]);
+    eccenLimits = [eccenBoundaryIdx(1):eccenBoundaryIdx(2)];
+    eccDeg = eccDeg(eccenLimits);
+    meridiansIdx = [1:4];
+
 else % recompute data
+    eccDeg        = eccen(1):dt:eccen(2); % degrees visual angle
     coneDensity = getConeDensityIsetbio(angDeg, eccDeg, dataSet);
-    eccenLimits = ((eccenBoundary(1)/dt)+1):1:((eccenBoundary(2)/dt)+1);
+    [~,eccenBoundaryIdx] = intersect(eccDeg,[eccenBoundary(1),eccenBoundary(2)]);
+    eccenLimits = [eccenBoundaryIdx(1):eccenBoundaryIdx(2)];
+    eccDeg = eccDeg(eccenLimits);
+
+    [~,meridiansIdx] = intersect(angDeg,cardinalMeridianAngles);
 
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'conesCurcioISETBIO.mat'),'coneDensity','eccDeg', 'angDeg','cardinalMeridianAngles','meridianLabel')
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'),'coneDensity','eccDeg', 'angDeg','cardinalMeridianAngles','meridianLabel')
     end
 end
 
@@ -92,7 +98,7 @@ fH1 = plotHVAandVMA(meridianData.conesCurcioIsetbio', [], eccDeg, visualFieldFla
 
 if loadDataFromServer
     % load data from mat-file
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2')
+    load(fullfile(pfRV1rootPath, 'external', 'data','isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2')
 else % recompute data
     % Instantiate a WatsonRGCModel object. Set the 'generateAllFigures' flag
     % to true to generate several figures of the Watson 2014 paper
@@ -104,7 +110,7 @@ else % recompute data
     end
     
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg', 'meridianLabel')
+        save(fullfile(pfRV1rootPath, 'external', 'data','isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg', 'meridianLabel')
     end
 end
 
@@ -143,7 +149,7 @@ wedgeWidth = 10; %  wedge width in deg
 v1CMF = getV1SurfaceAreaHCP(wedgeWidth);
 
 % Get number of subjects from data
-numSubjects = size(v1CMF.individualSubjects.eccen1_2,1)./2;
+numSubjects = size(v1CMF.individualSubjects.eccen1_2,2);
 
 % Get all fieldnames
 fn = fieldnames(v1CMF.individualSubjects);
@@ -165,20 +171,20 @@ for ii = 1:numel(fn)
     theseData = v1CMF.individualSubjects.(fn{ii});
     
     % Average across right and left hemispheres
-    horz = nanmean([theseData(1:numSubjects,1), theseData((numSubjects+1):end,1)],2);
-    vert = nanmean([theseData(1:numSubjects,2), theseData((numSubjects+1):end,2)],2);
-    upr  = nanmean([theseData(1:numSubjects,3), theseData((numSubjects+1):end,3)],2);
-    lowr = nanmean([theseData(1:numSubjects,4), theseData((numSubjects+1):end,4)],2);
+    horz = nanmean(theseData(1,:,:),3);
+    vert = nanmean(theseData(2,:,:),3);
+    upr  = nanmean(theseData(3,:,:),3);
+    lowr = nanmean(theseData(4,:,:),3);
     
     % Compute asymmetry in percent change from mean, for each subject
     asymV1CMF.(['hvaAll' fn{ii}]) = asymPrct(horz,vert);
     asymV1CMF.(['vmaAll' fn{ii}]) = asymPrct(lowr,upr);
     
-    allUpr  = [allUpr upr];
-    allLowr = [allLowr lowr];
+    allUpr  = [allUpr; upr];
+    allLowr = [allLowr; lowr];
     
-    allHorz = [allHorz horz];
-    allVert = [allVert vert];
+    allHorz = [allHorz; horz];
+    allVert = [allVert; vert];
 
 end
 
@@ -208,7 +214,7 @@ mdVMA  = median(bootDataVMA,2);
 stdVMA = std(bootDataVMA, [],2,'omitnan');
 
 if saveData
-   save(fullfile(pfRV1rootPath, 'external', 'data', 'V1CMF_HCP.mat'),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
+   save(fullfile(pfRV1rootPath, 'external', 'data', 'benson2021','V1CMF_HCP2.mat'),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
 end
 
 hvaSumWedge = asymPrct(sum(allLowr,2),sum(allUpr,2));
@@ -274,7 +280,7 @@ title(sprintf('VMA (V1/V2 fit R2: %1.2f)',R2_VMA))
 
 % Save figures
 if saveFigures
-    savefig(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'))
-    print(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'), '-depsc')
-    print(fullfile(figureDir, 'Figure3_ConesRGCV1_delta10deg_poly2'), '-dpng')
+    savefig(fullfile(figureDir, 'Figure4_ConesRGCV1_delta10deg_poly2'))
+    print(fullfile(figureDir, 'Figure4_ConesRGCV1_delta10deg_poly2'), '-depsc')
+    print(fullfile(figureDir, 'Figure4_ConesRGCV1_delta10deg_poly2'), '-dpng')
 end
