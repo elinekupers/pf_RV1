@@ -2,11 +2,11 @@ numTimePoints   = 64;
 numTrials       = 400;  % Number of trials per condition
 numExperiments  = 2;    % number of experiments to loop over
 earlyNoiseLevel = 2;    % (std)
-lateNoiseLevel  = .5;    % 
+lateNoiseLevel  = 1;    % 
 f               = 2;    % Signal frequency
 downSampleFactor= [2 4 6];    % downsample factor
 nonlins         = {'ThresholdAndSquare' 'Normalization' 'none'};
-which_nonlin    = nonlins{1};
+which_nonlin    = nonlins{3};
 
 t       = (1:numTimePoints)';
 signal1 = sin(t*2*pi/numTimePoints*f); 

@@ -35,11 +35,15 @@ function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinea
 %% reshape cone data
 % original: trials x rows x cols x time x stim phase
 % reshaped: rows x cols x time x all trials
+cRows   = size(coneData, 2);
+cCols   = size(coneData, 3);
+cTime   = size(coneData, 4);
+nTrials = size(coneData,1)*size(coneData,5);
 permutedConeData = permute(coneData, [2, 3, 4, 1, 5]);
-reshapedConeData = reshape(permutedConeData, rgcParams.cRows, rgcParams.cCols, rgcParams.timePoints, []);
+reshapedConeData = reshape(permutedConeData, cRows, cCols, cTime, []);
 
 % Create cone array
-conearray = zeros(rgcParams.cCols, rgcParams.cRows);
+conearray = zeros(cCols, cRows);
 
 % Center Gauss RGC
 sigma.center = rgcParams.cone2RGCRatio*rgcParams.DoG.kc;
@@ -54,14 +58,14 @@ sigma.ratio = sigma.surround/sigma.center;
 vol.ratio = rgcParams.DoG.ws/rgcParams.DoG.wc;
 
 % Create RGC grid by resampling with cone2RGC ratio.
-rowIndices = 1:rgcParams.cone2RGCRatio:rgcParams.cRows;
-colIndices = 1:rgcParams.cone2RGCRatio:rgcParams.cCols;
+rowIndices = 1:rgcParams.cone2RGCRatio:cRows;
+colIndices = 1:rgcParams.cone2RGCRatio:cCols;
 
 rgcarray = conearray;
 rgcarray(rowIndices, colIndices) = 1;
 
 % Create DoG filter
-[DoGfilter,xx,yy] = makedog2d(rgcParams.cRows,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+[DoGfilter,xx,yy] = makedog2d(cRows,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
 
 for ii = 1:size(reshapedConeData,4)
     
@@ -93,7 +97,7 @@ end
 
 % reshape rgc response back to original dimensions
 [numRGCRows, numRGCCols, numTimePoints, ~]  = size(rgcResponse);
-rgcResponse = reshape(rgcResponse, numRGCRows, numRGCCols, numTimePoints, rgcParams.nTrials, []);
+rgcResponse = reshape(rgcResponse, numRGCRows, numRGCCols, numTimePoints, nTrials, []);
 rgcResponse = permute(rgcResponse, [4, 1, 2, 3, 5]);
 
 

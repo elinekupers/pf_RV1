@@ -10,22 +10,67 @@
 %
 % See s_1dfilterAndClassify
 
-pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
-% load(fullfile(pth, 'coneabsorptions/conedensity/run1_4.5deg_inferior_current/OGconeOutputs_contrast1.000_pa0_eye11_eccen4.50_defocus0.00_noise-random_sf4.00.mat'));
-% load(fullfile(pth, 'conecurrent/conedensity/run1_4.5deg_inferior_current/current_OGconeOutputs_contrast1.000_pa0_eye11_eccen4.50_defocus0.00_noise-random_sf4.00.mat'));
-load(fullfile(pth, 'conecurrent/defaultnophaseshift/run1/current_OGconeOutputs_contrast0.1000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat'));
-load(fullfile(pth, 'conecurrent/defaultnophaseshift/run1/OGconeOutputs_contrast0.1000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat'));
+pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/conecurrent/defaultnophaseshift/';
+expname = 'contrast0.1000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
+runnum = 1;
+
+load(fullfile(pth, sprintf('run%d', runnum), sprintf('current_OGconeOutputs_%s', expname)));
+load(fullfile(pth, sprintf('run%d', runnum), sprintf('OGconeOutputs_%s', expname)));
+
+
+% load the classification data
+classify_absorptions = load(fullfile(pth, 'onlyL', sprintf('run%d', runnum), sprintf('Classify_coneOutputs_%s', expname)));
+classify_currents    = load(fullfile(pth, 'onlyL', sprintf('run%d', runnum), sprintf('current_Classify_coneOutputs_%s', expname)));
+
+
+figure, 
+plot(classify_absorptions.expParams.contrastLevelsPC, classify_absorptions.accuracy,'o-', ...
+    classify_absorptions.expParams.contrastLevelsPC, classify_currents.accuracy, ...
+    'o-', 'LineWidth', 3, 'MarkerSize', 12); set(gca, 'XScale', 'log');
+
+%% filter the data
+
+% Define general RGC params
+rgcParams = struct();
+rgcParams.verbose    = false; % print figures or not
+rgcParams.saveFigs   = false;
+rgcParams.expName    = 'defaultnophaseshift';
+rgcParams.subFolder  = [];
+
+% Define DoG Params
+ratio = 1;
+rgcParams.DoG.kc     = 1/3;                % Gauss center sigma. (Bradley et al. 2014 paper has kc =1)
+rgcParams.DoG.ks     = rgcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10.1)
+rgcParams.DoG.wc     = 0.64;               % DoG center Gauss weight. Range: [0,1]. (Bradley et al. 2014 paper has ws = 0.53)
+rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
+rgcParams.inputType  = 'absorptions';          % are we dealing with cone absorptions or current?
+rgcParams.cone2RGCRatio = ratio;           % linear ratio
+rgcParams.seed       = runnum;
+cone2RGCRatio        = ratio;
+
+% run the filter on the cone absorptions
+data = mean(absorptions(:,:,:,1:28,:), 4);
+[rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(data, rgcParams, expParams);
+
+
+% next we need to 
+% - classify the filtered data
+% - then add noise 
+% - then subsample at a few rates and classify again for each subsampling
+% then if it makes sense, run with multiple contrasts on multiple runs
+
 
 %% visualize the cone currents over time for one trial
 figure(1)
-for ii = 1:109
+for ii = 1:28
     subplot(1,2,1)
-    imagesc(squeeze(current(1,:,:,ii,1)), [-26 -22]); 
-    axis square; title(ii); 
+    jj= ii+10;
+    imagesc(squeeze(current(1,:,:,jj,1)), [-26 -22]); 
+    axis square; title(jj); 
 
     subplot(1,2,2)
     imagesc(squeeze(absorptions(1,:,:,ii,1)), [200 240]); 
-    axis square; title(ii); pause(0.1); 
+    axis square; title(ii); waitforbuttonpress();%   pause(0.1); 
 end
 
 %%
