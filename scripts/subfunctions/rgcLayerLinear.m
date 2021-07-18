@@ -88,7 +88,7 @@ for ii = 1:size(reshapedConeData,4)
         
         % Convolve image with DoG filter
         filteredConeCurrentFull = conv2(imgMnPadded, DoGfilter, 'same');
-        filteredConeCurrent = filteredConeCurrentFull([rowStart:(rowStart+size(img,1)-1)],[colStart:(colStart+size(img,2)-1)]);
+        filteredConeCurrent(:,:,t,ii) = filteredConeCurrentFull([rowStart:(rowStart+size(img,1)-1)],[colStart:(colStart+size(img,2)-1)]);
         
         % Resample RGC image
         rgcResponse(:,:,t,ii) = squeeze(filteredConeCurrent(rowIndices, colIndices));
@@ -99,6 +99,9 @@ end
 [numRGCRows, numRGCCols, numTimePoints, ~]  = size(rgcResponse);
 rgcResponse = reshape(rgcResponse, numRGCRows, numRGCCols, numTimePoints, nTrials, []);
 rgcResponse = permute(rgcResponse, [4, 1, 2, 3, 5]);
+
+filteredConeCurrent = reshape(filteredConeCurrent, numRGCRows, numRGCCols, numTimePoints, nTrials, []);
+filteredConeCurrent = permute(filteredConeCurrent, [4, 1, 2, 3, 5]);
 
 
 %% Some visualization, if verbose = true
