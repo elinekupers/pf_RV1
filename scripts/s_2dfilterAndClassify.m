@@ -10,7 +10,7 @@
 %
 % See s_1dfilterAndClassify
 
-pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/conecurrent/defaultnophaseshift/';
+pth = '/Volumes/server-1/Projects/PerformanceFieldsIsetBio/data/conecurrent/defaultnophaseshift/';
 expname = 'contrast0.1000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
 runnum = 1;
 
@@ -49,15 +49,51 @@ rgcParams.seed       = runnum;
 cone2RGCRatio        = ratio;
 
 % run the filter on the cone absorptions
-data = mean(absorptions(:,:,:,1:28,:), 4);
-[rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinear(data, rgcParams, expParams);
+x.absorptions = mean(absorptions(:,:,:,1:28,:), 4);
+% x.absorptions = absorptions(1,:,:,1:28,:);
+[x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.absorptions, rgcParams, expParams);
 
-
-% next we need to 
+%% next we need to 
 % - classify the filtered data
 % - then add noise 
 % - then subsample at a few rates and classify again for each subsampling
 % then if it makes sense, run with multiple contrasts on multiple runs
+
+lateNoiseLevel   = 1;    % 
+downSampleFactor = [1 2 4];    % downsample factor
+datatypes = {'absorptions','Filtered', 'LateNoise','DownSampled1','DownSampled2','DownSampled3'};
+[numTrials, cols, rows] = size(x.Filtered);
+
+latenoise        = randn(numTrials,cols,rows)* lateNoiseLevel;
+x.LateNoise      = x.filtered + latenoise;
+
+for ii = 1:length(downSampleFactor)
+    
+    coneArray = zeros(cols, rows); 
+    rowIndices = 1:downSampleFactor(ii):rows;
+    colIndices = 1:downSampleFactor(ii):cols;
+
+    x.(sprintf('DownSampled%d',ii)) = x.LateNoise(:,colIndices,rowIndices); % cone to RGC sampling + late noise
+end
+
+figure(99); hold all;
+for jj = 1:length(datatypes)
+    
+    data = x.(datatypes{jj});
+    data = reshape(data, numTrials, []);
+    labels = [ones(numTrials/2,1);zeros(numTrials/2,1)];
+    cvmdl = fitcsvm(data, labels, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+    classLoss = kfoldLoss(cvmdl);
+    PercentCorrect(jj) = (1-classLoss) * 100;
+   
+    bar(jj,PercentCorrect(jj)'); set(gca, 'FontSize', 12)
+    
+end
+
+xlabel('Experiment number')
+ylabel('Accuracy')
+ylim([50 100])
+legend(datatypes, 'Location', 'eastoutside');
 
 
 %% visualize the cone currents over time for one trial
