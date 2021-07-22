@@ -33,17 +33,7 @@ function [rgcResponse, rgcarray, DoGfilter, filteredConeCurrent] = rgcLayerLinea
 % Written by EK @ NYU, 2020
 
 %% reshape cone data
-% original: trials x rows x cols x time x stim phase
-% reshaped: rows x cols x time x all trials
-cRows   = size(coneData, 2);
-cCols   = size(coneData, 3);
-cTime   = size(coneData, 4);
-nTrials = size(coneData,1)*size(coneData,5);
-permutedConeData = permute(coneData, [2, 3, 4, 1, 5]);
-reshapedConeData = reshape(permutedConeData, cRows, cCols, cTime, []);
-
-% Create cone array
-conearray = zeros(cCols, cRows);
+[cRows, cCols, ~, ~]   = size(coneData);
 
 % Center Gauss RGC
 sigma.center = rgcParams.cone2RGCRatio*rgcParams.DoG.kc;
@@ -61,25 +51,26 @@ vol.ratio = rgcParams.DoG.ws/rgcParams.DoG.wc;
 rowIndices = 1:rgcParams.cone2RGCRatio:cRows;
 colIndices = 1:rgcParams.cone2RGCRatio:cCols;
 
-rgcarray = conearray;
+rgcarray = zeros(cRows, cCols);
 rgcarray(rowIndices, colIndices) = 1;
 
 % Create DoG filter
 [DoGfilter,xx,yy] = makedog2d(cRows,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
 
-for ii = 1:size(reshapedConeData,4)
+for ii = 1:size(coneData,4)
     
-    for t = 1:size(reshapedConeData,3)
+    for t = 1:size(coneData,3)
         
         % get single time frame image
-        img =  reshapedConeData(:,:,t, ii);
+        img =  coneData(:,:,t, ii);
         
         % mean cone absorption--> get poission noise to pad surround
         mnPad = ones(size(img,1)*2,size(img,2)*2).*mean(img(:));
         if strcmpi(expParams.cparams.noise, 'none')
             mnPadPoisson = mnPad;
         else
-            mnPadPoisson = iePoisson(mnPad, 'noiseFlag', 'random', 'seed', rgcParams.seed);
+            mnPadPoisson = mnPad;
+            %mnPadPoisson = iePoisson(mnPad, 'noiseFlag', 'random', 'seed', rgcParams.seed);
         end
         rowStart = floor(size(img,1)/2)+1;
         colStart = floor(size(img,2)/2)+1;
@@ -95,13 +86,6 @@ for ii = 1:size(reshapedConeData,4)
     end
 end
 
-% reshape rgc response back to original dimensions
-[numRGCRows, numRGCCols, numTimePoints, ~]  = size(rgcResponse);
-rgcResponse = reshape(rgcResponse, numRGCRows, numRGCCols, numTimePoints, nTrials, []);
-rgcResponse = permute(rgcResponse, [4, 1, 2, 3, 5]);
-
-filteredConeCurrent = reshape(filteredConeCurrent, numRGCRows, numRGCCols, numTimePoints, nTrials, []);
-filteredConeCurrent = permute(filteredConeCurrent, [4, 1, 2, 3, 5]);
 
 
 %% Some visualization, if verbose = true

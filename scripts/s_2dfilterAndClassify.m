@@ -9,47 +9,27 @@
 % of downsampling
 %
 % See s_1dfilterAndClassify
+runnum = 1;
 
-pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/conecurrent/defaultnophaseshift/';
-expname = 'contrast0.0500_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
+pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
+expname = 'defaultnophaseshiftlonly500';
+subfolder = sprintf('run%d', runnum);
+expstr = 'contrast0.0090_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
 
 
-for runnum = 1:2%5
-    
-    % load the simulated photocurrent data
-    load(fullfile(pth, sprintf('run%d', runnum), sprintf('current_OGconeOutputs_%s', expname)));
-    
-    % compute the weighted average over time 
-    sz = size(current);
-    nTimePoints = size(current,4);
-    stim = zeros(1,nTimePoints);
-    stim(1:28) = 1;                         % stimulus was on for 28 2-ms time bins (i.e., 56 ms)
-    wTime = conv(stim, interpFilters(:,3)); % convolve with l-cone temporal filter
-    wTime = wTime(1:nTimePoints);           % limit to length of simulated data
-    wTime = wTime / sum(wTime);             % normalize to sum of 1 for weighted average
-    
-    % initialize an array to store the weighted sum of the current data for
-    % this run
-    currentmnrun = zeros(sz(1), sz(2), sz(3), 1, sz(5));
-    
-    % computed the weighted average
-    for ii = 1:nTimePoints
-        currentmnrun = currentmnrun + current(:,:,:,ii,:)*wTime(ii);
-    end
-    
-    % concatenate across runs
-    if runnum == 1, currentmn = currentmnrun;
-    else, currentmn = cat(1, currentmn, currentmnrun); end
-    
-    % load the simulate absorption data
-    %load(fullfile(pth, sprintf('run%d', runnum), sprintf('OGconeOutputs_%s', expname)));
-    
-end
 
-% load the classification data
-expname = 'contrast0.1000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
-classify_absorptions = load(fullfile(pth, 'onlyL', sprintf('run%d', runnum), sprintf('Classify_coneOutputs_%s', expname)));
-classify_currents    = load(fullfile(pth, 'onlyL', sprintf('run%d', runnum), sprintf('current_Classify_coneOutputs_%s', expname)));
+% load the simulated photocurrent data
+load(fullfile(pth, 'conecurrent', expname, subfolder, ...
+    sprintf('currentMn_OGconeOutputs_%s', expstr)));
+
+% load the simulated absorption data
+load(fullfile(pth, 'coneabsorptions', expname, subfolder, ...
+    sprintf('Mn_OGconeOutputs_%s', expstr)));
+
+%{
+ load the classification data
+classify_absorptions = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('Classify_coneOutputs_%s', expname)));
+classify_currents    = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('currentClassify_coneOutputs_%s', expname)));
 
 
 figure, 
@@ -57,7 +37,12 @@ plot(classify_absorptions.expParams.contrastLevelsPC, classify_absorptions.accur
     classify_absorptions.expParams.contrastLevelsPC, classify_currents.accuracy, ...
     'o-', 'LineWidth', 3, 'MarkerSize', 12); set(gca, 'XScale', 'log');
 
+%}
+
 %% filter the data
+x.absorptions = pf5Dto4D(absorptions); 
+x.current     = pf5Dto4D(current);
+clear absorptions current;
 
 % Define general RGC params
 rgcParams = struct();
@@ -77,24 +62,6 @@ rgcParams.cone2RGCRatio = ratio;           % linear ratio
 rgcParams.seed       = runnum;
 cone2RGCRatio        = ratio;
 
-
-nTimePoints = size(absorptions,4); 
-stim = zeros(1,nTimePoints);
-stim(1:28) = 1;
-wTime = conv(stim, interpFilters(:,3));
-wTime = wTime(1:nTimePoints);
-wTime = wTime / sum(wTime);
-
-% run the filter on the cone absorptions averaged over the stimulus time
-% points
-x.absorptions = mean(absorptions(:,:,:,1:28,:), 4);
-x.current     = zeros(size(x.absorptions));
-
-for ii = 1:nTimePoints
-    x.current = x.current + current(:,:,:,ii,:)*wTime(ii);
-end
-
-[x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.absorptions, rgcParams, expParams);
 [x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.current, rgcParams, expParams);
 
 %% next we need to 
@@ -106,18 +73,18 @@ end
 lateNoiseLevel   = 1;    % 
 downSampleFactor = [1 2 3 4 5];    % downsample factor
 datatypes = {'absorptions', 'current', 'Filtered', 'LateNoise','DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
-[numTrials, cols, rows] = size(x.Filtered);
+[rows, cols, nTimePoints, nTrials] = size(x.Filtered);
 
-latenoise        = randn(numTrials,cols,rows)* lateNoiseLevel;
+latenoise        = randn(rows, cols,nTimePoints, nTrials)* lateNoiseLevel;
 x.LateNoise      = x.Filtered + latenoise;
 
 for ii = 1:length(downSampleFactor)
     
-    coneArray = zeros(cols, rows); 
+    coneArray = zeros(rows, cols); 
     rowIndices = 1:downSampleFactor(ii):rows;
     colIndices = 1:downSampleFactor(ii):cols;
 
-    x.(sprintf('DownSampled%d',ii)) = x.LateNoise(:,colIndices,rowIndices); % cone to RGC sampling + late noise
+    x.(sprintf('DownSampled%d',ii)) = x.LateNoise(rowIndices, colIndices,:,:); % cone to RGC sampling + late noise
 end
 
 figure(99); clf; hold all;
@@ -139,6 +106,9 @@ xlabel('Experiment number')
 ylabel('Accuracy')
 ylim([50 100])
 legend(datatypes, 'Location', 'eastoutside');
+
+%% MAYBE END HERE
+
 
 
 %% visualize the cone currents over time for one trial
