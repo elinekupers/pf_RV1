@@ -14,41 +14,13 @@ runnum = 1;
 pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
 expname = 'defaultnophaseshiftlonly500';
 subfolder = sprintf('run%d', runnum);
-expstr = 'contrast0.0090_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
-
-
-
-% load the simulated photocurrent data
-load(fullfile(pth, 'conecurrent', expname, subfolder, ...
-    sprintf('currentMn_OGconeOutputs_%s', expstr)));
-
-% load the simulated absorption data
-load(fullfile(pth, 'coneabsorptions', expname, subfolder, ...
-    sprintf('Mn_OGconeOutputs_%s', expstr)));
-
-%{
- load the classification data
-classify_absorptions = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('Classify_coneOutputs_%s', expname)));
-classify_currents    = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('currentClassify_coneOutputs_%s', expname)));
-
-
-figure, 
-plot(classify_absorptions.expParams.contrastLevelsPC, classify_absorptions.accuracy,'o-', ...
-    classify_absorptions.expParams.contrastLevelsPC, classify_currents.accuracy, ...
-    'o-', 'LineWidth', 3, 'MarkerSize', 12); set(gca, 'XScale', 'log');
-
-%}
-
-%% filter the data
-x.absorptions = pf5Dto4D(absorptions); 
-x.current     = pf5Dto4D(current);
-clear absorptions current;
+expParams = loadExpParams(expname);
 
 % Define general RGC params
 rgcParams = struct();
 rgcParams.verbose    = false; % print figures or not
 rgcParams.saveFigs   = false;
-rgcParams.expName    = 'defaultnophaseshift';
+rgcParams.expName    = expname;
 rgcParams.subFolder  = [];
 
 % Define DoG Params
@@ -57,55 +29,107 @@ rgcParams.DoG.kc     = 1/3;                % Gauss center sigma. (Bradley et al.
 rgcParams.DoG.ks     = rgcParams.DoG.kc*6;  % Gauss surround sigma. Range: ks > kc. (Bradley et al. 2014 paper has ks = 10.1)
 rgcParams.DoG.wc     = 0.64;               % DoG center Gauss weight. Range: [0,1]. (Bradley et al. 2014 paper has ws = 0.53)
 rgcParams.DoG.ws     = 1-rgcParams.DoG.wc; % DoG surround Gauss weight. Range: [0,1].
-rgcParams.inputType  = 'absorptions';          % are we dealing with cone absorptions or current?
+rgcParams.inputType  = 'current';          % are we dealing with cone absorptions or current?
 rgcParams.cone2RGCRatio = ratio;           % linear ratio
 rgcParams.seed       = runnum;
 cone2RGCRatio        = ratio;
 
-[x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.current, rgcParams, expParams);
-
-%% next we need to 
-% - classify the filtered data
-% - then add noise 
-% - then subsample at a few rates and classify again for each subsampling
-% then if it makes sense, run with multiple contrasts on multiple runs
-
-lateNoiseLevel   = 1;    % 
+% Define late noise level and downsample factors
+lateNoiseLevel   = 1;    %
 downSampleFactor = [1 2 3 4 5];    % downsample factor
 datatypes = {'absorptions', 'current', 'Filtered', 'LateNoise','DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
-[rows, cols, nTimePoints, nTrials] = size(x.Filtered);
 
-latenoise        = randn(rows, cols,nTimePoints, nTrials)* lateNoiseLevel;
-x.LateNoise      = x.Filtered + latenoise;
 
-for ii = 1:length(downSampleFactor)
+for c = 1:length(expParams.contrastLevels)
+    contrast = expParams.contrastLevels(c);
+    fprintf('Contrast %1.4f..\n',contrast)
+
+    expstr = sprintf('contrast%1.4f_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat',contrast);
     
-    coneArray = zeros(rows, cols); 
-    rowIndices = 1:downSampleFactor(ii):rows;
-    colIndices = 1:downSampleFactor(ii):cols;
+    % load the simulated photocurrent data
+    load(fullfile(pth, 'conecurrent', expname, subfolder, ...
+        sprintf('currentMn_OGconeOutputs_%s', expstr)));
+    
+    % load the simulated absorption data
+    load(fullfile(pth, 'coneabsorptions', expname, subfolder, ...
+        sprintf('Mn_OGconeOutputs_%s', expstr)));
+    
+    %{
+     load the classification data
+    classify_absorptions = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('Classify_coneOutputs_%s', expname)));
+    classify_currents    = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('currentClassify_coneOutputs_%s', expname)));
 
-    x.(sprintf('DownSampled%d',ii)) = x.LateNoise(rowIndices, colIndices,:,:); % cone to RGC sampling + late noise
+
+    figure,
+    plot(classify_absorptions.expParams.contrastLevelsPC, classify_absorptions.accuracy,'o-', ...
+        classify_absorptions.expParams.contrastLevelsPC, classify_currents.accuracy, ...
+        'o-', 'LineWidth', 3, 'MarkerSize', 12); set(gca, 'XScale', 'log');
+
+        %}
+        
+    %% filter the data
+    x.absorptions = pf5Dto4D(absorptions);
+    x.current     = pf5Dto4D(current);
+    clear absorptions current;
+
+    [x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.current, rgcParams, expParams);
+
+    %% next we need to
+    % - classify the filtered data
+    % - then add noise
+    % - then subsample at a few rates and classify again for each subsampling
+    % then if it makes sense, run with multiple contrasts on multiple runs
+    [rows, cols, nTimePoints, numTrials] = size(x.Filtered);
+
+    latenoise        = randn(rows, cols,nTimePoints, numTrials)* lateNoiseLevel;
+    x.LateNoise      = x.Filtered + latenoise;
+
+    for ii = 1:length(downSampleFactor)
+
+        coneArray = zeros(rows, cols);
+        rowIndices = 1:downSampleFactor(ii):rows;
+        colIndices = 1:downSampleFactor(ii):cols;
+
+        x.(sprintf('DownSampled%d',ii)) = x.LateNoise(rowIndices, colIndices,:,:); % cone to RGC sampling + late noise
+    end
+
+%     figure(99); clf; hold all;
+    for jj = 1:length(datatypes)
+        fprintf('%d..',jj)
+        data = x.(datatypes{jj});
+        data = reshape(data, numTrials, []);
+        labels = [ones(numTrials/2,1);zeros(numTrials/2,1)];
+        cvmdl = fitcsvm(data, labels, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+        classLoss = kfoldLoss(cvmdl);
+        PercentCorrect(c,jj) = (1-classLoss) * 100;
+
+        %     bar(jj,PercentCorrect(jj)'); set(gca, 'FontSize', 12)
+        %     ylim([50 100])
+
+    end
+     fprintf('Done!\n')   
 end
 
-figure(99); clf; hold all;
-for jj = 1:length(datatypes)
-    disp(jj)
-    data = x.(datatypes{jj});
-    data = reshape(data, numTrials, []);
-    labels = [ones(numTrials/2,1);zeros(numTrials/2,1)];
-    cvmdl = fitcsvm(data, labels, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
-    classLoss = kfoldLoss(cvmdl);
-    PercentCorrect(jj) = (1-classLoss) * 100;
-   
-    bar(jj,PercentCorrect(jj)'); set(gca, 'FontSize', 12)
-    ylim([50 100])
-    
-end
+return
 
-xlabel('Experiment number')
-ylabel('Accuracy')
-ylim([50 100])
-legend(datatypes, 'Location', 'eastoutside');
+% xlabel('Experiment number')
+% ylabel('Accuracy')
+% ylim([50 100])
+% legend(datatypes, 'Location', 'eastoutside');
+
+zeroContrast = 1e-4;
+xticks = [expParams.contrastLevelsPC([2,11,21,31])];
+colors = parula(size(PercentCorrect,2)+1);
+figure(2); clf; set(gcf, 'color','w'); hold all;
+for ii = 1:size(PercentCorrect,2)
+    plot(zeroContrast, PercentCorrect(1,ii),'o','color',colors(ii,:), 'LineWidth',2);
+    plot(expParams.contrastLevelsPC(2:end),PercentCorrect(2:end,ii),'o-','color',colors(ii,:), 'LineWidth',2);
+end
+l = findobj(gca);
+legend(l([end-1:-2:1]), datatypes, 'Location', 'eastoutside'); legend boxoff;
+ylabel('Classifier accuracy (% correct)'); xlabel('Stimulus contrast (%)')
+set(gca,'XScale','log','YLim',[40 100], 'TickDir', 'out', 'FontSize',15, ...
+    'XTick',[zeroContrast, xticks], 'XTickLabel',[0 xticks*100]); box off;
 
 %% MAYBE END HERE
 
@@ -116,12 +140,12 @@ figure(1)
 for ii = 1:28
     subplot(1,2,1)
     jj= ii+10;
-    imagesc(squeeze(current(1,:,:,jj,1)), [-26 -22]); 
-    axis square; title(jj); 
-
+    imagesc(squeeze(current(1,:,:,jj,1)), [-26 -22]);
+    axis square; title(jj);
+    
     subplot(1,2,2)
-    imagesc(squeeze(absorptions(1,:,:,ii,1)), [200 240]); 
-    axis square; title(ii); waitforbuttonpress();%   pause(0.1); 
+    imagesc(squeeze(absorptions(1,:,:,ii,1)), [200 240]);
+    axis square; title(ii); waitforbuttonpress();%   pause(0.1);
 end
 
 %%
@@ -156,13 +180,13 @@ for ii = 1:28
 end
 
 figure(2), clf;
-subplot(131); 
+subplot(131);
 imagesc(squeeze(mean(noiselessAbsorptions(1,:,:,:),4)));
 colorbar; title('Noiseless absorptions'); axis image
-subplot(132); 
+subplot(132);
 imagesc(squeeze(mean(noisyAbsorptions(1,:,:,:,4),4)));
 colorbar; title('Loaded noisy absorptions'); axis image
-subplot(133); 
+subplot(133);
 imagesc(squeeze(mean(noiselessAbsorptions(1,:,:,:),4))-squeeze(mean(noisyAbsorptions(1,:,:,:,4),4)));
 colorbar; title('Difference (the noise)'); axis image
 
