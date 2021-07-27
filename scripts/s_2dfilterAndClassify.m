@@ -97,6 +97,7 @@ for c = 1:length(expParams.contrastLevels)
     for jj = 1:length(datatypes)
         fprintf('%d..',jj)
         data = x.(datatypes{jj});
+        data = permute(data, [4, 1, 2, 3]);
         data = reshape(data, numTrials, []);
         labels = [ones(numTrials/2,1);zeros(numTrials/2,1)];
         cvmdl = fitcsvm(data, labels, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
@@ -110,12 +111,10 @@ for c = 1:length(expParams.contrastLevels)
      fprintf('Done!\n')   
 end
 
-return
+% save classifier accuracy data
+saveStr = 'classifierAccuracy_latenoise_downsampling2.mat';
+save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'PercentCorrect', 'expParams', 'rgcParams')
 
-% xlabel('Experiment number')
-% ylabel('Accuracy')
-% ylim([50 100])
-% legend(datatypes, 'Location', 'eastoutside');
 
 zeroContrast = 1e-4;
 xticks = [expParams.contrastLevelsPC([2,11,21,31])];
@@ -131,6 +130,12 @@ ylabel('Classifier accuracy (% correct)'); xlabel('Stimulus contrast (%)')
 set(gca,'XScale','log','YLim',[40 100], 'TickDir', 'out', 'FontSize',15, ...
     'XTick',[zeroContrast, xticks], 'XTickLabel',[0 xticks*100]); box off;
 
+return
+
+% xlabel('Experiment number')
+% ylabel('Accuracy')
+% ylim([50 100])
+% legend(datatypes, 'Location', 'eastoutside');
 %% MAYBE END HERE
 
 
