@@ -35,7 +35,7 @@ rgcParams.seed       = runnum;
 cone2RGCRatio        = ratio;
 
 % Define late noise level and downsample factors
-lateNoiseLevel   = 1;    %
+lateNoiseLevel   = 2;    %
 downSampleFactor = [1 2 3 4 5];    % downsample factor
 datatypes = {'absorptions', 'current', 'Filtered', 'LateNoise','DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
 
@@ -108,18 +108,24 @@ for c = 1:length(expParams.contrastLevels)
         %     ylim([50 100])
 
     end
-     fprintf('Done!\n')   
+    fprintf('Done!\n')   
+     
+    % save classifier accuracy data
+    saveStr = sprintf('rgcResponses_latenoiselevel%d_withDownsampling_c%d.mat',lateNoiseLevel,c);
+    accuracy = PercentCorrect(c,:);
+    save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'x','accuracy', 'expParams', 'rgcParams')
+    clear accuracy
 end
 
 % save classifier accuracy data
-saveStr = 'classifierAccuracy_latenoise_downsampling2.mat';
+saveStr = sprintf('classifierAccuracy_latenoiselevel%d_withDownsampling.mat',lateNoiseLevel);
 save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'PercentCorrect', 'expParams', 'rgcParams')
 
 
 zeroContrast = 1e-4;
 xticks = [expParams.contrastLevelsPC([2,11,21,31])];
 colors = parula(size(PercentCorrect,2)+1);
-figure(2); clf; set(gcf, 'color','w'); hold all;
+figure(3); clf; set(gcf, 'color','w'); hold all;
 for ii = 1:size(PercentCorrect,2)
     plot(zeroContrast, PercentCorrect(1,ii),'o','color',colors(ii,:), 'LineWidth',2);
     plot(expParams.contrastLevelsPC(2:end),PercentCorrect(2:end,ii),'o-','color',colors(ii,:), 'LineWidth',2);
@@ -129,6 +135,7 @@ legend(l([end-1:-2:1]), datatypes, 'Location', 'eastoutside'); legend boxoff;
 ylabel('Classifier accuracy (% correct)'); xlabel('Stimulus contrast (%)')
 set(gca,'XScale','log','YLim',[40 100], 'TickDir', 'out', 'FontSize',15, ...
     'XTick',[zeroContrast, xticks], 'XTickLabel',[0 xticks*100]); box off;
+title(sprintf('Classifier performance with late noise level %d', lateNoiseLevel));
 
 return
 
