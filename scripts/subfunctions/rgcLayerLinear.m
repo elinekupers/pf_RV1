@@ -55,7 +55,8 @@ rgcarray = zeros(cRows, cCols);
 rgcarray(rowIndices, colIndices) = 1;
 
 % Create DoG filter
-[DoGfilter,xx,yy] = makedog2d(cRows,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+[DoGfilter,xx,yy] = makedog2d(31,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+DoGfilter = DoGfilter / sum(DoGfilter(:));
 
 for ii = 1:size(coneData,4)
     
