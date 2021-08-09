@@ -17,7 +17,7 @@ function dataOut = weightedAverageStimTime(dataIn,interpFilters, meanCur)
         dataOut = dataOut + dataIn(:,:,:,ii,:)*wTime(ii);
     end
     
-    dataOut = dataOut ./sum(dataOut(:));
+    dataOut = dataOut ./mean(dataOut(:), 'omitnan');
     dataOut = dataOut .* meanCur(1);
     
     return
