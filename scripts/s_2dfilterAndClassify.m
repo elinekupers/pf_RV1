@@ -9,10 +9,10 @@
 % of downsampling
 %
 % See s_1dfilterAndClassify
-runnum = 2;
+runnum = 3;
 
 pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
-expname = 'defaultnophaseshiftlonly500';
+expname = 'conedensitynophaseshiftlonly500'; %'defaultnophaseshiftlonly500';
 subfolder = sprintf('run%d', runnum);
 expParams = loadExpParams(expname);
 
@@ -35,26 +35,27 @@ rgcParams.seed       = runnum;
 cone2RGCRatio        = ratio;
 
 % Define late noise level and downsample factors
-lateNoiseLevel   = 1e-6;    %
+lateNoiseLevel   = 1; % std
 downSampleFactor = [1 2 3 4 5];    % downsample factor
 datatypes = {'absorptions', 'current', 'Filtered', 'LateNoise','DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
 
-
-for c = 1:length(expParams.contrastLevels)
-    contrast = expParams.contrastLevels(c);
-    fprintf('Contrast %1.4f..\n',contrast)
-
-    expstr = sprintf('contrast%1.4f_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat',contrast);
-    
-    % load the simulated photocurrent data
-    load(fullfile(pth, 'conecurrent', expname, subfolder, ...
-        sprintf('currentMn_OGconeOutputs_%s', expstr)));
-    
-    % load the simulated absorption data
-    load(fullfile(pth, 'coneabsorptions', expname, subfolder, ...
-        sprintf('Mn_OGconeOutputs_%s', expstr)));
-    
-    %{
+for ec = 1:length(expParams.eccentricities)
+    for c = 1:length(expParams.contrastLevels)
+        contrast = expParams.contrastLevels(c);
+        fprintf('Contrast %1.4f..\n',contrast)
+        
+        expstr = sprintf('contrast%1.4f_pa0_eye00_eccen%1.2f_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat', ...
+            contrast, expParams.eccentricities(ec));
+        
+        % load the simulated photocurrent data
+        load(fullfile(pth, 'conecurrent', expname, subfolder, ...
+            sprintf('currentMn_OGconeOutputs_%s', expstr)));
+        
+        % load the simulated absorption data
+        load(fullfile(pth, 'coneabsorptions', expname, subfolder, ...
+            sprintf('Mn_OGconeOutputs_%s', expstr)));
+        
+        %{
      load the classification data
     classify_absorptions = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('Classify_coneOutputs_%s', expname)));
     classify_currents    = load(fullfile(pth, 'classification', expname, subfolder,  sprintf('currentClassify_coneOutputs_%s', expname)));
@@ -65,61 +66,64 @@ for c = 1:length(expParams.contrastLevels)
         classify_absorptions.expParams.contrastLevelsPC, classify_currents.accuracy, ...
         'o-', 'LineWidth', 3, 'MarkerSize', 12); set(gca, 'XScale', 'log');
 
-        %}
-        
-    %% filter the data
-    x.absorptions = pf5Dto4D(absorptions);
-    x.current     = pf5Dto4D(current);
-    clear absorptions current;
-
-    [x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.current, rgcParams, expParams);
-
-    %% next we need to
-    % - classify the filtered data
-    % - then add noise
-    % - then subsample at a few rates and classify again for each subsampling
-    % then if it makes sense, run with multiple contrasts on multiple runs
-    [rows, cols, nTimePoints, numTrials] = size(x.Filtered);
-
-    latenoise        = randn(rows, cols,nTimePoints, numTrials)* lateNoiseLevel;
-    x.LateNoise      = x.Filtered + latenoise;
-
-    for ii = 1:length(downSampleFactor)
-
-        coneArray = zeros(rows, cols);
-        rowIndices = 1:downSampleFactor(ii):rows;
-        colIndices = 1:downSampleFactor(ii):cols;
-
-        x.(sprintf('DownSampled%d',ii)) = x.LateNoise(rowIndices, colIndices,:,:); % cone to RGC sampling + late noise
+            %}
+            
+            %% filter the data
+            x.absorptions = pf5Dto4D(absorptions);
+            x.current     = pf5Dto4D(current);
+            clear absorptions current;
+            
+            [x.rgcResponse, ~, ~, x.Filtered] = rgcLayerLinear(x.current, rgcParams, expParams);
+            
+            %% next we need to
+            % - classify the filtered data
+            % - then add noise
+            % - then subsample at a few rates and classify again for each subsampling
+            % then if it makes sense, run with multiple contrasts on multiple runs
+            [rows, cols, nTimePoints, numTrials] = size(x.Filtered);
+            
+            latenoise        = randn(rows, cols,nTimePoints, numTrials)* lateNoiseLevel;
+            x.LateNoise      = x.Filtered + latenoise;
+            
+            for ii = 1:length(downSampleFactor)
+                
+                coneArray = zeros(rows, cols);
+                rowIndices = 1:downSampleFactor(ii):rows;
+                colIndices = 1:downSampleFactor(ii):cols;
+                
+                x.(sprintf('DownSampled%d',ii)) = x.LateNoise(rowIndices, colIndices,:,:); % cone to RGC sampling + late noise
+            end
+            
+            %     figure(99); clf; hold all;
+            for jj = 1:length(datatypes)
+                fprintf('%d..',jj)
+                data = x.(datatypes{jj});
+                data = permute(data, [4, 1, 2, 3]);
+                data = reshape(data, numTrials, []);
+                labels = [ones(numTrials/2,1);zeros(numTrials/2,1)];
+                cvmdl = fitcsvm(data, labels, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
+                classLoss = kfoldLoss(cvmdl);
+                PercentCorrect(c,jj) = (1-classLoss) * 100;
+                
+                %     bar(jj,PercentCorrect(jj)'); set(gca, 'FontSize', 12)
+                %     ylim([50 100])
+                
+            end
+            fprintf('Done!\n')
+            
+            % save classifier accuracy data
+            saveStr = sprintf('rgcResponses_latenoiselevel%1.1f_withDownsampling_c%d_eccen%d.mat',lateNoiseLevel,c,ec);
+            accuracy = PercentCorrect(c,:);
+            save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'x','accuracy', 'expParams', 'rgcParams')
+            clear accuracy
     end
-
-%     figure(99); clf; hold all;
-    for jj = 1:length(datatypes)
-        fprintf('%d..',jj)
-        data = x.(datatypes{jj});
-        data = permute(data, [4, 1, 2, 3]);
-        data = reshape(data, numTrials, []);
-        labels = [ones(numTrials/2,1);zeros(numTrials/2,1)];
-        cvmdl = fitcsvm(data, labels, 'Standardize', true, 'KernelFunction', 'linear', 'kFold', 10);
-        classLoss = kfoldLoss(cvmdl);
-        PercentCorrect(c,jj) = (1-classLoss) * 100;
-
-        %     bar(jj,PercentCorrect(jj)'); set(gca, 'FontSize', 12)
-        %     ylim([50 100])
-
-    end
-    fprintf('Done!\n')   
-     
+    
     % save classifier accuracy data
-    saveStr = sprintf('rgcResponses_latenoiselevel%1.6f_withDownsampling_c%d.mat',lateNoiseLevel,c);
-    accuracy = PercentCorrect(c,:);
-    save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'x','accuracy', 'expParams', 'rgcParams')
-    clear accuracy
+    saveStr = sprintf('classifierAccuracy_latenoiselevel%1.1f_eccen%1.2f_withDownsampling.mat', ...
+        lateNoiseLevel, expParams.eccentricities(ec));
+    save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'PercentCorrect', 'expParams', 'rgcParams')
+   
 end
-
-% save classifier accuracy data
-saveStr = sprintf('classifierAccuracy_latenoiselevel%1.6f_withDownsampling.mat',lateNoiseLevel);
-save(fullfile(pth,'conecurrent', expname, subfolder, saveStr), 'PercentCorrect', 'expParams', 'rgcParams')
 
 
 zeroContrast = 1e-4;
