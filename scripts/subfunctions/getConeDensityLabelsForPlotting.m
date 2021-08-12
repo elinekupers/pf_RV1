@@ -24,6 +24,6 @@ function [labels, allDensity] = getConeDensityLabelsForPlotting(expParams)
         cMosaic.setSizeToFOV(cparams.cmFOV);
         allDensity(ec==expParams.eccentricities,:) = eccen2density(cMosaic, 'deg');
 
-        labels{ec==expParams.eccentricities} = sprintf('%2.2f x10^3 cells/deg2', allDensity(ec==expParams.eccentricities)/10.^3);
+        labels{ec==expParams.eccentricities} = sprintf('%2.2fx10^3 cells/deg^2', allDensity(ec==expParams.eccentricities)/10.^3);
     end
 end
