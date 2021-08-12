@@ -14,7 +14,7 @@ dataTypeLabels    = {'absorptions', 'current', 'Filtered', 'LateNoise',...
 
 if saveFig
     figurePth  = fullfile('/Volumes/server/Projects/PerformanceFields_RetinaV1Model/', ...
-            'figures','psychometricCurves', expName, 'current', subFolder);
+            'figures','psychometricCurves', expName, 'current', subfolder);
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
 end
 
@@ -68,13 +68,13 @@ end
 
 for dt = 1:nrDataTypes
 
-    figure(1); clf;
+    figure;
     set(gcf,'Color','w', 'Position',  [1000, 850, 986, 488], ...
         'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s', expName)); 
     hold all;
 
     % Loop over all eccentricities to plot
-    for ii = [1,2] %:nrEccen
+    for ii = 1:nrEccen
 
         % Get data point and fitted Weibull
         dataToPlot = squeeze(weibullFit.data(dt, ii, :));
@@ -101,63 +101,72 @@ for dt = 1:nrDataTypes
     
     if saveFig
         savefName = sprintf('WeibullFit_contrastVSperformance_%s_%s_noiselevel%1.2f',expName, dataTypeLabels{dt}, lateNoiseLevel);
-        savefig(fullfile(figurePth,savefName))
-        hgexport(gcf,fullfile(figurePth,savefName))
+        savefig(fullfile(figurePth,[savefName '.fig']))
+        hgexport(gcf,fullfile(figurePth,[savefName '.eps']))
+        print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
     end
 end
     
 %% Plot contrast thresholds vs downsampling
 
 % Get downsample factors as x-axis
-x = 1./(1:5).^2; 
-xticks = fliplr(x); % get x axis range and xtick labels
+downsampleFactors = 2./(1:5).^2; 
+xticks = fliplr(downsampleFactors); % get x axis range and xtick labels
 for ii = 1:length(xticks) 
     xticklbls{ii} = sprintf('%1.2f', xticks(ii)); 
 end 
-x = x';
+x = downsampleFactors';
 
 % Plot it!
 figure(2); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649]);
 hold all
 
 for ec = 1:nrEccen
+    y = weibullFit.ctrthresh(5:end,ec);
     
-    y = squeeze(weibullFit.ctrthresh(5:end,ec,:));
+    % Use a linear robust fit, in log-log
+    f = robustfit(log10(x),log10(y));
+    f_given_x = 10.^(f(2).*log10(x) + f(1));
     
-    [f, gof] = fit(x,y,'power1'); 
-    R2(ec) = gof.rsquare;
+    % Get R2
+    R2_eccen(ec) = corr(y,f_given_x)^2;
+    
+%     [f, gof] = fit(x,y,'power1', 'Robust','Bisquare'); 
+%     R2_eccen(ec) = gof.rsquare; % Coefficient of Determination
 
-    plot(x, f(x), 'color',colors(ec,:), 'LineWidth', 3); hold all;
+%     plot(x, f(x), 'color',colors(ec,:), 'LineWidth', 3); hold all;
+    plot(x, f_given_x, 'color',colors(ec,:), 'LineWidth', 3); hold all;
     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors(ec,:), 'LineWidth',2);
+    clear f gof
 end
 
 % Make plot pretty
 box off; axis square;
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
     'XScale','log', 'YScale', 'log')
-xlabel('Downsample rate','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
-set(gca, 'XTick',xticks,'XTickLabel',xticklbls, 'XLim', [0.03 1.1]);
+xlabel('Downsample factor','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
+set(gca, 'XTick',xticks,'XTickLabel',xticklbls, 'XLim', [0.06 2.3]);
 
 yrange = [0.01 0.1 1];
-set(gca,'YLim', [0.005 0.1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100));
+set(gca,'YLim', [0.001 1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100));
 set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
     'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 h = findobj(gca,'Type','line');
 legend([h(end:-1:1)],conedensityLabels, 'Location','bestoutside'); legend boxoff
-title(sprintf('Contrast threshold vs downsample rate'))
+title(sprintf('Contrast threshold vs downsample factor'))
 
 if saveFig
     savefName = sprintf('ContrastThreshold_vs_Downsampling_%s_noiselevel%1.2f',expName, lateNoiseLevel);
-    savefig(fullfile(figurePth,savefName))
-    hgexport(gcf,fullfile(figurePth,savefName))
+    savefig(fullfile(figurePth,[savefName '.fig']))
+    hgexport(gcf,fullfile(figurePth,[savefName '.eps']))
+    print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
 end
 
 %% Plot contrast thresholds vs cone density
 
 % Get downsample factors as labels
-downsampleFactors = 1./(1:5).^2; 
 for ii = 1:length(downsampleFactors) 
-    downsamplelbls{ii} = sprintf('RGC:cone = 1:%1.2f', downsampleFactors(ii)); 
+    downsamplelbls{ii} = sprintf('mRGC : cone = %1.2f : 1', downsampleFactors(ii)); 
 end
 
 % Get cone density xticks + labels
@@ -171,35 +180,57 @@ figure(3); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649]);
 hold all
 colors2 = parula(5+1);
 selectDataTypes = 5:nrDataTypes;
+lowess_span = 0.15;
 
-for dt = 1:length(selectDataTypes)
-    
-    y = squeeze(weibullFit.ctrthresh(selectDataTypes(dt),:,:))';
-    
-    [f, gof] = fit(x,y,'power1'); 
-    R2(ec) = gof.rsquare;
+% Fit with meshgrid function (using dummy 2D grid)
+[X,Y] = meshgrid(log10(downsampleFactors),log10(x));
+Z = log10(weibullFit.ctrthresh(selectDataTypes,:))';
+[meshFit, gof] = fit([X(:) Y(:)], Z(:), 'lowess','span',lowess_span);
 
-    plot(x, f(x), 'color',colors2(dt,:), 'LineWidth', 3); hold all;
+% Get R2
+R2_dt = gof.rsquare;
+
+for dt = 1:length(selectDataTypes)    
+    
+    y = weibullFit.ctrthresh(selectDataTypes(dt),:)';
+%     [f, gof] = fit(x,y,'power1'); 
+%     R2_dt(ec) = gof.rsquare;
+    
+%     plot(x, f(x), 'color',colors2(dt,:), 'LineWidth', 3); hold all;
+%     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors2(dt,:), 'LineWidth',2);
+
+    % Extract single lines for separate ratio's
+    f_given_x = 10.^meshFit(X(:,dt),Y(:,dt));
+    plot(x, f_given_x, 'color',colors2(dt,:), 'LineWidth', 3); hold all;
     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors2(dt,:), 'LineWidth',2);
+
 end
 
 % Make plot pretty
 box off; axis square;
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
     'XScale','log', 'YScale', 'log')
-xlabel('Cone density','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
-set(gca, 'XTick',10.^[2:4],'XTickLabel',xlabels, 'XLim', 10.^[1.9 4.1]);
+xlabel('Cone density (cones/deg^2)','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
+set(gca, 'XTick',10.^[2:4],'XTickLabel',xlabels, 'XLim', 10.^[2.5 4.0]);
 
 yrange = [0.01 0.1 1];
-set(gca,'YLim', [0.005 0.1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100));
+set(gca,'YLim', [0.001 1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100));
 set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
     'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 h = findobj(gca,'Type','line');
 legend([h(end:-1:1)],downsamplelbls, 'Location','bestoutside'); legend boxoff
 title(sprintf('Contrast threshold vs cone density'))
 
+% Arrow at 4.5 deg eccentricity
+xArrow = [0.345 0.345];
+yArrow = [0.75 0.65];
+annotation('textarrow',xArrow,yArrow,'String',['4.5' char(176) ' eccen'], ...
+            'FontSize',13,'LineWidth',2)
+
 if saveFig
-    savefName = sprintf('ContrastThreshold_vs_Conedensity_%s_noiselevel%1.2f',expName, lateNoiseLevel);
-    savefig(fullfile(figurePth,savefName))
-    hgexport(gcf,fullfile(figurePth,savefName))
+    savefName = sprintf('ContrastThreshold_vs_Conedensity_%s_noiselevel%1.2f_lowessfit%1.1f', ...
+        expName, lateNoiseLevel, lowess_span);
+    savefig(fullfile(figurePth,[savefName '.fig']))
+    hgexport(gcf,fullfile(figurePth,[savefName '.eps']))
+    print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
 end
