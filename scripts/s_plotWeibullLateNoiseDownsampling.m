@@ -10,8 +10,9 @@ saveFig           = true;
 lateNoiseLevel    = 1;
 dataTypeLabels    = {'absorptions', 'current', 'Filtered', 'LateNoise',...
                     'DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
-downsampleFactors = 2./(1:5).^2; 
-expParams.eccentricities = [1 2 3 4 4.5 5 6 7 10:5:40]; % deg
+downsampleFactors = 2./(1:5).^2;
+expParams.eccentricities = [1:4 4.5 5:8 10:5:40];
+% Convert eccentricity to cone density using Curcio et al. 1990 data
 [conedensityLabels, cDensity] =  getConeDensityLabelsForPlotting(expParams);
 
 if saveFig
@@ -28,28 +29,26 @@ logzero = 1e-4;
 nrDataTypes = length(dataTypeLabels);
 nrEccen     = length(expParams.eccentricities);
 colors      = jet(nrEccen+1);
+% Finely sample contrast levels to extract contrast threshold from Weibull
 xUnits      = logspace(log10(logzero),log10(max(expParams.contrastLevels)), 500);
 
-% Predefine cell arrays
+% Predefine arrays for Weibull fits and params
 weibullFit = struct();
 weibullFit.ctrvar       = NaN(nrDataTypes,nrEccen, 2); % estimated variables
 weibullFit.ctrpred      = NaN(nrDataTypes,nrEccen, length(xUnits)); % estimated fine sampled Weibull prediction
 weibullFit.data         = NaN(nrDataTypes,nrEccen, length(expParams.contrastLevels));
 weibullFit.ctrthresh    = NaN(nrDataTypes,nrEccen, 1); % final threshold
-weibullFit.init = [3, 0.01];
+weibullFit.init = [3, 0.01]; % slope (at ~80%) and initial threshold
 
 
 %% 2. Fit!
 for eccen = 1:nrEccen
     loadStr = sprintf('classifierAccuracy_latenoiselevel%1.1f_eccen%1.2f_withDownsampling.mat', ...
                     lateNoiseLevel, expParams.eccentricities(eccen));
-    load(fullfile(pth,'conecurrent', expName, subfolder, loadStr), 'PercentCorrect')
+    load(fullfile(pth,'conecurrent', expName, subfolder, 'classifierAccuracy',loadStr), 'PercentCorrect')
     
     % Fit Weibull
     for dt = 1:nrDataTypes
-%         if dt == 1 
-%             weibullFit.init = [2, 0.001];
-%         end
         accuracy = PercentCorrect(:,dt);
         w = fitWeibullToClassifierAccuracy(expParams.contrastLevels, accuracy, weibullFit.init, xUnits);
         
@@ -153,7 +152,7 @@ subplot(1,3,3); hold all;
 preDownsampledDataToPlot = weibullFit.ctrthresh(1:3, :);
 
 for m = 1:size(preDownsampledDataToPlot,2)
-    scatter([1:3], preDownsampledDataToPlot(:,m), 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors(m,:), 'LineWidth',2);
+    scatter([3 2 1], preDownsampledDataToPlot(:,m), 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors(m,:), 'LineWidth',2);
 end
 
 
@@ -161,8 +160,7 @@ end
 box off; 
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
     'XScale','linear', 'YScale', 'log')
-xlabel('Data types','FontSize',20);
-set(gca, 'XTick',[1:3],'XTickLabel',{'Absorptions','Current','Filtered'},...
+set(gca, 'XTick',[1:3],'XTickLabel',fliplr({'Absorptions','Current','Filtered'}),...
     'XTickLabelRotation', 15);
 set(gca,'XLim', [0.5 3.5]);
 
@@ -197,7 +195,7 @@ hold all
 colors2 = parula(5+1);
 
 selectDataTypes = 5:nrDataTypes;
-lowess_span = 0.25;
+lowess_span = 0.2;
 
 % Fit with meshgrid function (using dummy 2D grid)
 [X,Y] = meshgrid(log10(downsampleFactors),log10(x));
@@ -276,7 +274,7 @@ legend([h(end:-1:1)],allDataTypeLabels, 'Location','bestoutside'); legend boxoff
 title(sprintf('Contrast threshold vs cone density'))
 
 % Arrow at 4.5 deg eccentricity
-xArrow = [0.345 0.345]; % coordinates normalized to figure size, will change if figure size changes
+xArrow = [0.35 0.35]; % coordinates normalized to figure size, will change if figure size changes
 yArrow = [0.75 0.65];
 annotation('textarrow',xArrow,yArrow,'String',['4.5' char(176) ' eccen'], ...
             'FontSize',13,'LineWidth',2)
@@ -327,13 +325,13 @@ predictedContrastThreshold = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAt
 
 %% 7. Make 3D mesh plot
 
-selectDataTypes = 5:nrDataTypes;
-lowess_span = 0.25;
-
-% Fit with meshgrid function (using dummy 2D grid)
-[X,Y] = meshgrid(log10(downsampleFactors),log10(x));
-Z = log10(weibullFit.ctrthresh(selectDataTypes,:))';
-[meshFit, gof] = fit([X(:) Y(:)], Z(:), 'lowess','span',lowess_span);
+% selectDataTypes = 5:nrDataTypes;
+% lowess_span = 0.25;
+% 
+% % Fit with meshgrid function (using dummy 2D grid)
+% [X,Y] = meshgrid(log10(downsampleFactors),log10(x));
+% Z = log10(weibullFit.ctrthresh(selectDataTypes,:))';
+% [meshFit, gof] = fit([X(:) Y(:)], Z(:), 'lowess','span',lowess_span);
 
 
 fH4 = figure(4); clf; set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
@@ -406,16 +404,16 @@ end
 
 % Convert predicted thresholds from log10 fraction to fraction
 % Retinal coords: % nasal, superior, temporal, inferior
-prediction_retina.rgc.cThresholds.mean = predictedContrastThreshold;
-prediction_retina.cones.cThresholds.mean = f_absorptions(observedConesAtEccen); 
-prediction_retina.current.cThresholds.mean = 10.^meshFit2([1,2,3,4],log10(observedConesAtEccen))';
+prediction_retina.rgc.cThresholds.mean      = predictedContrastThreshold;
+prediction_retina.cones.cThresholds.mean    = f_absorptions(observedConesAtEccen); 
+prediction_retina.current.cThresholds.mean  = 10.^meshFit2([1,1,1,1],log10(observedConesAtEccen))';
 
 % Convert thresholds to sensitivity
-prediction_retina.rgc.sensitivity.mean = 1./prediction_retina.rgc.cThresholds.mean;
-prediction_retina.cones.sensitivity.mean = 1./prediction_retina.cones.cThresholds.mean;
-prediction_retina.current.sensitivity.mean = 1./prediction_retina.current.cThresholds.mean;
+prediction_retina.rgc.sensitivity.mean      = 1./prediction_retina.rgc.cThresholds.mean;
+prediction_retina.cones.sensitivity.mean    = 1./prediction_retina.cones.cThresholds.mean;
+prediction_retina.current.sensitivity.mean  = 1./prediction_retina.current.cThresholds.mean;
 
-%% Define error margins in terms of cone density, i.e.:
+% Define error margins in terms of cone density, i.e.:
 % Double (upper bound) or half (lower bound) the difference in cone density from the mean, for each meridian
 averageConeDensity_stimeccen = mean(observedConesAtEccen);
 
@@ -427,42 +425,42 @@ end
 % upper = - doubling diff in cone density from the mean
 % lower = + doubling diff in cone density from the mean
 
+% RGCs: Linear fit in log10-log10, hence we convert inputs and outputs
 prediction_retina.rgc.cThresholds.error.upper = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'-errorRatioConeDensity));
 prediction_retina.rgc.cThresholds.error.lower = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'+errorRatioConeDensity));
 
+% Cones: Powerlaw fit so no log10() conversion for inputs and no 10.^() conversion
+% for outputs
 prediction_retina.cones.cThresholds.error.upper = f_absorptions(observedConesAtEccen'-errorRatioConeDensity);
 prediction_retina.cones.cThresholds.error.lower = f_absorptions(observedConesAtEccen'+errorRatioConeDensity);
 
+% Current: Linear fit in log10-log10, hence we convert inputs and outputs
 prediction_retina.current.cThresholds.error.upper = 10.^meshFit2([1 1 1 1],log10(observedConesAtEccen'-errorRatioConeDensity));
 prediction_retina.current.cThresholds.error.lower = 10.^meshFit2([1 1 1 1],log10(observedConesAtEccen'+errorRatioConeDensity));
 
+% Convert retinal coords into visual coords: 
+% Retina to visual field, where we average nasal/retina:
+%   HVM (average nasal & temporal), UVM (inferior), LVM (superior)
+r2VF_wMeanHorz  = @(data) [mean([data(1),data(3)]),data(4),data(2)];
+% Visual field to retina, so flip upper/lower VF, no averaging of horizontal
+%   left, upper, right, lower VF --> nasal, superior, temporal, inferior
+vf2r            = @(data) [data(1),data(4),data(3),data(2)];
+% Visual field to visual field where we average nasal/retina
+%   left, upper, right, lower VF --> horizontal, upper, lower VF
+vf2vf_wMeanHorz = @(data) [mean([data(1),data(3)]),data(2),data(4)]; 
 
 % Convert error mRGC thresholds to sensitivity
-prediction_retina.rgc.sensitivity.error.upper = 1./prediction_retina.rgc.cThresholds.error.upper;
-prediction_retina.rgc.sensitivity.error.lower = 1./prediction_retina.rgc.cThresholds.error.lower;
+modelStages = {'cones','current','rgc'};
+for ii = 1:length(modelStages)
+    prediction_retina.(modelStages{ii}).sensitivity.error.upper = 1./prediction_retina.(modelStages{ii}).cThresholds.error.upper;
+    prediction_retina.(modelStages{ii}).sensitivity.error.lower = 1./prediction_retina.(modelStages{ii}).cThresholds.error.lower;
 
-prediction_retina.cones.sensitivity.error.upper = 1./prediction_retina.cones.cThresholds.error.upper;
-prediction_retina.cones.sensitivity.error.lower = 1./prediction_retina.cones.cThresholds.error.lower;
+    prediction_visualfield.(modelStages{ii}).sensitivity.mean_wHorz = r2VF_wMeanHorz(prediction_retina.(modelStages{ii}).sensitivity.mean);
+    prediction_visualfield.(modelStages{ii}).sensitivity.error.upper_wHorz = r2VF_wMeanHorz(prediction_retina.(modelStages{ii}).sensitivity.error.upper);
+    prediction_visualfield.(modelStages{ii}).sensitivity.error.lower_wHorz = r2VF_wMeanHorz(prediction_retina.(modelStages{ii}).sensitivity.error.lower);
 
-prediction_retina.current.sensitivity.error.upper = 1./prediction_retina.current.cThresholds.error.upper;
-prediction_retina.current.sensitivity.error.lower = 1./prediction_retina.current.cThresholds.error.lower;
+end
 
-% Convert retinal coords into visual coords: HVM, UVM (inferior), LVM (superior)
-r2VF_wMeanHorz  = @(data) [mean([data(1),data(3)]),data(4),data(2)]; % retina to visual field, where we average nasal/retina
-vf2r            = @(data) [data(1),data(4),data(3),data(2)];         % visual field to retina, no averaging
-vf2vf_wMeanHorz = @(data) [mean([data(1),data(3)]),data(2),data(4)]; % visual field to visual field where we average nasal/retina
-
-prediction_visualfield.rgc.sensitivity.mean_wHorz = r2VF_wMeanHorz(prediction_retina.rgc.sensitivity.mean');
-prediction_visualfield.rgc.sensitivity.error.upper_wHorz = r2VF_wMeanHorz(prediction_retina.rgc.sensitivity.error.upper');
-prediction_visualfield.rgc.sensitivity.error.lower_wHorz = r2VF_wMeanHorz(prediction_retina.rgc.sensitivity.error.lower');
-
-prediction_visualfield.cones.sensitivity.mean_wHorz = r2VF_wMeanHorz(prediction_retina.cones.sensitivity.mean');
-prediction_visualfield.cones.sensitivity.error.upper_wHorz = r2VF_wMeanHorz(prediction_retina.cones.sensitivity.error.upper');
-prediction_visualfield.cones.sensitivity.error.lower_wHorz = r2VF_wMeanHorz(prediction_retina.cones.sensitivity.error.lower');
-
-prediction_visualfield.current.sensitivity.mean_wHorz = r2VF_wMeanHorz(prediction_retina.current.sensitivity.mean');
-prediction_visualfield.current.sensitivity.error.upper_wHorz = r2VF_wMeanHorz(prediction_retina.current.sensitivity.error.upper');
-prediction_visualfield.current.sensitivity.error.lower_wHorz = r2VF_wMeanHorz(prediction_retina.current.sensitivity.error.lower');
 
 %% Get observed behavior + error
 % OBSERVED Left HM, UVM, Right HM, LVM
@@ -474,61 +472,45 @@ observed_retina.sensitivity.mean       = vf2r(observed_visualfield.sensitivity.m
 observed_visualfield.sensitivity.mean_wHorz  = vf2vf_wMeanHorz(observed_visualfield.sensitivity.mean);
 observed_visualfield.sensitivity.error_wHorz = vf2vf_wMeanHorz(observed_visualfield.sensitivity.error);
 
-
 %% HVA VMA calc
+
 HVAmean.obs         = hva(observed_retina.sensitivity.mean);
 VMAmean.obs         = vma(observed_retina.sensitivity.mean);
-
-HVAmean.predRGC     = hva(prediction_retina.rgc.sensitivity.mean);
-VMAmean.predRGC     = vma(prediction_retina.rgc.sensitivity.mean);
-
-HVAmean.predCones   = hva(prediction_retina.cones.sensitivity.mean);
-VMAmean.predCones   = vma(prediction_retina.cones.sensitivity.mean);
-
-HVAmean.predCurrent = hva(prediction_retina.current.sensitivity.mean);
-VMAmean.predCurrent = vma(prediction_retina.current.sensitivity.mean);
 
 HVAerror.obs       = HVAmean.obs + [-6.90, 6.90]; %  From Himmelberg et al. (2020) 
 VMAerror.obs       = VMAmean.obs + [-5.65,5.65];  %  From Himmelberg et al. (2020)
 
-HVAerror.predCones = [hva(prediction_retina.cones.sensitivity.error.lower), hva(prediction_retina.cones.sensitivity.error.upper)];
-VMAerror.predCones = [vma(prediction_retina.cones.sensitivity.error.lower), vma(prediction_retina.cones.sensitivity.error.upper)];
+modelStages = {'cones','current','rgc'};
+for ii = 1:length(modelStages)
+    HVAmean.(modelStages{ii}) = hva(prediction_retina.(modelStages{ii}).sensitivity.mean);
+    VMAmean.(modelStages{ii}) = vma(prediction_retina.(modelStages{ii}).sensitivity.mean);
+    
+    HVAerror.(modelStages{ii})   = [hva(prediction_retina.(modelStages{ii}).sensitivity.error.lower), ...
+                                    hva(prediction_retina.(modelStages{ii}).sensitivity.error.upper)];
+    VMAerror.(modelStages{ii})   = [vma(prediction_retina.(modelStages{ii}).sensitivity.error.lower), ...
+                                    vma(prediction_retina.(modelStages{ii}).sensitivity.error.upper)];
+                                
+    fprintf('HVA predicted for %s \t %1.2f%% [%1.2f%% %1.2f%%]\n', modelStages{ii}, ...
+        HVAmean.(modelStages{ii}), HVAerror.(modelStages{ii}))
+    fprintf('VMA predicted for %s \t %1.2f%% [%1.2f%% %1.2f%%]\n', modelStages{ii}, ...
+        VMAmean.(modelStages{ii}), VMAerror.(modelStages{ii}))
+    fprintf('\n')
+end
 
-HVAerror.predRGC   = [hva(prediction_retina.rgc.sensitivity.error.lower), hva(prediction_retina.rgc.sensitivity.error.upper)];
-VMAerror.predRGC   = [vma(prediction_retina.rgc.sensitivity.error.lower), vma(prediction_retina.rgc.sensitivity.error.upper)];
+combHVA = [HVAmean.cones, HVAmean.current, HVAmean.rgc, HVAmean.obs];
+combVMA = [VMAmean.cones, VMAmean.current, VMAmean.rgc, VMAmean.obs];
 
-HVAerror.predCurrent = [hva(prediction_retina.current.sensitivity.error.lower), hva(prediction_retina.current.sensitivity.error.upper)];
-VMAerror.predCurrent = [vma(prediction_retina.current.sensitivity.error.lower), vma(prediction_retina.current.sensitivity.error.upper)];
-
-
-combHVA = [HVAmean.predCones, HVAmean.predCurrent, HVAmean.predRGC, HVAmean.obs];
-combVMA = [VMAmean.predCones, VMAmean.predCurrent, VMAmean.predRGC, VMAmean.obs];
-
-errorCombHVA = [HVAerror.predCones(1), HVAerror.predCurrent(1), HVAerror.predRGC(1), HVAerror.obs(1); ...
-                HVAerror.predCones(2), HVAerror.predCurrent(2), HVAerror.predRGC(2), HVAerror.obs(2)];
+errorCombHVA = [HVAerror.cones(1), HVAerror.current(1), HVAerror.rgc(1), HVAerror.obs(1); ...
+                HVAerror.cones(2), HVAerror.current(2), HVAerror.rgc(2), HVAerror.obs(2)];
             
-errorCombVMA = [VMAerror.predCones(1), VMAerror.predCurrent(1), VMAerror.predRGC(1), VMAerror.obs(1); ...
-                VMAerror.predCones(2), VMAerror.predCurrent(2), VMAerror.predRGC(2), VMAerror.obs(2)];
-
-
-fprintf('HVA predicted for cones \t %1.2f%% \n',HVAmean.predCones)
-fprintf('VMA predicted for cones \t %1.2f%% \n', VMAmean.predRGC)
-
-fprintf('HVA predicted for current \t %1.2f%% \n',HVAmean.predCurrent)
-fprintf('VMA predicted for current \t %1.2f%% \n',VMAmean.predCurrent)
-
-fprintf('HVA predicted for mRGC \t\t %1.2f%% \n', HVAmean.predRGC)
-fprintf('VMA predicted for mRGC \t\t %1.2f%% \n', VMAmean.predRGC)
-
-fprintf('HVA observed in behavior \t %1.2f%% \n', HVAmean.obs)
-fprintf('VMA observed in behavior \t %1.2f%% \n', VMAmean.obs)
-
+errorCombVMA = [VMAerror.cones(1), VMAerror.current(1), VMAerror.rgc(1), VMAerror.obs(1); ...
+                VMAerror.cones(2), VMAerror.current(2), VMAerror.rgc(2), VMAerror.obs(2)];
 
 %% Bar plot to compare predictions against behavior
-
 condNames   = {'HVM', 'UVM','LVM'};
 condColor   = [63, 121, 204; 0 206 209; 228, 65, 69;150 123 182]/255;
 yl          = [0 4];
+
 fH5 = figure(5); set(fH5, 'position',[139,244,1373,543], 'color', 'w'); clf; hold all;
 
 % Plot prediction for cones
@@ -585,8 +567,7 @@ set(gca,'Xlim',[0,5],'Ylim',[-40 60], 'TickDir', 'out', 'XTick', [1, 2.5], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
 
-
-
+% Save figure if requested
 if saveFig
     hgexport(fH5, fullfile(figurePth, 'Sensitivity_Model_vs_Behavior_4_5eccen_lateNoiseRGCModel.eps'))
     savefig(fH5, fullfile(figurePth, 'Sensitivity_Model_vs_Behavior_4_5eccen_lateNoiseRGCModel.fig'))
