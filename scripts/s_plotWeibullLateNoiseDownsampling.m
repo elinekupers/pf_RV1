@@ -63,7 +63,6 @@ end
 %% 3. Visualize weibulls per cone density and datatype
 
 for dt = 1:nrDataTypes
-
     figure;
     set(gcf,'Color','w', 'Position',  [1000, 850, 986, 488], ...
         'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s', expName)); 
@@ -82,19 +81,19 @@ for dt = 1:nrDataTypes
         
         % Plot zero at an arbitrary small nr, because log x-scale ignores 0
         plot(logzero,dataToPlot(1),'o','Color',colors(ii,:), 'MarkerSize', 8, 'MarkerFaceColor',colors(ii,:))
-
     end
-
+    
+    % Make axes pretty
     xticks = [0.001 0.01 0.1 1];
     set(gca, 'XScale','log','XLim',[logzero, max(expParams.contrastLevels)],'YLim', [40 100], 'TickDir','out','TickLength',[.015 .015],'FontSize',17, 'LineWidth',2);
     set(gca, 'XTick', [logzero, xticks], 'XTickLabel',sprintfc('%1.1f',[0 xticks*100]))
-
     ylabel('Classifier Accuracy (% Correct)', 'FontSize',17)
     xlabel('Stimulus Contrast (%)', 'FontSize',17);
     title(sprintf('Classifier accuracy vs cone density: %s', dataTypeLabels{dt}))
     h = findobj(gca,'Type','line');
     legend([h(end:-2:2)],conedensityLabels, 'Location','bestoutside'); legend boxoff
     
+    % Save figure if requested
     if saveFig
         savefName = sprintf('WeibullFit_contrastVSperformance_%s_%s_noiselevel%1.2f',expName, dataTypeLabels{dt}, lateNoiseLevel);
         savefig(fullfile(figurePth,[savefName '.fig']))
@@ -112,12 +111,13 @@ for ii = 1:length(xticks)
 end 
 x = downsampleFactors';
 
-% Plot it!
+% Set up figure
 figure(2); clf; set(gcf, 'Color', 'w', 'Position', [394,225,1127,580]);
 subplot(1,3,[1 2]);
 hold all
 
 for ec = 1:nrEccen
+    % Get contrast thresholds for downsampled data
     y = weibullFit.ctrthresh(5:end,ec);
     
     % Use a linear robust fit, in log-log
@@ -127,27 +127,26 @@ for ec = 1:nrEccen
     % Get R2
     R2_eccen(ec) = corr(y,f_given_x)^2;
     
+    % Plot it!
     plot(x, f_given_x, 'color',colors(ec,:), 'LineWidth', 3); hold all;
     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors(ec,:), 'LineWidth',2);
     clear f gof
 end
 
 % Make plot pretty
-box off; axis square;
-set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
-    'XScale','log', 'YScale', 'log')
+box off; axis square; yrange = [0.01 0.1 1];
 xlabel('Downsample factor','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
-set(gca, 'XTick',xticks,'XTickLabel',xlabels_downsample, 'XLim', [0.06 2.3]);
-
-yrange = [0.01 0.1 1];
-set(gca,'YLim', [0.001 1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100));
-set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
-    'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
+set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
+    'XScale','log', 'YScale', 'log', 'XTick',xticks,'XTickLabel',xlabels_downsample, ...
+    'XLim', [0.06 2.3], 'YLim', [0.001 1], 'YTick', yrange, ...
+    'YTickLabel',sprintfc('%1.0f',yrange*100), 'XGrid','on', 'YGrid','on', ...
+    'XMinorGrid','on','YMinorGrid','on', 'GridAlpha',0.25,'LineWidth',0.5); 
+drawnow;
 h = findobj(gca,'Type','line');
 legend([h(end:-1:1)],conedensityLabels, 'Location','SouthWest', 'FontSize',10); legend boxoff
 title(sprintf('Contrast threshold vs downsample factor'))
 
-% Plot separate points for absorptions, current, filtered
+% Plot separate thresholds for absorptions, current, filtered
 subplot(1,3,3); hold all;
 preDownsampledDataToPlot = weibullFit.ctrthresh(1:3, :);
 
@@ -155,20 +154,16 @@ for m = 1:size(preDownsampledDataToPlot,2)
     scatter([3 2 1], preDownsampledDataToPlot(:,m), 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors(m,:), 'LineWidth',2);
 end
 
-
 % Make plot pretty
-box off; 
+box off; yrange = [0.01 0.1 1];
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
-    'XScale','linear', 'YScale', 'log')
-set(gca, 'XTick',[1:3],'XTickLabel',fliplr({'Absorptions','Current','Filtered'}),...
-    'XTickLabelRotation', 15);
-set(gca,'XLim', [0.5 3.5]);
-
-yrange = [0.01 0.1 1];
-set(gca,'YLim', [0.001 1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100));
-set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
+    'XScale','linear', 'YScale', 'log','XTick',[1:3],'XTickLabel',fliplr({'Absorptions','Current','Filtered'}),...
+    'XTickLabelRotation', 15,'XLim', [0.5 3.5], ...
+    'YLim', [0.001 1], 'YTick',yrange,'YTickLabel',sprintfc('%1.0f',yrange*100), ...
+    'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
     'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 
+% Save figure if requested
 if saveFig
     savefName = sprintf('ContrastThreshold_vs_Downsampling_%s_noiselevel%1.2f',expName, lateNoiseLevel);
     savefig(fullfile(figurePth,[savefName '.fig']))
@@ -207,11 +202,6 @@ R2_dt = gof.rsquare;
 
 for dt = 1:length(selectDataTypes)    
     y = weibullFit.ctrthresh(selectDataTypes(dt),:)';
-%     [f, gof] = fit(x,y,'power1'); 
-%     R2_dt(ec) = gof.rsquare;
-    
-%     plot(x, f(x), 'color',colors2(dt,:), 'LineWidth', 3); hold all;
-%     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors2(dt,:), 'LineWidth',2);
 
     % Extract single lines for separate ratio's
     f_given_x = 10.^meshFit(X(:,dt),Y(:,dt));
@@ -219,24 +209,22 @@ for dt = 1:length(selectDataTypes)
     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors2(dt,:), 'LineWidth',2);
 end
  
-% fit current and filtered data
-colorsGray = [0.7 0.7 0.7; 0.3 0.3 0.3];
-
-% Fit and plot filtered
+% FILTERED: Fit filtered current by RGC DoGs
 y_filtered = weibullFit.ctrthresh(3,:)';
 [X3,Y3]    = meshgrid(ones(11,1),log10(x));
-Z3 = repmat(log10(y_filtered),1,11);
+Z3         = repmat(log10(y_filtered),1,11);
 [meshFit3, gof3] = fit([X3(:) Y3(:)], Z3(:), 'lowess','span',lowess_span);
 
 % Extract single lines for separate ratio's
 yFit_filtered = 10.^meshFit3(X3(:,1),Y3(:,1));
 R2_filtered   = gof3.rsquare;
 
-% Plot fit and markers 
+% Plot fit and markers
+colorsGray = [0.7 0.7 0.7; 0.3 0.3 0.3];
 plot(x, yFit_filtered, 'color', colorsGray(1,:), 'LineWidth', 2); hold all;
 scatter(x, y_filtered, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colorsGray(1,:), 'LineWidth',2);
 
-% Fit and plot current
+% CURRENT: Fit and plot current data
 y_current = weibullFit.ctrthresh(2,:)';
 [X2,Y2] = meshgrid(ones(11,1),log10(x));
 Z2 = repmat(log10(y_current),1,11);
@@ -250,7 +238,7 @@ R2_current= gof2.rsquare;
 plot(x, yFit_current, 'color', colorsGray(2,:), 'LineWidth', 2); hold all;
 scatter(x, y_current, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colorsGray(2,:), 'LineWidth',2);
 
-% Plot absorptions as straight line
+% ABSORPTIONS: fit absorptions as straight line in log-log (i.e., powerlaw)
 y_absorptions = weibullFit.ctrthresh(1,:)';
 [f_absorptions, gof1] = fit(x,y_absorptions,'power1');
 R2_absorptions = gof1.rsquare; % Coefficient of Determination
@@ -258,15 +246,13 @@ plot(x, f_absorptions(x), 'color','k', 'LineWidth', 3); hold all;
 scatter(x, y_absorptions, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',2);
 
 % Make plot pretty
-box off; axis square;
-set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
-    'XScale','log', 'YScale', 'log')
+box off; axis square; yrange = [0.001 0.01 0.1 1];
 xlabel('Cone density (cones/deg^2)','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
-set(gca, 'XTick',10.^[2:4],'XTickLabel',xlabels_eccen, 'XLim', 10.^[2.5 4.0]);
-
-yrange = [0.001 0.01 0.1 1];
-set(gca,'YLim', [0.001 1], 'YTick',yrange,'YTickLabel',sprintfc('%1.1f',yrange*100));
-set(gca,'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
+set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
+    'XScale','log', 'YScale', 'log', 'XTick',10.^[2:4],'XTickLabel',xlabels_eccen,...
+    'XLim', 10.^[2.5 4.0], 'YLim', [0.001 1], 'YTick',yrange, ...
+    'YTickLabel',sprintfc('%1.1f',yrange*100), ...
+    'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
     'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 h = findobj(gca,'Type','line');
 allDataTypeLabels = {downsamplelbls{:}, 'Filtered by RGC DoG','Cone current','Cone absorptions'};
@@ -289,7 +275,7 @@ if saveFig
 end
 
 %% 6. Get cone density and down sample factor at 4.5 deg 
-% i.e, the eccentricity of the psychophysical experiment we compare to
+% i.e, the eccentricity of the psychophysical experiment we compare model predictions to
 
 % Get mRGC data for different meridia. 
 % Order = nasal, superior, temporal,inferior.
@@ -332,7 +318,6 @@ predictedContrastThreshold = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAt
 % [X,Y] = meshgrid(log10(downsampleFactors),log10(x));
 % Z = log10(weibullFit.ctrthresh(selectDataTypes,:))';
 % [meshFit, gof] = fit([X(:) Y(:)], Z(:), 'lowess','span',lowess_span);
-
 
 fH4 = figure(4); clf; set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
 ax = plot(meshFit,[X(:) Y(:)], Z(:));
@@ -406,7 +391,7 @@ end
 % Retinal coords: % nasal, superior, temporal, inferior
 prediction_retina.rgc.cThresholds.mean      = predictedContrastThreshold;
 prediction_retina.cones.cThresholds.mean    = f_absorptions(observedConesAtEccen); 
-prediction_retina.current.cThresholds.mean  = 10.^meshFit2([1,1,1,1],log10(observedConesAtEccen))';
+prediction_retina.current.cThresholds.mean  = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen))';
 
 % Convert thresholds to sensitivity
 prediction_retina.rgc.sensitivity.mean      = 1./prediction_retina.rgc.cThresholds.mean;
@@ -421,7 +406,7 @@ for ii = 1:4
     errorRatioConeDensity(ii) = 2*abs(diff([observedConesAtEccen(ii),averageConeDensity_stimeccen]));
 end
 
-% Nasal, superior, temporal, inferior retina
+% Get upper and lower bounds for nasal, superior, temporal, inferior retina
 % upper = - doubling diff in cone density from the mean
 % lower = + doubling diff in cone density from the mean
 
@@ -435,16 +420,14 @@ prediction_retina.cones.cThresholds.error.upper = f_absorptions(observedConesAtE
 prediction_retina.cones.cThresholds.error.lower = f_absorptions(observedConesAtEccen'+errorRatioConeDensity);
 
 % Current: Linear fit in log10-log10, hence we convert inputs and outputs
-prediction_retina.current.cThresholds.error.upper = 10.^meshFit2([1 1 1 1],log10(observedConesAtEccen'-errorRatioConeDensity));
-prediction_retina.current.cThresholds.error.lower = 10.^meshFit2([1 1 1 1],log10(observedConesAtEccen'+errorRatioConeDensity));
+prediction_retina.current.cThresholds.error.upper = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen'-errorRatioConeDensity));
+prediction_retina.current.cThresholds.error.lower = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen'+errorRatioConeDensity));
 
 % Convert retinal coords into visual coords: 
 % Retina to visual field, where we average nasal/retina:
 %   HVM (average nasal & temporal), UVM (inferior), LVM (superior)
 r2VF_wMeanHorz  = @(data) [mean([data(1),data(3)]),data(4),data(2)];
-% Visual field to retina, so flip upper/lower VF, no averaging of horizontal
-%   left, upper, right, lower VF --> nasal, superior, temporal, inferior
-vf2r            = @(data) [data(1),data(4),data(3),data(2)];
+
 % Visual field to visual field where we average nasal/retina
 %   left, upper, right, lower VF --> horizontal, upper, lower VF
 vf2vf_wMeanHorz = @(data) [mean([data(1),data(3)]),data(2),data(4)]; 
@@ -467,12 +450,16 @@ end
 % (data from baseline experiment Himmelberg, Winawer, Carrasco, 2020, JoV)
 observed_visualfield.sensitivity.mean  = [46.4938; 28.9764; 47.7887; 34.3813]; % contrast senstivity (%)
 observed_visualfield.sensitivity.error = [2.66468; 1.6445; 1.8450; 2.0505];    % contrast senstivity (%)
-observed_retina.sensitivity.mean       = vf2r(observed_visualfield.sensitivity.mean); %  L/R, LVM == superior retina, L/R, UVM == inferior retina
+
+% Visual field to retina, so flip upper/lower VF, no averaging of horizontal
+%   left, upper, right, lower VF --> nasal, superior, temporal, inferior
+vf2r = @(data) [data(1),data(4),data(3),data(2)];
+observed_retina.sensitivity.mean  = vf2r(observed_visualfield.sensitivity.mean); %  L/R, LVM == superior retina, L/R, UVM == inferior retina
 
 observed_visualfield.sensitivity.mean_wHorz  = vf2vf_wMeanHorz(observed_visualfield.sensitivity.mean);
 observed_visualfield.sensitivity.error_wHorz = vf2vf_wMeanHorz(observed_visualfield.sensitivity.error);
 
-%% HVA VMA calc
+%% Asymmetry (HVA VMA) calculations
 
 HVAmean.obs         = hva(observed_retina.sensitivity.mean);
 VMAmean.obs         = vma(observed_retina.sensitivity.mean);
