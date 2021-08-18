@@ -195,7 +195,9 @@ lowess_span = 0.2;
 % Fit with meshgrid function (using dummy 2D grid)
 [X,Y] = meshgrid(log10(downsampleFactors),log10(x));
 Z = log10(weibullFit.ctrthresh(selectDataTypes,:))';
-[meshFit, gof] = fit([X(:) Y(:)], Z(:), 'lowess','span',lowess_span);
+
+whichfit = 'interpolant';
+[meshFit, gof] = ogSurfaceFit(X, Y, Z, whichfit);
 
 % Get R2
 R2_dt = gof.rsquare;
@@ -213,7 +215,10 @@ end
 y_filtered = weibullFit.ctrthresh(3,:)';
 [X3,Y3]    = meshgrid(ones(11,1),log10(x));
 Z3         = repmat(log10(y_filtered),1,11);
-[meshFit3, gof3] = fit([X3(:) Y3(:)], Z3(:), 'lowess','span',lowess_span);
+
+
+[meshFit3, gof3] = ogSurfaceFit(X3, Y3, Z3, whichfit);
+
 
 % Extract single lines for separate ratio's
 yFit_filtered = 10.^meshFit3(X3(:,1),Y3(:,1));
@@ -228,7 +233,8 @@ scatter(x, y_filtered, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colorsGray(
 y_current = weibullFit.ctrthresh(2,:)';
 [X2,Y2] = meshgrid(ones(11,1),log10(x));
 Z2 = repmat(log10(y_current),1,11);
-[meshFit2, gof2] = fit([X2(:) Y2(:)], Z2(:), 'lowess','span',lowess_span);
+
+[meshFit2, gof2] = ogSurfaceFit(X2, Y2, Z2, whichfit);
 
 % Extract single lines for separate ratio's
 yFit_current = 10.^meshFit2(X2(:,1),Y2(:,1));
@@ -503,12 +509,13 @@ fH5 = figure(5); set(fH5, 'position',[139,244,1373,543], 'color', 'w'); clf; hol
 % Plot prediction for cones
 subplot(151)
 bar(1:3, prediction_visualfield.cones.sensitivity.mean_wHorz,'EdgeColor','none','facecolor',condColor(1,:)); hold on
-errorbar(1:3,prediction_visualfield.cones.sensitivity.mean_wHorz,...
-             (prediction_visualfield.cones.sensitivity.mean_wHorz-prediction_visualfield.cones.sensitivity.error.lower_wHorz), ...
-             (prediction_visualfield.cones.sensitivity.error.upper_wHorz-prediction_visualfield.cones.sensitivity.mean_wHorz),...
-             '.','color', 'k', 'LineWidth',2);
+% errorbar(1:3,prediction_visualfield.cones.sensitivity.mean_wHorz,...
+%              (prediction_visualfield.cones.sensitivity.mean_wHorz-prediction_visualfield.cones.sensitivity.error.lower_wHorz), ...
+%              (prediction_visualfield.cones.sensitivity.error.upper_wHorz-prediction_visualfield.cones.sensitivity.mean_wHorz),...
+%              '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
+set(gca, 'YLim', [0 200], 'YScale', 'linear');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Cones');
 
 % Plot prediction for current
@@ -520,6 +527,7 @@ errorbar(1:3,prediction_visualfield.current.sensitivity.mean_wHorz,...
              '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
+set(gca, 'YLim', [0 200], 'YScale', 'linear');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Current');
 
 
@@ -533,6 +541,7 @@ errorbar(1:3,prediction_visualfield.rgc.sensitivity.mean_wHorz,...
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction mRGCs');
+set(gca, 'YLim', [0 200], 'YScale', 'linear');
 
 % Plot prediction for behavior from Himmelberg, Winawer, Carrasco 2020 JoV
 subplot(154)
@@ -541,6 +550,7 @@ errorbar(1:3,observed_visualfield.sensitivity.mean_wHorz,observed_visualfield.se
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
     'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
 box off; ylabel('Contrast sensitivity (%)'); title('Behavior');
+set(gca, 'YLim', [0 200], 'YScale', 'linear');
 
 % Plot Asymmetries in percent
 subplot(155); hold on; cla
@@ -548,8 +558,8 @@ x_bar = [0.5, 1, 1.5 2; 3 3.5 4 4.5];
 for ii = 1:4
     bar(x_bar(:,ii), [combHVA(ii); combVMA(ii)], 0.2, 'EdgeColor','none','facecolor',condColor(ii,:)); hold on
 end
-errorbar(x_bar(1,:), combHVA, combHVA-errorCombHVA(1,:), errorCombHVA(2,:)-combHVA, '.','color', 'k', 'LineWidth',2);
-errorbar(x_bar(2,:), combVMA, combVMA-errorCombVMA(1,:), errorCombVMA(2,:)-combVMA, '.','color', 'k', 'LineWidth',2);
+errorbar(x_bar(1,end), combHVA(end), combHVA(end)-errorCombHVA(1,end), errorCombHVA(2,end)-combHVA(end), '.','color', 'k', 'LineWidth',2);
+errorbar(x_bar(2,end), combVMA(end), combVMA(end)-errorCombVMA(1,end), errorCombVMA(2,end)-combVMA(end), '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0,5],'Ylim',[-40 60], 'TickDir', 'out', 'XTick', [1, 2.5], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
@@ -560,3 +570,6 @@ if saveFig
     savefig(fH5, fullfile(figurePth, 'Sensitivity_Model_vs_Behavior_4_5eccen_lateNoiseRGCModel.fig'))
     print(fH5, fullfile(figurePth, 'Sensitivity_Model_vs_Behavior_4_5eccen_lateNoiseRGCModel.png'), '-dpng')
 end
+
+
+
