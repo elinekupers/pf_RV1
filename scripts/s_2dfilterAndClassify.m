@@ -9,7 +9,7 @@
 % of downsampling
 %
 % See s_1dfilterAndClassify
-runnum = 3;
+runnum = 1;
 
 pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
 expname = 'conedensitynophaseshiftlonly500'; %'defaultnophaseshiftlonly500';
@@ -125,7 +125,7 @@ for ec = 1:length(expParams.eccentricities)
    
 end
 
-
+return
 zeroContrast = 1e-4;
 xticks = [expParams.contrastLevelsPC([2,11,21,31])];
 colors = parula(size(PercentCorrect,2)+1);
@@ -141,7 +141,7 @@ set(gca,'XScale','log','YLim',[40 100], 'TickDir', 'out', 'FontSize',15, ...
     'XTick',[zeroContrast, xticks], 'XTickLabel',[0 xticks*100]); box off;
 title(sprintf('Classifier performance with late noise level %1.6f', lateNoiseLevel));
 
-return
+
 
 % xlabel('Experiment number')
 % ylabel('Accuracy')
