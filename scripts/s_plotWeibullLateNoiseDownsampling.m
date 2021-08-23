@@ -1,7 +1,7 @@
 %% s_plotFiguresLateNoiseRGCmodel
 
 %% 0. Set general parameters
-runnum            = 3;
+runnum            = 1;
 pth               = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
 expName           = 'conedensitynophaseshiftlonly500';
 subfolder         = sprintf('run%d', runnum);
@@ -9,15 +9,15 @@ expParams         = loadExpParams(expName);
 saveFig           = true;
 lateNoiseLevel    = 1;
 dataTypeLabels    = {'absorptions', 'current', 'Filtered', 'LateNoise',...
-                    'DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
-downsampleFactors = 2./(1:5).^2;
-expParams.eccentricities = [1:4 4.5 5:8 10:5:40];
+    'DownSampled1','DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
+downsampleFactors = 2./(1:5).^2; % RGC:cone ratios for arrays
+
 % Convert eccentricity to cone density using Curcio et al. 1990 data
 [conedensityLabels, cDensity] =  getConeDensityLabelsForPlotting(expParams);
 
 if saveFig
     figurePth  = fullfile('/Volumes/server/Projects/PerformanceFields_RetinaV1Model/', ...
-            'figures','psychometricCurves', expName, 'current', subfolder);
+        'figures','psychometricCurves', expName, 'current', subfolder);
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
 end
 
@@ -38,23 +38,42 @@ weibullFit.ctrvar       = NaN(nrDataTypes,nrEccen, 2); % estimated variables
 weibullFit.ctrpred      = NaN(nrDataTypes,nrEccen, length(xUnits)); % estimated fine sampled Weibull prediction
 weibullFit.data         = NaN(nrDataTypes,nrEccen, length(expParams.contrastLevels));
 weibullFit.ctrthresh    = NaN(nrDataTypes,nrEccen, 1); % final threshold
-weibullFit.init = [3, 0.01]; % slope (at ~80%) and initial threshold
+weibullFit.init = [4, 0.001]; % slope (at ~80%) and initial threshold
 
-
+figure; hold all;
 %% 2. Fit!
 for eccen = 1:nrEccen
     loadStr = sprintf('classifierAccuracy_latenoiselevel%1.1f_eccen%1.2f_withDownsampling.mat', ...
-                    lateNoiseLevel, expParams.eccentricities(eccen));
+        lateNoiseLevel, expParams.eccentricities(eccen));
     load(fullfile(pth,'conecurrent', expName, subfolder, 'classifierAccuracy',loadStr), 'PercentCorrect')
     
+    % Remove extreme outliers
+    if eccen == 17
+        PercentCorrect(3,2:end) = NaN;
+        PercentCorrect(15,2:end) = NaN;
+        PercentCorrect(17,2:end) = NaN;
+    end
     % Fit Weibull
     for dt = 1:nrDataTypes
+        contrasts = expParams.contrastLevels;
+
+        if dt == 1
+            weibullFit.init = [4, 0.001]; % slope (at ~80%) and initial threshold
+        else
+            weibullFit.init = [3, 0.01]; % slope (at ~80%) and initial threshold
+        end
         accuracy = PercentCorrect(:,dt);
-        w = fitWeibullToClassifierAccuracy(expParams.contrastLevels, accuracy, weibullFit.init, xUnits);
-        
+        outliers = find(isnan(accuracy));
+        if ~isempty(outliers)
+            contrasts(outliers) = [];
+            accuracy(outliers) = [];
+        end
+        plot(contrasts, accuracy,'o-', 'color',colors(dt,:)); set(gca,'XScale','log')
+        w = fitWeibullToClassifierAccuracy(contrasts, accuracy, weibullFit.init, xUnits);
+        plot(xUnits, w.ctrpred,'x-', 'color',colors(dt,:), 'lineWidth',2);
         weibullFit.ctrvar(dt,eccen, :) = w.ctrvar;
         weibullFit.ctrpred(dt, eccen, :) = w.ctrpred;
-        weibullFit.data(dt, eccen,:) = w.data;
+        weibullFit.data(dt, eccen,:) = PercentCorrect(:,dt);
         weibullFit.ctrthresh(dt,eccen,:) = w.ctrthresh;
         
     end
@@ -63,17 +82,17 @@ end
 %% 3. Visualize weibulls per cone density and datatype
 
 for dt = 1:nrDataTypes
-    figure;
+    figure(dt); clf;
     set(gcf,'Color','w', 'Position',  [1000, 850, 986, 488], ...
-        'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s', expName)); 
+        'NumberTitle', 'off', 'Name', sprintf('Psychometric function condition: %s', expName));
     hold all;
-
+    
     % Loop over all eccentricities to plot
     for ii = 1:nrEccen
-
+        
         % Get data point and fitted Weibull
         dataToPlot = squeeze(weibullFit.data(dt, ii, :));
-        fitToPlot  = squeeze(weibullFit.ctrpred(dt, ii, :)); 
+        fitToPlot  = squeeze(weibullFit.ctrpred(dt, ii, :));
         
         % Plot all contrasts above zero
         plot(xUnits(2:end), fitToPlot(2:end), 'Color', colors(ii,:), 'LineWidth',2, 'LineStyle', '-');
@@ -101,18 +120,18 @@ for dt = 1:nrDataTypes
         print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
     end
 end
-    
+
 %% 4. Plot contrast thresholds vs downsampling
 
 % Get downsample factors as x-axis
 xticks = fliplr(downsampleFactors); % get x axis range and xtick labels
-for ii = 1:length(xticks) 
-    xlabels_downsample{ii} = sprintf('%1.2f', xticks(ii)); 
-end 
+for ii = 1:length(xticks)
+    xlabels_downsample{ii} = sprintf('%1.2f', xticks(ii));
+end
 x = downsampleFactors';
 
 % Set up figure
-figure(2); clf; set(gcf, 'Color', 'w', 'Position', [394,225,1127,580]);
+figure(10); clf; set(gcf, 'Color', 'w', 'Position', [394,225,1127,580]);
 subplot(1,3,[1 2]);
 hold all
 
@@ -140,7 +159,7 @@ set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',2
     'XScale','log', 'YScale', 'log', 'XTick',xticks,'XTickLabel',xlabels_downsample, ...
     'XLim', [0.06 2.3], 'YLim', [0.001 1], 'YTick', yrange, ...
     'YTickLabel',sprintfc('%1.0f',yrange*100), 'XGrid','on', 'YGrid','on', ...
-    'XMinorGrid','on','YMinorGrid','on', 'GridAlpha',0.25,'LineWidth',0.5); 
+    'XMinorGrid','on','YMinorGrid','on', 'GridAlpha',0.25,'LineWidth',0.5);
 drawnow;
 h = findobj(gca,'Type','line');
 legend([h(end:-1:1)],conedensityLabels, 'Location','SouthWest', 'FontSize',10); legend boxoff
@@ -174,8 +193,8 @@ end
 %% 5. Plot contrast thresholds vs cone density
 
 % Get downsample factors as labels
-for ii = 1:length(downsampleFactors) 
-    downsamplelbls{ii} = sprintf('mRGC : cone = %1.2f : 1', downsampleFactors(ii)); 
+for ii = 1:length(downsampleFactors)
+    downsamplelbls{ii} = sprintf('mRGC : cone = %1.2f : 1', downsampleFactors(ii));
 end
 
 % Get cone density xticks + labels
@@ -185,7 +204,7 @@ for jj = 2:4; xlabels_eccen{jj==[2:4]} = sprintf('10^%i',jj); end
 x = cDensity;
 
 % Plot it!
-figure(3); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649]);
+figure(11); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649]);
 hold all
 colors2 = parula(5+1);
 
@@ -202,15 +221,15 @@ whichfit = 'interpolant';
 % Get R2
 R2_dt = gof.rsquare;
 
-for dt = 1:length(selectDataTypes)    
+for dt = 1:length(selectDataTypes)
     y = weibullFit.ctrthresh(selectDataTypes(dt),:)';
-
+    
     % Extract single lines for separate ratio's
     f_given_x = 10.^meshFit(X(:,dt),Y(:,dt));
     plot(x, f_given_x, 'color',colors2(dt,:), 'LineWidth', 3); hold all;
     scatter(x, y, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors2(dt,:), 'LineWidth',2);
 end
- 
+
 % FILTERED: Fit filtered current by RGC DoGs
 y_filtered = weibullFit.ctrthresh(3,:)';
 [X3,Y3]    = meshgrid(ones(11,1),log10(x));
@@ -240,7 +259,7 @@ Z2 = repmat(log10(y_current),1,11);
 yFit_current = 10.^meshFit2(X2(:,1),Y2(:,1));
 R2_current= gof2.rsquare;
 
-% Plot fit and markers 
+% Plot fit and markers
 plot(x, yFit_current, 'color', colorsGray(2,:), 'LineWidth', 2); hold all;
 scatter(x, y_current, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colorsGray(2,:), 'LineWidth',2);
 
@@ -265,11 +284,11 @@ allDataTypeLabels = {downsamplelbls{:}, 'Filtered by RGC DoG','Cone current','Co
 legend([h(end:-1:1)],allDataTypeLabels, 'Location','bestoutside'); legend boxoff
 title(sprintf('Contrast threshold vs cone density'))
 
-% Arrow at 4.5 deg eccentricity
-xArrow = [0.35 0.35]; % coordinates normalized to figure size, will change if figure size changes
-yArrow = [0.75 0.65];
-annotation('textarrow',xArrow,yArrow,'String',['4.5' char(176) ' eccen'], ...
-            'FontSize',13,'LineWidth',2)
+% % Arrow at 4.5 deg eccentricity
+% xArrow = [0.35 0.35]; % coordinates normalized to figure size, will change if figure size changes
+% yArrow = [0.75 0.65];
+% annotation('textarrow',xArrow,yArrow,'String',['4.5' char(176) ' eccen'], ...
+%     'FontSize',13,'LineWidth',2)
 
 % Save figure if requested
 if saveFig
@@ -280,18 +299,18 @@ if saveFig
     print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
 end
 
-%% 6. Get cone density and down sample factor at 4.5 deg 
+%% 6. Get cone density and down sample factor at 4.5 deg
 % i.e, the eccentricity of the psychophysical experiment we compare model predictions to
 
-% Get mRGC data for different meridia. 
+% Get mRGC data for different meridia.
 % Order = nasal, superior, temporal,inferior.
 watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'), ...
-            'mRGCRFDensityPerDeg2', 'eccDeg');
+    'mRGCRFDensityPerDeg2', 'eccDeg');
 assert([length(watson2015.eccDeg) == length(0:0.05:40)]);
 
 % Curcio et al. 1990 (left eye, retina coords, same order as mRGC)
 curcio1990 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'conesCurcioISETBIO.mat'), ...
-            'conesCurcioIsetbio', 'eccDeg','angDeg');
+    'conesCurcioIsetbio', 'eccDeg','angDeg');
 [~,angIdx] = intersect(curcio1990.angDeg,[0,90,180,270]);
 coneDensityDeg2PerMeridian= curcio1990.conesCurcioIsetbio(angIdx,:);
 
@@ -309,7 +328,7 @@ observedConesAtEccen = watson2015.mRGCRFDensityPerDeg2(:,idxEccen)./ratioAtIdx;
 % Check: should be equal to curcio data
 isequal(observedConesAtEccen,coneDensityDeg2PerMeridian(:,curcio1990.eccDeg==eccToCompute));
 
-% if meshfit expects cone2rgc ratio, take reciprocal for plotting 
+% if meshfit expects cone2rgc ratio, take reciprocal for plotting
 % ratioAtIdx = (1./ratioAtIdx);
 
 % Find contrast threshold data for all meridians: Nasal, Superior,temporal, inferior
@@ -319,13 +338,13 @@ predictedContrastThreshold = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAt
 
 % selectDataTypes = 5:nrDataTypes;
 % lowess_span = 0.25;
-% 
+%
 % % Fit with meshgrid function (using dummy 2D grid)
 % [X,Y] = meshgrid(log10(downsampleFactors),log10(x));
 % Z = log10(weibullFit.ctrthresh(selectDataTypes,:))';
 % [meshFit, gof] = fit([X(:) Y(:)], Z(:), 'lowess','span',lowess_span);
 
-fH4 = figure(4); clf; set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
+fH4 = figure(12); clf; set(gcf, 'Position', [782 44 881 756], 'Color', 'w'); clf;
 ax = plot(meshFit,[X(:) Y(:)], Z(:));
 ax(1).FaceLighting = 'gouraud';
 ax(1).FaceColor = [1 1 1];
@@ -338,8 +357,8 @@ zlabel('Contrast threshold (%)', 'FontSize', 20)
 title('Effect of late noise RGC model on contrast threshold')
 
 zticks = [0.001:0.001:0.01, ...
-          0.02:0.01:0.1, ...
-          0.2:0.1:1];
+    0.02:0.01:0.1, ...
+    0.2:0.1:1];
 ztick_labels = cell(size(zticks));
 printTick = [0.01, 0.1, 1];
 for ii = 1:length(printTick)
@@ -371,7 +390,7 @@ for jj = 1:4
         'LineWidth',0.1, 'Marker', 'p')
 end
 
-% Save figure 
+% Save figure
 if saveFig
     fName = sprintf('3Dmesh_Ratio-vs-Density-vs-Threshold_loglogFitLowess%1.2f_withDots_view1',lowess_span);
     hgexport(fH4, fullfile(figurePth, [fName '.eps']))
@@ -396,7 +415,7 @@ end
 % Convert predicted thresholds from log10 fraction to fraction
 % Retinal coords: % nasal, superior, temporal, inferior
 prediction_retina.rgc.cThresholds.mean      = predictedContrastThreshold;
-prediction_retina.cones.cThresholds.mean    = f_absorptions(observedConesAtEccen); 
+prediction_retina.cones.cThresholds.mean    = f_absorptions(observedConesAtEccen);
 prediction_retina.current.cThresholds.mean  = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen))';
 
 % Convert thresholds to sensitivity
@@ -407,47 +426,42 @@ prediction_retina.current.sensitivity.mean  = 1./prediction_retina.current.cThre
 % Define error margins in terms of cone density, i.e.:
 % Double (upper bound) or half (lower bound) the difference in cone density from the mean, for each meridian
 averageConeDensity_stimeccen = mean(observedConesAtEccen);
-
-for ii = 1:4
-    errorRatioConeDensity(ii) = 2*abs(diff([observedConesAtEccen(ii),averageConeDensity_stimeccen]));
-end
-
-% Get upper and lower bounds for nasal, superior, temporal, inferior retina
-% upper = - doubling diff in cone density from the mean
-% lower = + doubling diff in cone density from the mean
+diffConeDensityFromMean = averageConeDensity_stimeccen-observedConesAtEccen;
+errorRatioConeDensity = 0.5*diffConeDensityFromMean;
+% errorRatioConeDensity_upper = 1.5*diffConeDensityFromMean;
 
 % RGCs: Linear fit in log10-log10, hence we convert inputs and outputs
-prediction_retina.rgc.cThresholds.error.upper = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'-errorRatioConeDensity));
-prediction_retina.rgc.cThresholds.error.lower = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'+errorRatioConeDensity));
+prediction_retina.rgc.cThresholds.error.upper = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'+errorRatioConeDensity));
+prediction_retina.rgc.cThresholds.error.lower = 10.^meshFit(log10(ratioAtIdx),log10(observedConesAtEccen'-errorRatioConeDensity));
 
 % Cones: Powerlaw fit so no log10() conversion for inputs and no 10.^() conversion
 % for outputs
-prediction_retina.cones.cThresholds.error.upper = f_absorptions(observedConesAtEccen'-errorRatioConeDensity);
-prediction_retina.cones.cThresholds.error.lower = f_absorptions(observedConesAtEccen'+errorRatioConeDensity);
+prediction_retina.cones.cThresholds.error.upper = f_absorptions(observedConesAtEccen'+errorRatioConeDensity);
+prediction_retina.cones.cThresholds.error.lower = f_absorptions(observedConesAtEccen'-errorRatioConeDensity);
 
 % Current: Linear fit in log10-log10, hence we convert inputs and outputs
-prediction_retina.current.cThresholds.error.upper = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen'-errorRatioConeDensity));
-prediction_retina.current.cThresholds.error.lower = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen'+errorRatioConeDensity));
+prediction_retina.current.cThresholds.error.upper = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen'+errorRatioConeDensity));
+prediction_retina.current.cThresholds.error.lower = 10.^meshFit2(ones(4,1),log10(observedConesAtEccen'-errorRatioConeDensity));
 
-% Convert retinal coords into visual coords: 
+% Convert retinal coords into visual coords:
 % Retina to visual field, where we average nasal/retina:
 %   HVM (average nasal & temporal), UVM (inferior), LVM (superior)
 r2VF_wMeanHorz  = @(data) [mean([data(1),data(3)]),data(4),data(2)];
 
 % Visual field to visual field where we average nasal/retina
 %   left, upper, right, lower VF --> horizontal, upper, lower VF
-vf2vf_wMeanHorz = @(data) [mean([data(1),data(3)]),data(2),data(4)]; 
+vf2vf_wMeanHorz = @(data) [mean([data(1),data(3)]),data(2),data(4)];
 
 % Convert error mRGC thresholds to sensitivity
 modelStages = {'cones','current','rgc'};
 for ii = 1:length(modelStages)
     prediction_retina.(modelStages{ii}).sensitivity.error.upper = 1./prediction_retina.(modelStages{ii}).cThresholds.error.upper;
     prediction_retina.(modelStages{ii}).sensitivity.error.lower = 1./prediction_retina.(modelStages{ii}).cThresholds.error.lower;
-
+    
     prediction_visualfield.(modelStages{ii}).sensitivity.mean_wHorz = r2VF_wMeanHorz(prediction_retina.(modelStages{ii}).sensitivity.mean);
     prediction_visualfield.(modelStages{ii}).sensitivity.error.upper_wHorz = r2VF_wMeanHorz(prediction_retina.(modelStages{ii}).sensitivity.error.upper);
     prediction_visualfield.(modelStages{ii}).sensitivity.error.lower_wHorz = r2VF_wMeanHorz(prediction_retina.(modelStages{ii}).sensitivity.error.lower);
-
+    
 end
 
 
@@ -470,7 +484,7 @@ observed_visualfield.sensitivity.error_wHorz = vf2vf_wMeanHorz(observed_visualfi
 HVAmean.obs         = hva(observed_retina.sensitivity.mean);
 VMAmean.obs         = vma(observed_retina.sensitivity.mean);
 
-HVAerror.obs       = HVAmean.obs + [-6.90, 6.90]; %  From Himmelberg et al. (2020) 
+HVAerror.obs       = HVAmean.obs + [-6.90, 6.90]; %  From Himmelberg et al. (2020)
 VMAerror.obs       = VMAmean.obs + [-5.65,5.65];  %  From Himmelberg et al. (2020)
 
 modelStages = {'cones','current','rgc'};
@@ -479,10 +493,10 @@ for ii = 1:length(modelStages)
     VMAmean.(modelStages{ii}) = vma(prediction_retina.(modelStages{ii}).sensitivity.mean);
     
     HVAerror.(modelStages{ii})   = [hva(prediction_retina.(modelStages{ii}).sensitivity.error.lower), ...
-                                    hva(prediction_retina.(modelStages{ii}).sensitivity.error.upper)];
+        hva(prediction_retina.(modelStages{ii}).sensitivity.error.upper)];
     VMAerror.(modelStages{ii})   = [vma(prediction_retina.(modelStages{ii}).sensitivity.error.lower), ...
-                                    vma(prediction_retina.(modelStages{ii}).sensitivity.error.upper)];
-                                
+        vma(prediction_retina.(modelStages{ii}).sensitivity.error.upper)];
+    
     fprintf('HVA predicted for %s \t %1.2f%% [%1.2f%% %1.2f%%]\n', modelStages{ii}, ...
         HVAmean.(modelStages{ii}), HVAerror.(modelStages{ii}))
     fprintf('VMA predicted for %s \t %1.2f%% [%1.2f%% %1.2f%%]\n', modelStages{ii}, ...
@@ -494,40 +508,39 @@ combHVA = [HVAmean.cones, HVAmean.current, HVAmean.rgc, HVAmean.obs];
 combVMA = [VMAmean.cones, VMAmean.current, VMAmean.rgc, VMAmean.obs];
 
 errorCombHVA = [HVAerror.cones(1), HVAerror.current(1), HVAerror.rgc(1), HVAerror.obs(1); ...
-                HVAerror.cones(2), HVAerror.current(2), HVAerror.rgc(2), HVAerror.obs(2)];
-            
+    HVAerror.cones(2), HVAerror.current(2), HVAerror.rgc(2), HVAerror.obs(2)];
+
 errorCombVMA = [VMAerror.cones(1), VMAerror.current(1), VMAerror.rgc(1), VMAerror.obs(1); ...
-                VMAerror.cones(2), VMAerror.current(2), VMAerror.rgc(2), VMAerror.obs(2)];
+    VMAerror.cones(2), VMAerror.current(2), VMAerror.rgc(2), VMAerror.obs(2)];
 
 %% Bar plot to compare predictions against behavior
 condNames   = {'HVM', 'UVM','LVM'};
 condColor   = [63, 121, 204; 0 206 209; 228, 65, 69;150 123 182]/255;
 yl          = [0 4];
 
-fH5 = figure(5); set(fH5, 'position',[139,244,1373,543], 'color', 'w'); clf; hold all;
+fH5 = figure(13); set(fH5, 'position',[139,244,1373,543], 'color', 'w'); clf; hold all;
 
 % Plot prediction for cones
 subplot(151)
 bar(1:3, prediction_visualfield.cones.sensitivity.mean_wHorz,'EdgeColor','none','facecolor',condColor(1,:)); hold on
-% errorbar(1:3,prediction_visualfield.cones.sensitivity.mean_wHorz,...
-%              (prediction_visualfield.cones.sensitivity.mean_wHorz-prediction_visualfield.cones.sensitivity.error.lower_wHorz), ...
-%              (prediction_visualfield.cones.sensitivity.error.upper_wHorz-prediction_visualfield.cones.sensitivity.mean_wHorz),...
-%              '.','color', 'k', 'LineWidth',2);
+errorbar(1:3,prediction_visualfield.cones.sensitivity.mean_wHorz,...
+             (prediction_visualfield.cones.sensitivity.mean_wHorz-prediction_visualfield.cones.sensitivity.error.upper_wHorz), ...
+             (prediction_visualfield.cones.sensitivity.error.lower_wHorz-prediction_visualfield.cones.sensitivity.mean_wHorz),...
+             '.','color', 'k', 'LineWidth',2);
 set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
-    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
-set(gca, 'YLim', [0 200], 'YScale', 'linear');
+    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'linear');
+set(gca, 'YLim', [0 900], 'YScale', 'linear');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Cones');
 
 % Plot prediction for current
 subplot(152)
 bar(1:3, prediction_visualfield.current.sensitivity.mean_wHorz,'EdgeColor','none','facecolor',condColor(2,:)); hold on
 errorbar(1:3,prediction_visualfield.current.sensitivity.mean_wHorz,...
-             (prediction_visualfield.current.sensitivity.mean_wHorz-prediction_visualfield.current.sensitivity.error.lower_wHorz), ...
-             (prediction_visualfield.current.sensitivity.error.upper_wHorz-prediction_visualfield.current.sensitivity.mean_wHorz),...
-             '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
-    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
-set(gca, 'YLim', [0 200], 'YScale', 'linear');
+    (prediction_visualfield.current.sensitivity.mean_wHorz - prediction_visualfield.current.sensitivity.error.upper_wHorz), ...
+    (prediction_visualfield.current.sensitivity.error.lower_wHorz - prediction_visualfield.current.sensitivity.mean_wHorz),...
+    '.','color', 'k', 'LineWidth',2);
+set(gca,'Xlim',[0.2,3.8],'Ylim',[0 200], 'TickDir', 'out', 'XTick', [1:3], ...
+    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'linear');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Current');
 
 
@@ -535,22 +548,20 @@ box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction Current');
 subplot(153)
 bar(1:3, prediction_visualfield.rgc.sensitivity.mean_wHorz,'EdgeColor','none','facecolor',condColor(3,:)); hold on
 errorbar(1:3,prediction_visualfield.rgc.sensitivity.mean_wHorz,...
-             (prediction_visualfield.rgc.sensitivity.mean_wHorz-prediction_visualfield.rgc.sensitivity.error.lower_wHorz), ...
-            (prediction_visualfield.rgc.sensitivity.error.upper_wHorz-prediction_visualfield.rgc.sensitivity.mean_wHorz), ...
-            '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
-    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
+    (prediction_visualfield.rgc.sensitivity.mean_wHorz-prediction_visualfield.rgc.sensitivity.error.upper_wHorz), ...
+    (prediction_visualfield.rgc.sensitivity.error.lower_wHorz-prediction_visualfield.rgc.sensitivity.mean_wHorz), ...
+    '.','color', 'k', 'LineWidth',2);
+set(gca,'Xlim',[0.2,3.8],'Ylim',[0 200], 'TickDir', 'out', 'XTick', [1:3], ...
+    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'linear');
 box off; ylabel('Contrast sensitivity (%)'); title('Model Prediction mRGCs');
-set(gca, 'YLim', [0 200], 'YScale', 'linear');
 
 % Plot prediction for behavior from Himmelberg, Winawer, Carrasco 2020 JoV
 subplot(154)
 bar(1:3, observed_visualfield.sensitivity.mean_wHorz,'EdgeColor','none','facecolor',condColor(4,:)); hold on
 errorbar(1:3,observed_visualfield.sensitivity.mean_wHorz,observed_visualfield.sensitivity.error_wHorz, '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0.2,3.8],'Ylim',10.^yl, 'TickDir', 'out', 'XTick', [1:3], ...
-    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'log');
+set(gca,'Xlim',[0.2,3.8],'Ylim',[0 200], 'TickDir', 'out', 'XTick', [1:3], ...
+    'XTickLabel', condNames, 'FontSize', 14, 'YScale', 'linear');
 box off; ylabel('Contrast sensitivity (%)'); title('Behavior');
-set(gca, 'YLim', [0 200], 'YScale', 'linear');
 
 % Plot Asymmetries in percent
 subplot(155); hold on; cla
@@ -560,7 +571,7 @@ for ii = 1:4
 end
 errorbar(x_bar(1,end), combHVA(end), combHVA(end)-errorCombHVA(1,end), errorCombHVA(2,end)-combHVA(end), '.','color', 'k', 'LineWidth',2);
 errorbar(x_bar(2,end), combVMA(end), combVMA(end)-errorCombVMA(1,end), errorCombVMA(2,end)-combVMA(end), '.','color', 'k', 'LineWidth',2);
-set(gca,'Xlim',[0,5],'Ylim',[-40 60], 'TickDir', 'out', 'XTick', [1, 2.5], ...
+set(gca,'Xlim',[0,5],'Ylim',[-40 60], 'TickDir', 'out', 'XTick', [1.25, 4], ...
     'XTickLabel', {'HVA', 'VMA'}, 'FontSize', 14, 'YScale', 'linear');
 box off;ylabel('Asymmetry (%)');  title('Asymmetry');
 
