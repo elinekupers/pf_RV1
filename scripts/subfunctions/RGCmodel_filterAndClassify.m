@@ -1,13 +1,17 @@
-function [] = RGCmodel_filterAndClassify()
+function [] = RGCmodel_filterAndClassify(runnum, hpcArrayID)
 % This function loads cone absorptions and current for the no-eye
 % movement L-only cone mosaic. It then applies our late noise RGC model:
 % First filter with DOG, then add white noise, then downsample.
 % Finally, we run a linear SVM classifier to get 2-AFC (CW/CCW) accuracy 
 % for each data type (absorptions, current, filtered, late noise,
-% downsampled 1-5)
+% downsampled 1-5).
 %
 % See s_2dfilterAndClassify and s_1dfilterAndClassify
-runnum = 2;
+%
+%% Check inputs
+if ~exist('hpcArrayID','var') || isempty(hpcArrayID)
+    hpcArrayID = [];
+end
 
 % pth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
 pth = fullfile(ogRootPath, 'data');
@@ -38,10 +42,11 @@ downSampleFactor = [1 2 3 4 5];    % downsample factor
 datatypes = {'absorptions', 'current', 'Filtered', 'LateNoise','DownSampled1',...
     'DownSampled2','DownSampled3' 'DownSampled4' 'DownSampled5'};
 
-hpcArrayID = str2double(getenv('SLUM_ARRAY_TASK_ID'));
-if ~isnan(hpcArrayID)
+% Update eccentricity to process if we use parallel jobs with HPC
+if ~isempty(hpcArrayID)
     expParams = hpcArrayID2eccen(hpcArrayID, expParams);
 end
+
 for ec = 1:length(expParams.eccentricities)
     for c = 1:length(expParams.contrastLevels)
         contrast = expParams.contrastLevels(c);
