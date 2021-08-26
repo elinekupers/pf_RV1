@@ -10,7 +10,7 @@ switch whichfit
         opts = fitoptions( 'Method', 'LowessFit' );
         opts.Normalize = 'on';
         opts.Robust = 'Bisquare';
-        opts.Span = 0.15;
+        opts.Span = 0.2; %0.15;
         
         % Fit model to data.
         [meshFit, gof] = fit( [xData, yData], zData, ft, opts );
