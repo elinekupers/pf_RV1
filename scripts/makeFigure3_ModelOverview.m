@@ -232,130 +232,101 @@ end
 
 cRows = size(x.absorptions,1);
 cCols = size(x.absorptions,2);
+colors = parula(6);
 
-sigma.center   = rgcParams.cone2RGCRatio*rgcParams.DoG.kc; % Center Gauss RGC
-sigma.surround = rgcParams.cone2RGCRatio*rgcParams.DoG.ks; % Surround Gauss RGC
-sigma.ratio    = sigma.surround/sigma.center;              % ratio center surround
-vol.ratio      = rgcParams.DoG.ws/rgcParams.DoG.wc;        % ratio of the surround volume to the center volume
+figure(10); hold all; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - FTT RGC DoG filter'); clf; hold all;
+box off; axis square;
+xlabel('Spatial Frequency (cycles/deg)');
+ylabel('Normalized amplitude (a.u.)');
+set(gca,'TickDir','out','FontSize',15)
 
-% Create RGC grid by resampling with cone2RGC ratio.
-rowIndices = 1:rgcParams.cone2RGCRatio:cRows;
-colIndices = 1:rgcParams.cone2RGCRatio:cCols;
-rgcarray = zeros(cRows, cCols);
-rgcarray(rowIndices, colIndices) = 1;
+for cone2RGCRatio = 1:5
 
-% Create DoG filter
-[DoGfilter,xx,yy] = makedog2d(31,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
-DoGfilter = DoGfilter / sum(DoGfilter(:));
+    sigma.center   = cone2RGCRatio*rgcParams.DoG.kc; % Center Gauss RGC
+    sigma.surround = cone2RGCRatio*rgcParams.DoG.ks; % Surround Gauss RGC
+    sigma.ratio    = sigma.surround/sigma.center;              % ratio center surround
+    vol.ratio      = rgcParams.DoG.ws/rgcParams.DoG.wc;        % ratio of the surround volume to the center volume
 
-% Plot 1D Filter
-figure(10); set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
-sz = size(DoGfilter);
-midpoint = ceil(sz(1)/2);
-plot(DoGfilter(midpoint,:), 'color', 'k', 'LineWidth',2); hold all;
-plot([0,sz(1)], [0 0], 'k'); hold on;
+    % Create RGC grid by resampling with cone2RGC ratio.
+    rowIndices = 1:cone2RGCRatio:cRows;
+    colIndices = 1:cone2RGCRatio:cCols;
+    rgcarray = zeros(cRows, cCols);
+    rgcarray(rowIndices, colIndices) = 1;
 
-set(gca,'YLim', [-0.05,2], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
-    'XTickLabel', {'-1', '0', '1'});
-xlabel('x position (deg)')
-ylabel('Modulation (a.u.)')
-title('DoG filter')
-axis square; box off;
+    % Create DoG filter
+    [DoGfilter,xx,yy] = makedog2d(31,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+    DoGfilter = DoGfilter / sum(DoGfilter(:));
+    midpoint = ceil(size(DoGfilter,1)/2);
+    fftDoG = abs(fft(DoGfilter(midpoint,:)));
+    xax = linspace(-midpoint,midpoint,length(fftDoG));
+    % Plot if
+    figure(10); 
+    plot(xax, fftshift(fftDoG), 'color', colors(cone2RGCRatio,:), 'lineWidth',3); hold on;
+    plot([4,4], [-0.1 3], 'r:', 'lineWidth',2);
+%     plot([0,length(fftDoG)], [0 0], 'k');
+    xlim([0 midpoint]); ylim([0, 2.5])
+    
+    
+    if ismember(cone2RGCRatio,[1,5])
+        % Plot 1D Filter
+        figure(10+cone2RGCRatio); clf; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
+        sz = size(DoGfilter);
+        midpoint = ceil(sz(1)/2);
+        plot(DoGfilter(midpoint,:), 'color', 'k', 'LineWidth',2); hold all;
+        plot([0,sz(1)], [0 0], 'k'); hold on;
 
-if saveFigs
-    hgexport(10, fullfile(figPth, 'Fig3_modeloverview_DoGfilter1D_small'))
+        set(gca,'YLim', [-0.05,2], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
+            'XTickLabel', {'-1', '0', '1'});
+        xlabel('x position (deg)')
+        ylabel('Modulation (a.u.)')
+        title('DoG filter')
+        axis square; box off;
+
+        if saveFigs
+            hgexport(10+cone2RGCRatio, fullfile(figPth, sprintf('Fig3_modeloverview_DoGfilter1D_ratio%d',cone2RGCRatio)))
+        end
+        
+        if cone2RGCRatio==5
+            set(gca,'YLim', [-0.02,0.15])
+
+            if saveFigs
+                hgexport(10+cone2RGCRatio, fullfile(figPth, sprintf('Fig3_modeloverview_DoGfilter1D_size%d_yscaled',cone2RGCRatio)))
+            end
+        end
+        
+        % Plot 2D Filter small
+        figure(11+cone2RGCRatio); clf; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
+
+        th = 0:pi/100:(2*pi);
+        Xcenter_small = sigma.center * cos(th);
+        Ycenter_small = sigma.center * sin(th);
+        Xsurround_small = sigma.surround * cos(th);
+        Ysurround_small = sigma.surround * sin(th);
+        plot(Xcenter_small,Ycenter_small, 'color', 'r', 'LineWidth',2); hold all;
+        plot(Xsurround_small,Ysurround_small, 'color', 'g', 'LineWidth',2); hold all;
+        plot([-midpoint,midpoint], [0, 0], 'k',  [0 0], [-midpoint,midpoint], 'k'); hold on;
+        xlim([-midpoint midpoint]); ylim([-midpoint midpoint])
+
+        set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+            'XTick', [-midpoint, 0, midpoint], ...
+            'XTickLabel', {'-1', '0', '1'}, ...
+            'YTick', [-midpoint, 0, midpoint], ...
+            'YTickLabel', {'-1', '0', '1'});
+        xlabel('x position (deg)')
+        xlabel('y position (deg)')
+
+        title('DoG filter')
+        axis square; box off;
+
+        if saveFigs
+            hgexport(11+cone2RGCRatio, fullfile(figPth, sprintf('Fig3_modeloverview_DoGfilter2D_size%d',cone2RGCRatio)))
+        end
+
+
+
+    end
 end
 
-%% Plot 2D Filter small
-figure(11); clf; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
-
-th = 0:pi/100:(2*pi);
-Xcenter_small = sigma.center * cos(th);
-Ycenter_small = sigma.center * sin(th);
-Xsurround_small = sigma.surround * cos(th);
-Ysurround_small = sigma.surround * sin(th);
-plot(Xcenter_small,Ycenter_small, 'color', 'r', 'LineWidth',2); hold all;
-plot(Xsurround_small,Ysurround_small, 'color', 'g', 'LineWidth',2); hold all;
-plot([-midpoint,midpoint], [0, 0], 'k',  [0 0], [-midpoint,midpoint], 'k'); hold on;
-xlim([-midpoint midpoint]); ylim([-midpoint midpoint])
-
-set(gca, 'TickDir', 'out', 'FontSize', 15, ...
-    'XTick', [-midpoint, 0, midpoint], ...
-    'XTickLabel', {'-1', '0', '1'}, ...
-    'YTick', [-midpoint, 0, midpoint], ...
-    'YTickLabel', {'-1', '0', '1'});
-xlabel('x position (deg)')
-xlabel('y position (deg)')
-
-title('DoG filter')
-axis square; box off;
-
 if saveFigs
-    hgexport(11, fullfile(figPth, 'Fig3_modeloverview_DoGfilter2D_small'))
-end
-
-%% Plot 2D DoG Filter large
-figure(12); clf; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
-
-sigma.center   = 5*rgcParams.DoG.kc; % Center Gauss RGC
-sigma.surround = 5*rgcParams.DoG.ks; % Surround Gauss RGC
-sigma.ratio    = sigma.surround/sigma.center;              % ratio center surround
-vol.ratio      = rgcParams.DoG.ws/rgcParams.DoG.wc;        % ratio of the surround volume to the center volume
-
-% Create RGC grid by resampling with cone2RGC ratio.
-rowIndices = 1:5:cRows;
-colIndices = 1:5:cCols;
-rgcarray = zeros(cRows, cCols);
-rgcarray(rowIndices, colIndices) = 1;
-
-% Create DoG filter
-[DoGfilter,xx,yy] = makedog2d(31,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
-DoGfilter = DoGfilter / sum(DoGfilter(:));
-
-th = 0:pi/100:(2*pi);
-Xcenter_small = sigma.center * cos(th);
-Ycenter_small = sigma.center * sin(th);
-Xsurround_small = sigma.surround * cos(th);
-Ysurround_small = sigma.surround * sin(th);
-plot(Xcenter_small,Ycenter_small, 'color', 'r', 'LineWidth',2); hold all;
-plot(Xsurround_small,Ysurround_small, 'color', 'g', 'LineWidth',2); hold all;
-plot([-midpoint,midpoint], [0, 0], 'k',  [0 0], [-midpoint,midpoint], 'k'); hold on;
-xlim([-midpoint midpoint]); ylim([-midpoint midpoint])
-
-set(gca, 'TickDir', 'out', 'FontSize', 15, ...
-    'XTick', [-midpoint, 0, midpoint], ...
-    'XTickLabel', {'-1', '0', '1'}, ...
-    'YTick', [-midpoint, 0, midpoint], ...
-    'YTickLabel', {'-1', '0', '1'});
-xlabel('x position (deg)')
-xlabel('y position (deg)')
-
-title('DoG filter')
-axis square; box off;
-
-if saveFigs
-    hgexport(12, fullfile(figPth, 'Fig3_modeloverview_DoGfilter2D_large'))
-end
-
-% Plot 1D Filter
-figure(13); set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
-sz = size(DoGfilter);
-midpoint = ceil(sz(1)/2);
-plot(DoGfilter(midpoint,:), 'color', 'k', 'LineWidth',2); hold all;
-plot([0,sz(1)], [0 0], 'k'); hold on;
-
-set(gca,'YLim', [-0.05,2], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
-    'XTickLabel', {'-1', '0', '1'});
-xlabel('x position (deg)')
-ylabel('Modulation (a.u.)')
-title('DoG filter')
-axis square; box off;
-if saveFigs
-    hgexport(12, fullfile(figPth, 'Fig3_modeloverview_DoGfilter1D_large'))
-end
-
-set(gca,'YLim', [-0.02,0.15])
-
-if saveFigs
-    hgexport(12, fullfile(figPth, 'Fig3_modeloverview_DoGfilter1D_large2'))
+    hgexport(10, fullfile(figPth, sprintf('Fig3_modeloverview_FFTDoGfilter1D')))
 end
