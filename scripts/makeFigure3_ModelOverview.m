@@ -1,85 +1,57 @@
 % makeFigure3_ModelOverview
 
+
+% Set paths
 baseFolder = '/Volumes/server/Projects/PerformanceFields_RetinaV1Model/';
-expName = 'default';
-ratios = 1:5;
-labelsRatio = sprintfc('cone2RGC = %1.1f:1', 2./ratios);
-colors = parula(6);
+expName    = 'conedensitynophaseshiftlonly500';
+figPth     = fullfile(baseFolder, 'figures', 'Figure3_modeloverview');
+saveFigs   = true; % Save figures?
 
-% Save figures?
-saveFigs = false;
+% dataPth = '/Volumes/server/Projects/PerformanceFieldsIsetBio/';
+expstr     = 'contrast1.0000_pa0_eye00_eccen4.50_defocus0.00_noise-random_sf4.00_lms-1.00.00.0.mat';
 
-saveFigPth = fullfile(baseFolder, 'figures', 'Figure3', 'Figure3_modeloverview');
-if ~exist(saveFigPth); mkdir(saveFigPth); end
-
-%% Plot the cone mosaic separate because of the different colormap
-
-cmap = [1 0 0; 0 1 0; 0 0 1];
-varySatValues = 1-linspace(0.1,1,5);
-trialColors = varysat(cmap,varySatValues);
-contrastColors = [0 0 0; 241 101 33]./255;
-
-figPath = fullfile(ogRootPath, 'figs', 'overviewFigure5');
-load(fullfile(figPath,'cMosaicPlotted'))
+% load the simulated photocurrent data
+load(fullfile(figPth,sprintf('Mn_OGconeOutputs_%s', expstr)));
 
 % Get size
-m2deg = 10/3;
-xPosInDeg = cMosaic.size .* m2deg;
+m2deg = 1./expParams.deg2m;
+xPosInDeg = cMosaic.size * m2deg;
 
-figure(100); clf; set(gcf, 'Color', 'w','Position', [239, 369, 460, 409], 'NumberTitle','off', 'Name', 'Fig 3 - Cone Mosaic');
+% Get colors
+cmap = [1 0 0; 0 1 0; 0 0 1];
 
-% Plot mosaic pattern
-title('Cone Mosaic')
-imagesc(cMosaic.pattern)
-set(gca,'CLim', [2 4]); axis image; axis off
-colormap(cmap)
-
-if saveFigs
-    hgexport(100,fullfile(saveFigPth, 'Fig3_modeloverview_coneMosaic.eps'))
-end
-
-
-%% Set up other figures
-
-% Select a trial for cone absorptions
-trialNum = 4;
-stimulusNum = 4;
-
-timeWindowA = [1 2 3];  % select time points for absorptions (ms)
-climsA = [0 220];  % color bar / ylims for absorptions (photon count)
-ylA = [0 500];  % y limit for time series (absorptions, photon count)
-
-% File names
-fNames = {'absorptionsPlotted', 'stimulus'};
-contrast = 100;
-
-trialsToPlot = ceil(100*rand(5,1));
-
-% load data
-for ii = 1:length(fNames)
-    load(fullfile(figPath, [fNames{ii} sprintf('_%d.mat',contrast)]));
-end
 
 %% 1. RADIANCE
-figure(1); clf; set(1, 'Color','w', 'Position', [239, 369, 460, 409], 'NumberTitle','off', 'Name', 'Fig 3 - Radiance');
+
+% load stimulus data
+load(fullfile(baseFolder,'figures','Figure3_modeloverview','stimulus_100.mat'));
+
+figure(1); clf; set(gcf, 'Color','w', 'Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - Radiance');
 
 radiance = scenes{2}.data.photons;
 midpoint = ceil(size(radiance,1)/2);
 
 % Plot scene radiance
 imagesc(sum(radiance,3));
-hold on; plot([0 size(radiance,1)], [midpoint midpoint], 'k:');
-set(gca,'CLim', [0, 2.3].*10^17);
-colormap gray; colorbar; axis image; axis off
+% hold on; plot([0 size(radiance,1)], [midpoint midpoint], 'k:');
+set(gca,'CLim', [0, 2.3].*10^17, 'TickDir','out', 'FontSize',15);
+colormap gray; colorbar; axis image; box off;
 title('Scene radiance summed over nm','Fontsize',12)
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
 
 if saveFigs
-    print(fullfile(saveFigPth, 'Fig3_radiance_2d'),'-depsc')
+    print(fullfile(figPth, 'Fig3_radiance_2d'),'-depsc')
 end
 
 
 %% 2. IRRADIANCE
-figure(2); clf; set(2, 'Color','w', 'Position', [239, 369, 460, 409], 'NumberTitle','off', 'Name', 'Fig 3 - Irradiance');
+figure(2); clf; set(gcf, 'Color','w', 'Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - Irradiance');
 
 % Plot the stimulus after optics
 irradiance = OG(2).oiModulated.data.photons;
@@ -101,134 +73,289 @@ irradianceSumAllWV = sum(irradiance,3);
 ylI = [min(irradianceSumAllWV(:)), max(irradianceSumAllWV(:))];
 
 imagesc(rgbIrradianceData);
-colormap(cInt); axis image; axis off; cb = colorbar;
-set(gca,'CLim', [0 1]); cb.Ticks = linspace(0, 1, 4) ; %Create 8 ticks from zero to 1
+colormap(cInt); axis image; cb = colorbar; box off;
+set(gca,'CLim', [0 1], 'TickDir','out', 'FontSize',15); cb.Ticks = linspace(0, 1, 4) ; %Create 8 ticks from zero to 1
 cb.TickLabels = num2cell([ylI(1), ylI(2)*(1/3),  ylI(2)*(2/3), ylI(2)]);
-title('Retinal irradiance','Fontsize',12)
-
-if saveFigs
-    print(fullfile(saveFigPth, 'Fig3_modeloverview_irradiance_2d'),'-dpng')
-end
-
-
-%% 3. ABSORPTIONS
-
-figure(3); clf; set(3, 'Color','w', 'Position', [513, 668, 1462, 648], 'NumberTitle','off', 'Name', 'Fig 3 - Absorptions');
-
-% get average absorptions across time. Integration time was 2 ms, thus
-% recalculate to absorption per 1 ms
-theseAbsorptions = squeeze(absorptions(trialNum,:,:,timeWindowA,stimulusNum))./2;
-
-midpoint = ceil(size(theseAbsorptions,1)/2);
-
-subplotIdx = [1:3];
-
-for ii = subplotIdx
-    subplot(1,3,ii); hold on;
-    imagesc(theseAbsorptions(:,:,mod(ii,4)));
-    colormap gray; axis image; axis off;
-    set(gca,'CLim',climsA); colorbar;
-    title(sprintf('Absorptions (photons) at t=%d',mod(ii-1,3)+1),'Fontsize',12)
-    
-    colormap gray; axis image; axis off;
-    set(gca,'CLim',climsA);
-end
-
-
-if saveFigs
-    print(fullfile(saveFigPth, 'Fig3_modeloverview_absorptions_2d'),'-dpng')
-end
-
-
-%% All DoG filters in one figure
-fH4 = figure(4); set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filters'); clf; hold all;
-
-for r = ratios
-    fNameFilter = fullfile(baseFolder, 'data', expName, 'rgc', sprintf('rgcDoGFilter_Cones2RGC%d_absorptionrate.mat',r));
-    load(fullfile(fNameFilter));
-    
-    sz = size(DoGfilter);
-    midpoint = ceil(sz(1)/2);
-    plot(DoGfilter(midpoint,:), 'color', colors(r,:), 'LineWidth',2); hold all;
-end
-
-% Plot x-axis
-plot([0,sz(1)], [0 0], 'k'); hold on;
-
-set(gca,'YLim', [-0.05,1], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
-    'XTickLabel', {'-1', '0', '1'});
-legend(labelsRatio, 'Location','Best'); legend boxoff;
-xlabel('x position (deg)')
-ylabel('Normalized modulation (a.u.)')
-title('DoG filters')
-axis square; box off;
-
-if saveFigs
-    hgexport(fH4, fullfile(saveFigPth, 'DoGs_allInOne'))
-end
-
-%% 2D RGC RESPONSE FILTERED + SUBSAMPLE
-fH5 = figure(5); set(gcf, 'Position', [33,42,1639,763], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC response'); clf; hold all;
-r = ratios(1);
-
-fNameFiltSubResponse = fullfile(baseFolder, 'data', expName, 'rgc', 'figure4', sprintf('ratio%d',r), sprintf('rgcResponse_Cones2RGC%d_contrast1.0000_eccen4.50_absorptionrate.mat',r));
-load(fullfile(fNameFiltSubResponse));
-
-% Use selected time points only
-filteredSubsampled = squeeze(mean(rgcResponse(:,:,:,[1:3],1),1))./2;
-midpoint = ceil(size(filteredSubsampled,1)/2);
-
-for ii = 1:3
-    subplot(1,3,ii);
-    imagesc(squeeze(filteredSubsampled(:,:,ii))); colormap gray; hold on;
-    colorbar;
-    xlabel('x position (deg)')
-    ylabel('y position (deg)')
-    title({labelsRatio{r} ['time sample ' ii]});
-    set(gca, ...
-        'CLim', [0 max(filteredSubsampled(:))], 'TickDir', 'out', 'FontSize', 15)
-    axis square; box off;
-end
-
-
-hgexport(fH5, fullfile(saveFigPth, '2D_rgcResponseSubsampled'))
-
-
-
-%% 1D and 2D RGC RESPONSE FFT
-
-fH6 = figure(6); set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC 2D FFT'); clf; hold all;
-
-r = ratios(1);
-
-fNameFiltSubResponse = fullfile(baseFolder, 'data', expName, 'rgc', 'figure4', sprintf('ratio%d',r), sprintf('rgcResponse_Cones2RGC%d_contrast1.0000_eccen4.50_absorptionrate.mat',r));
-load(fullfile(fNameFiltSubResponse));
-
-% Use selected time points only
-filteredSubsampled = squeeze(mean(rgcResponse(:,:,:,1,1),1))./2;
-filteredSubsampled_amps_2D  = abs(fft2(filteredSubsampled));
-filteredSubsampled_amps_2D(1,1) = NaN;
-filteredSubsampled_amps_2D = fftshift(filteredSubsampled_amps_2D);
-
-midpoint = 1+ceil(size(filteredSubsampled_amps_2D,1)/2);
-quarterpoint_rsp = midpoint/2;
-
-imagesc(filteredSubsampled_amps_2D); colormap gray;
-colorbar;
-set(gca, 'CLim', [-1 1].* max(filteredSubsampled_amps_2D(:)))
-xlabel('sf (cycles/deg)')
-ylabel('sf (cycles/deg)')
-title(labelsRatio{r})
-
+title('Retinal irradiance','Fontsize',12);
 set(gca, 'TickDir', 'out', 'FontSize', 15, ...
     'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
-    'XTickLabel',{num2str(-quarterpoint_rsp/rgcParams.fov), '0', num2str(quarterpoint_rsp/rgcParams.fov)}, ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
     'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
-    'YTickLabel',{num2str(-quarterpoint_rsp/rgcParams.fov), '0', num2str(quarterpoint_rsp/rgcParams.fov)});
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+
+if saveFigs
+    print(fullfile(figPth, 'Fig3_modeloverview_irradiance_2d'),'-dpng')
+end
+
+
+%% Plot mosaic pattern
+figure(3); clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - Mosaic');
+title('Cone Mosaic')
+[X,Y] = meshgrid(1:cMosaic.rows,1:cMosaic.cols);
+plot(X,Y,'ko')
+set(gca,'CLim', [2 4]); axis square; box off;
+colormap(cmap)
+midpoint = ceil(cMosaic.rows/2);
+quarterpoint = ceil(cMosaic.rows/4);
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+
+if saveFigs
+    hgexport(3,fullfile(figPth, 'Fig3_modeloverview_coneMosaic.eps'))
+end
+
+%% Load absorptions, current and RGC responses for 4.5 deg eccen 100% contrast - L cone only
+load(fullfile(figPth,'rgcResponses_latenoiselevel1.0_withDownsampling_c32_eccen4.50.mat'))
+
+%% Absorptions
+midpoint = ceil(size(x.absorptions,1)/2);
+figure(4); clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - Absorptions');
+imagesc(squeeze(x.absorptions(:,:,1)));
+axis square; title('Cone absorptions');
+colormap gray; colorbar; box off;
+set(gca,'CLim',[0 500], 'TickDir','out');
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+if saveFigs
+    hgexport(4,fullfile(figPth, 'Fig3_modeloverview_coneAbsorptions.eps'))
+end
+
+%% Current
+figure(5); clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - Current');
+imagesc(squeeze(x.current(:,:,1)));
+colormap gray; colorbar; box off;
+axis square; title('Current');
+set(gca,'CLim',[-35 0], 'TickDir','out');
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+if saveFigs
+    hgexport(5,fullfile(figPth, 'Fig3_modeloverview_coneCurrent.eps'))
+end
+
+%% Current filtered
+figure(6);  clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - Current Filtered by RGC DoG');
+imagesc(squeeze(x.Filtered(:,:,1)));
+colormap gray; colorbar; box off;
+axis square; title('Filtered');
+set(gca,'CLim',[-35 0]);
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+if saveFigs
+    hgexport(6,fullfile(figPth, 'Fig3_modeloverview_currentRGCFiltered.eps'))
+end
+
+%% Current filtered + late Noise
+figure(7);  clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - RGC Response (w/ Late Noise)');
+imagesc(squeeze(x.LateNoise(:,:,1)));
+colormap gray; colorbar; box off;
+axis square; title('Late Noise');
+set(gca,'CLim',[-35 0]);
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+if saveFigs
+    hgexport(7,fullfile(figPth, 'Fig3_modeloverview_RGCFilteredLateNoise.eps'))
+end
+
+%% RGC response mRGC:cone = 2:1
+figure(8); clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - RGC Downsampled 2:1');
+imagesc(squeeze(x.DownSampled1(:,:,1)));
+colormap gray; colorbar;
+axis square; title('DownSampled1');
+set(gca,'CLim',[-35 0]);
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+if saveFigs
+    hgexport(8,fullfile(figPth, 'Fig3_modeloverview_RGCFilteredLateNoiseDownsampled1.eps'))
+end
+
+%% RGC response mRGC:cone = 1:0.08
+figure(9); clf; set(gcf, 'Color', 'w','Position', [459,41,875,737], 'NumberTitle','off', 'Name', 'Fig 3 - RGC Downsampled 1:0.08');
+imagesc(squeeze(x.DownSampled5(:,:,1)));
+colormap gray; colorbar;
+axis square; title('DownSampled5');
+set(gca,'CLim',[-35 0]);
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'XTickLabel',{'-0.5', '0', '0.5'}, ...
+    'YTick', [midpoint*0.5, midpoint, midpoint*1.5], ...
+    'YTickLabel',{'-0.5', '0', '0.5'});
+xlabel('x position (deg)')
+ylabel('y position (deg)')
+
+if saveFigs
+    hgexport(9,fullfile(figPth, 'Fig3_modeloverview_RGCFilteredLateNoiseDownsampled5.eps'))
+end
+
+
+%% DoG filter
+
+cRows = size(x.absorptions,1);
+cCols = size(x.absorptions,2);
+
+sigma.center   = rgcParams.cone2RGCRatio*rgcParams.DoG.kc; % Center Gauss RGC
+sigma.surround = rgcParams.cone2RGCRatio*rgcParams.DoG.ks; % Surround Gauss RGC
+sigma.ratio    = sigma.surround/sigma.center;              % ratio center surround
+vol.ratio      = rgcParams.DoG.ws/rgcParams.DoG.wc;        % ratio of the surround volume to the center volume
+
+% Create RGC grid by resampling with cone2RGC ratio.
+rowIndices = 1:rgcParams.cone2RGCRatio:cRows;
+colIndices = 1:rgcParams.cone2RGCRatio:cCols;
+rgcarray = zeros(cRows, cCols);
+rgcarray(rowIndices, colIndices) = 1;
+
+% Create DoG filter
+[DoGfilter,xx,yy] = makedog2d(31,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+DoGfilter = DoGfilter / sum(DoGfilter(:));
+
+% Plot 1D Filter
+figure(10); set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
+sz = size(DoGfilter);
+midpoint = ceil(sz(1)/2);
+plot(DoGfilter(midpoint,:), 'color', 'k', 'LineWidth',2); hold all;
+plot([0,sz(1)], [0 0], 'k'); hold on;
+
+set(gca,'YLim', [-0.05,2], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
+    'XTickLabel', {'-1', '0', '1'});
+xlabel('x position (deg)')
+ylabel('Modulation (a.u.)')
+title('DoG filter')
 axis square; box off;
 
+if saveFigs
+    hgexport(10, fullfile(figPth, 'Fig3_modeloverview_DoGfilter1D_small'))
+end
 
-hgexport(fH6, fullfile(saveFigPth, '2D_rgcResponseFFT'))
+%% Plot 2D Filter small
+figure(11); clf; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
 
+th = 0:pi/100:(2*pi);
+Xcenter_small = sigma.center * cos(th);
+Ycenter_small = sigma.center * sin(th);
+Xsurround_small = sigma.surround * cos(th);
+Ysurround_small = sigma.surround * sin(th);
+plot(Xcenter_small,Ycenter_small, 'color', 'r', 'LineWidth',2); hold all;
+plot(Xsurround_small,Ysurround_small, 'color', 'g', 'LineWidth',2); hold all;
+plot([-midpoint,midpoint], [0, 0], 'k',  [0 0], [-midpoint,midpoint], 'k'); hold on;
+xlim([-midpoint midpoint]); ylim([-midpoint midpoint])
 
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [-midpoint, 0, midpoint], ...
+    'XTickLabel', {'-1', '0', '1'}, ...
+    'YTick', [-midpoint, 0, midpoint], ...
+    'YTickLabel', {'-1', '0', '1'});
+xlabel('x position (deg)')
+xlabel('y position (deg)')
 
+title('DoG filter')
+axis square; box off;
+
+if saveFigs
+    hgexport(11, fullfile(figPth, 'Fig3_modeloverview_DoGfilter2D_small'))
+end
+
+%% Plot 2D DoG Filter large
+figure(12); clf; set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
+
+sigma.center   = 5*rgcParams.DoG.kc; % Center Gauss RGC
+sigma.surround = 5*rgcParams.DoG.ks; % Surround Gauss RGC
+sigma.ratio    = sigma.surround/sigma.center;              % ratio center surround
+vol.ratio      = rgcParams.DoG.ws/rgcParams.DoG.wc;        % ratio of the surround volume to the center volume
+
+% Create RGC grid by resampling with cone2RGC ratio.
+rowIndices = 1:5:cRows;
+colIndices = 1:5:cCols;
+rgcarray = zeros(cRows, cCols);
+rgcarray(rowIndices, colIndices) = 1;
+
+% Create DoG filter
+[DoGfilter,xx,yy] = makedog2d(31,[],[],sigma.center,sigma.ratio,vol.ratio,[],[]);
+DoGfilter = DoGfilter / sum(DoGfilter(:));
+
+th = 0:pi/100:(2*pi);
+Xcenter_small = sigma.center * cos(th);
+Ycenter_small = sigma.center * sin(th);
+Xsurround_small = sigma.surround * cos(th);
+Ysurround_small = sigma.surround * sin(th);
+plot(Xcenter_small,Ycenter_small, 'color', 'r', 'LineWidth',2); hold all;
+plot(Xsurround_small,Ysurround_small, 'color', 'g', 'LineWidth',2); hold all;
+plot([-midpoint,midpoint], [0, 0], 'k',  [0 0], [-midpoint,midpoint], 'k'); hold on;
+xlim([-midpoint midpoint]); ylim([-midpoint midpoint])
+
+set(gca, 'TickDir', 'out', 'FontSize', 15, ...
+    'XTick', [-midpoint, 0, midpoint], ...
+    'XTickLabel', {'-1', '0', '1'}, ...
+    'YTick', [-midpoint, 0, midpoint], ...
+    'YTickLabel', {'-1', '0', '1'});
+xlabel('x position (deg)')
+xlabel('y position (deg)')
+
+title('DoG filter')
+axis square; box off;
+
+if saveFigs
+    hgexport(12, fullfile(figPth, 'Fig3_modeloverview_DoGfilter2D_large'))
+end
+
+% Plot 1D Filter
+figure(13); set(gcf, 'Position', [786,135,560,420], 'color', 'w', 'NumberTitle','off', 'Name', 'Fig 3 - RGC DoG filter'); clf; hold all;
+sz = size(DoGfilter);
+midpoint = ceil(sz(1)/2);
+plot(DoGfilter(midpoint,:), 'color', 'k', 'LineWidth',2); hold all;
+plot([0,sz(1)], [0 0], 'k'); hold on;
+
+set(gca,'YLim', [-0.05,2], 'XLim', [0, sz(1)], 'TickDir', 'out', 'FontSize', 15, 'XTick', [0, midpoint, sz(1)], ...
+    'XTickLabel', {'-1', '0', '1'});
+xlabel('x position (deg)')
+ylabel('Modulation (a.u.)')
+title('DoG filter')
+axis square; box off;
+if saveFigs
+    hgexport(12, fullfile(figPth, 'Fig3_modeloverview_DoGfilter1D_large'))
+end
+
+set(gca,'YLim', [-0.02,0.15])
+
+if saveFigs
+    hgexport(12, fullfile(figPth, 'Fig3_modeloverview_DoGfilter1D_large2'))
+end
