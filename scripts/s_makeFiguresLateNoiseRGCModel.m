@@ -13,9 +13,6 @@ dataTypeLabels    = {'absorptions', 'current', 'Filtered', 'LateNoise',...
                      'DownSampled4', 'DownSampled5'};
 downsampleFactors = 2./(1:5).^2; % RGC:cone downsample ratios for 2D arrays
 
-% Delete me
-expParams.eccentricities = expParams.eccentricities(2:end);
-
 % Convert eccentricity to cone density using Curcio et al. 1990 data
 [conedensityLabels, cDensity] =  getConeDensityLabelsForPlotting(expParams);
 
@@ -30,6 +27,10 @@ end
 nrDataTypes = length(dataTypeLabels);
 nrEccen     = length(expParams.eccentricities);
 colors      = jet(nrEccen+1);
+
+% Define a zero point (just a very small number), to plot the 0 contrast,
+% since a log-linear plot does not define 0.
+logzero = 1e-4;
 
 % Finely sample contrast levels to extract contrast threshold from Weibull
 xUnits      = logspace(log10(logzero),log10(max(expParams.contrastLevels)), 500);
