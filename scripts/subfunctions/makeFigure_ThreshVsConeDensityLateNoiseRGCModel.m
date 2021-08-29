@@ -118,12 +118,6 @@ allDataTypeLabels = {downsamplelbls{:}, 'Filtered by RGC DoG','Cone current','Co
 legend([h(end:-1:1)],allDataTypeLabels, 'Location','bestoutside'); legend boxoff
 title(sprintf('Contrast threshold vs cone density'))
 
-% % Arrow at 4.5 deg eccentricity
-% xArrow = [0.35 0.35]; % coordinates normalized to figure size, will change if figure size changes
-% yArrow = [0.75 0.65];
-% annotation('textarrow',xArrow,yArrow,'String',['4.5' char(176) ' eccen'], ...
-%     'FontSize',13,'LineWidth',2)
-
 % Save figure if requested
 if saveFig
     savefName = sprintf('ContrastThreshold_vs_Conedensity_%s_noiselevel%1.2f_%s', ...
@@ -132,3 +126,39 @@ if saveFig
     hgexport(gcf,fullfile(figurePth,[savefName '.eps']))
     print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
 end
+
+%% Separate plot for individual data fits
+fH2 = figure(); set(gcf, 'Position',[1,417,1600,388],'color','w')
+dtToPlotSeparately = {'absorptions','current','filtered','lateNoise'};
+dt = struct();
+dt.absorptions = absorptions;
+dt.current = current;
+dt.filtered = filtered;
+dt.lateNoise.data = RGC.data(1,:);
+dt.lateNoise.lineFit = RGC.lineFit(1,:);
+clf
+for ii = 1:length(dtToPlotSeparately)
+    
+    subplot(1,4,ii); hold on; axis square
+    plot(cDensity, dt.(dtToPlotSeparately{ii}).lineFit, 'color', 'k', 'LineWidth', 2); hold all;
+    scatter(cDensity, dt.(dtToPlotSeparately{ii}).data, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',2);
+
+    title(sprintf('%s',dtToPlotSeparately{ii}));
+    xlabel('Cone density (cones/deg^2)','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
+    set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
+        'XScale','log', 'YScale', 'log', 'XTick',10.^[2:4],'XTickLabel',xlabels_eccen,...
+        'XLim', 10.^[2.5 4.0], 'YLim', [0.0007 max(yrange)], 'YTick',yrange, ...
+        'YTickLabel',sprintfc('%1.1f',yrange*100), ...
+        'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
+        'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
+    box off; 
+end
+
+if saveFig
+    savefName = sprintf('singlePlots_ContrastThreshold_vs_Conedensity_%s_noiselevel%1.2f_%s', ...
+        expName, lateNoiseLevel, whichfit);
+    savefig(fullfile(figurePth,[savefName '.fig']))
+    hgexport(gcf,fullfile(figurePth,[savefName '.eps']))
+    print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
+end
+
