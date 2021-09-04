@@ -20,7 +20,7 @@ legend(l([3,1]), {'HVA mRGCf density Watson 2014 - ISETBIO', ...
                   'HVA mRGCf Barnett & Aguirre 2018 - rgcDisplacementMap'}, 'Location', 'SouthEast');
 legend boxoff;
 title('mRGC HVA')
-set(gca, 'YLim', [-20, 100]);
+set(gca, 'YLim', [-20, 100], 'XLim', [0, 40]);
 
 
 axes(fH10.Children(3))
@@ -34,7 +34,7 @@ plot(h(1).Children(2).XData,h(1).Children(2).YData, ...
                       'VMA mRGCf Barnett & Aguirre 2018 - rgcDisplacementMap'}, 'Location', 'SouthEast');
     legend boxoff;
     title('mRGC VMA')
-    set(gca, 'YLim', [-20, 100]);
+    set(gca, 'YLim', [-20, 100], 'XLim', [0, 40]);
 
 savefig(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_mRGC_RF_density_rgcDisplacementMap_Watson'))
 print(fullfile(pfRV1rootPath, 'figures', 'HVA_VMA_mRGC_RF_density_rgcDisplacementMap_Watson'), '-dpdf', '-fillpage')

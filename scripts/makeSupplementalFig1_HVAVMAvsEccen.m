@@ -39,6 +39,7 @@ if loadDataFromServer
     end
     load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'))
     load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesSongISETBIO.mat'))
+    
 else
     % Get cone density data from Curcio et al. (1990) and Song et al. (2011)
     conesCurcioIsetbio    = getConeDensityIsetbio(angDeg, eccDeg, 'Curcio1990');
@@ -49,9 +50,13 @@ else
     end
 end
 
-
-for ii = 1:length(cardinalMeridianAngles)
-    [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
+% Find cardinal meridian idx if we have fine sampled data
+if numel(angDeg)==4
+    meridianIdx = 1:4;
+else   
+    for ii = 1:length(cardinalMeridianAngles)
+        [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
+    end
 end
 
 [fH1, fH2, fH3, fH4] = visualizeConeDensityVsEccenIsetbio(conesCurcioIsetbio, conesSongIsetbioYoung, ...
@@ -78,16 +83,17 @@ else
             10, true, true);
 end
 
-% Plot density along cardinal meridians vs eccen
+% Find cardinal meridian idx if we have fine sampled data
+angDeg_rgcDisp = 0:sampleResPolAng:359;
 for ii = 1:length(cardinalMeridianAngles)
-    [~, meridianIdx(ii)] = find(angDeg(1:end-1)==cardinalMeridianAngles(ii));
+        [~, meridianIdx_rgcDisp(ii)] = find(angDeg_rgcDisp==cardinalMeridianAngles(ii));
 end
 
 % ------------ Plot HVA and VMA vs eccen for Cones and mRGC ------------
 
 [fH5, fH6, fH7, fH8] = visualizeConeAndRGCDensityVsEccenDisplacementToolbox(coneDensityByMeridian, ...
-                            mRFDensityByMeridian, meridianIdx, regularSupportPosDegVisual, fH1, fH3, fH4, figureDir, saveFigures);
-               
+                            mRFDensityByMeridian, meridianIdx_rgcDisp, regularSupportPosDegVisual, fH1, fH3, fH4, figureDir, saveFigures);
+
 %% -----------------------------------------------------------------
 %  -------------------- mRGCs from Watson 2014 ---------------------
 %  -----------------------------------------------------------------
@@ -112,42 +118,102 @@ end
 %  -----------------------------------------------------------------
 
 % Get CMF data from HCP all 181 subjects, separate for lh and rh:
-v1CMF = getV1SurfaceAreaHCP(10);
-numSubjects = 181;
+wedgeWidth = 10; %  +/- wedge width in deg from meridian
+v1CMF = getV1SurfaceAreaHCP(wedgeWidth);
 
 % Get all fieldnames
 fn = fieldnames(v1CMF.individualSubjects);
+
+% Get nr of subjects
+numSubjects = size(v1CMF.individualSubjects.eccen1_2,2);
 
 % Asymmetry percent diff calculation
 asymPrct = @(x1, x2) 100.*((x1-x2)./nanmean([x1,x2],2));
 
 % predefine variables
 asymV1CMF = struct();
-allData   = [];
+allUpr    = [];
+allLowr   = [];
+allHorz   = [];
+allVert   = [];
+
+% predefine variables
+asymV1CMF = struct();
+
 
 % Loop over eccentricities and visual field regions
 for ii = 1:numel(fn)
     
+    % Get subject data for eccen bin
     theseData = v1CMF.individualSubjects.(fn{ii});
-    allData = cat(3,allData,theseData);
     
     % Average across right and left hemispheres
-    horz = nanmean([theseData(1:numSubjects,1), theseData((numSubjects+1):end,1)],2);
-    vert = nanmean([theseData(1:numSubjects,2), theseData((numSubjects+1):end,2)],2);
-    upr  = nanmean([theseData(1:numSubjects,3), theseData((numSubjects+1):end,3)],2);
-    lowr = nanmean([theseData(1:numSubjects,4), theseData((numSubjects+1):end,4)],2);
+    horz = nanmean(theseData(1,:,:),3);
+    vert = nanmean(theseData(2,:,:),3);
+    upr  = nanmean(theseData(3,:,:),3);
+    lowr = nanmean(theseData(4,:,:),3);
     
     % Compute asymmetry in percent change from mean, for each subject
     asymV1CMF.(['hvaAll' fn{ii}]) = asymPrct(horz,vert);
     asymV1CMF.(['vmaAll' fn{ii}]) = asymPrct(lowr,upr);
+    
+    allUpr  = [allUpr; upr];
+    allLowr = [allLowr; lowr];
+    
+    allHorz = [allHorz; horz];
+    allVert = [allVert; vert];
+
 end
+
+% Get new fieldnames
+fn2 = fieldnames(asymV1CMF);
+
+selectGroupHVA = 1:2:length(fn2);
+selectGroupVMA = 2:2:length(fn2);
+
+% preallocate space for bootstraps
+nboot = 1000;
+bootDataHVA = NaN(length(selectGroupHVA), nboot);
+bootDataVMA = bootDataHVA;
+
+% Bootstrap the median asymmetry for HVA and VMA across subjects
+for f = 1:length(selectGroupHVA)    
+    bootDataHVA(f,:) = bootstrp(nboot, @(x) nanmedian(x), asymV1CMF.(fn2{selectGroupHVA(f)}));
+end
+for f = 1:length(selectGroupVMA)
+    bootDataVMA(f,:) = bootstrp(nboot, @(x) nanmedian(x), asymV1CMF.(fn2{selectGroupVMA(f)}));
+end
+
+% Compute sample median / se asymmetry across bootstraps, per eccentricity
+V1CMF.mdHVA  = median(bootDataHVA,2);
+V1CMF.stdHVA = std(bootDataHVA, [],2,'omitnan');
+
+V1CMF.mdVMA  = median(bootDataVMA,2);
+V1CMF.stdVMA = std(bootDataVMA, [],2,'omitnan');
 
 if saveData
-    save(fullfile(pfRV1rootPath, 'external', 'data', 'benson2020', 'V1CMFHPC.mat'), 'asymV1CMF')
+   save(fullfile(pfRV1rootPath, 'external', 'data', 'benson2021',sprintf('V1CMF_HCP%d.mat', wedgeWidth)),...
+       'V1CMF','allUpr', 'allLowr', 'allHorz', 'allVert')
 end
 
-nboot = 1000; 
+% Fit a 2nd degree polynomial to data
+% Get eccentricity (to fit data and prepare x-axes for visualization)
+V1CMF.polyfit_eccDeg = mean([1, 2; ... (1.5 degree)
+    2, 3; ... (2.5 degree)
+    3, 4; ... (3.5 degree)
+    4, 5; ... (4.5 degree)
+    5, 6],2); % (5.5 degree)
+V1CMF.polyval_eccDeg = 1:0.05:6; % have a finer sampled eccentricity axis when evaluating fit
 
+[V1CMF.polyfitHVA,V1CMF.polyfitHVAerror]  = polyfit(V1CMF.polyfit_eccDeg,V1CMF.mdHVA,2);
+[V1CMF.lineFitHVA, ~] = polyval(V1CMF.polyfitHVA, V1CMF.polyval_eccDeg, V1CMF.polyfitHVAerror);
+
+[V1CMF.polyfitVMA, V1CMF.polyfitVMAerror] = polyfit(V1CMF.polyfit_eccDeg,V1CMF.mdVMA,2);
+[V1CMF.lineFitVMA, ~] = polyval(V1CMF.polyfitVMA, V1CMF.polyval_eccDeg, V1CMF.polyfitVMAerror);
+
+% Compute R2
+V1CMF.lineFitHVA_R2 = 1 - (V1CMF.polyfitHVAerror.normr / norm(V1CMF.mdHVA - mean(V1CMF.mdHVA)))^2;
+V1CMF.lineFitVMA_R2 = 1 - (V1CMF.polyfitVMAerror.normr / norm(V1CMF.mdVMA - mean(V1CMF.mdVMA)))^2;
 
 % Get CMF from & Hoyt (1991)
 CMF_HH91 = HortonHoytCMF(eccDeg);
@@ -162,6 +228,6 @@ meridCMF_RV79 = [CMF_RV79.nasalR; ...
 
 
 % ------------ Plot HVA and VMA points vs eccen for V1 CMF ------------
-[fH13, fH14, fH15] = visualizeV1CMFHCP(asymV1CMF, meridCMF_RV79, ...
-                CMF_HH91, eccDeg, fH10, saveFigures, figureDir);
+[fH13, fH14, fH15] = visualizeV1CMFHCP(V1CMF, meridCMF_RV79, ...
+                CMF_HH91, eccDeg, saveFigures, figureDir);
 

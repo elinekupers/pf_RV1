@@ -96,16 +96,13 @@ end
 
 
 % Define HVA and VMA for every eccentricity data point
-for ii = 1:length(regularSupportPosDegVisual)
+for ii = 1:length(meridianData)
+    HVAvsEccen(ii) = hva(meridianData(:,ii));
+    VMAvsEccen(ii) = vma(meridianData(:,ii));
     
-    % Remove blindspot data (if there)
-    if ((meridianData(1,ii) == 0) && (regularSupportPosDegVisual(ii)>12.8) && (regularSupportPosDegVisual(ii)<18.05))
-        
+    if (regularSupportPosDegVisual(ii)>12.7 && regularSupportPosDegVisual(ii)<18.45)
         HVAvsEccen(ii) = NaN;
         VMAvsEccen(ii) = NaN;
-    else
-        HVAvsEccen(ii) = hva(meridianData(:,ii));
-        VMAvsEccen(ii) = vma(meridianData(:,ii));
     end
 end
 
