@@ -34,9 +34,9 @@ angDeg = [(0:dtAng:maxAng), 0];  % deg
 
 if loadDataFromServer
     % Get data from server
-    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'), 'file')
-        dataDir = syncDataFromServer();
-    end
+%     if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'), 'file')
+%         dataDir = syncDataFromServer();
+%     end
     load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesCurcioISETBIO.mat'))
     load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio','conesSongISETBIO.mat'))
     
@@ -69,12 +69,12 @@ end
 
 if loadDataFromServer
     % Get data from server
-    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisp', 'coneDensityByMeridian.mat'), 'file')
+    if ~exist(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplMap', 'coneDensityByMeridian.mat'), 'file')
         dataDir = syncDataFromServer();
     end
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisp', 'coneDensityByMeridian.mat'),'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisp', 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
-    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisp', 'rgcDisplacementMaps.mat'), 'allMaps')
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplMap', 'coneDensityByMeridian.mat'),'coneDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
+    load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplMap', 'mRFDensityByMeridian.mat'), 'mRFDensityByMeridian', 'regularSupportPosDegVisual','sampleResPolAng')
+%     load(fullfile(pfRV1rootPath, 'external', 'data', 'rgcDisplMap', 'rgcDisplacementMaps.mat'), 'allMaps')
 
 else
     % Get data (by computation, takes about 20 minutes)
@@ -84,9 +84,8 @@ else
 end
 
 % Find cardinal meridian idx if we have fine sampled data
-angDeg_rgcDisp = 0:sampleResPolAng:359;
 for ii = 1:length(cardinalMeridianAngles)
-        [~, meridianIdx_rgcDisp(ii)] = find(angDeg_rgcDisp==cardinalMeridianAngles(ii));
+        [~, meridianIdx_rgcDisp(ii)] = find(sampleResPolAng==cardinalMeridianAngles(ii));
 end
 
 % ------------ Plot HVA and VMA vs eccen for Cones and mRGC ------------
@@ -117,7 +116,7 @@ end
 %  ----------------- V1 CMF from Benson et al 2018 -----------------
 %  -----------------------------------------------------------------
 
-% Get CMF data from HCP all 181 subjects, separate for lh and rh:
+% Get surface area data from HCP all 181 subjects, separate for lh and rh:
 wedgeWidth = 10; %  +/- wedge width in deg from meridian
 v1CMF = getV1SurfaceAreaHCP(wedgeWidth);
 
