@@ -39,7 +39,7 @@ plot([0 40],[0 0], 'k')
 grid on;
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')  
-set(gca', 'xlim', [0 8], 'ylim', [-20,130],'TickDir', 'out', 'FontSize', 14)
+set(gca', 'xlim', [0 8], 'ylim', [-20,110],'TickDir', 'out', 'FontSize', 14)
 title('HVA V1/V2 surface area')
 
 subplot(1,2,2); hold on;
@@ -49,14 +49,14 @@ for ii = 1:length(V1CMF.mdVMA)
 end
 plot(V1CMF.polyval_eccDeg,V1CMF.lineFitVMA, 'k:', 'lineWidth',2)
 plot([0 40],[0 0], 'k')
-grid on;
+grid on; axis square
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')  
-set(gca', 'xlim', [0 8], 'ylim', [-20,130], 'TickDir', 'out', 'FontSize', 14)
+set(gca', 'xlim', [0 8], 'ylim', [-20,110], 'TickDir', 'out', 'FontSize', 14)
 title('VMA V1/V2 surface area')
 
 savefig(fullfile(figureDir, 'HVA_VMA_V1_CMF'))
-print(fullfile(figureDir, 'HVA_VMA_V1_CMF'), '-dpdf', '-fillpage')
+print(fullfile(figureDir, 'HVA_VMA_V1_CMF'), '-deps')
 
 
 
