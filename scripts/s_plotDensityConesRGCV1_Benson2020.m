@@ -148,13 +148,13 @@ close(fH2)
 wedgeWidth = [10,20]; %  wedge width in deg
 colors = {'k','r'};
 for ww = 1:length(wedgeWidth)
-    v1CMF = getV1SurfaceAreaHCP(wedgeWidth(ww));
+    v1Area = getV1SurfaceAreaHCP(wedgeWidth(ww));
     
     % Get number of subjects from data
-    numSubjects = size(v1CMF.individualSubjects.eccen1_2,2);
+    numSubjects = size(v1Area.individualSubjects.eccen1_2,2);
     
     % Get all fieldnames
-    fn = fieldnames(v1CMF.individualSubjects);
+    fn = fieldnames(v1Area.individualSubjects);
     
     % Asymmetry percent diff calculation
     asymPrct = @(x1, x2) 100.*((x1-x2)./nanmean([x1,x2],2));
@@ -170,7 +170,7 @@ for ww = 1:length(wedgeWidth)
     for ii = 1:numel(fn)
         
         % Get subject data for eccen bin
-        theseData = v1CMF.individualSubjects.(fn{ii});
+        theseData = v1Area.individualSubjects.(fn{ii});
         
         % Average across right and left hemispheres
         horz = nanmean(theseData(1,:,:),3);
@@ -216,7 +216,7 @@ for ww = 1:length(wedgeWidth)
     stdVMA = std(bootDataVMA, [],2,'omitnan');
     
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data', 'benson2021',sprintf('V1CMF_HCP%d.mat',wedgeWidth(ww))),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
+        save(fullfile(pfRV1rootPath, 'external', 'data', 'benson2021',sprintf('V1SurfaceArea_HCP%d.mat',wedgeWidth(ww))),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
     end
     
     % hvaSumWedge = asymPrct(sum(allLowr,2),sum(allUpr,2));
