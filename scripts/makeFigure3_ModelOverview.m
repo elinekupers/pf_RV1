@@ -293,12 +293,12 @@ for cRows = conesPerRow
 
     %% Plot 1D Filter
     subplot(133); 
-    plot(fs(1:15),fftDoG(1:15), 'color', 'k', 'LineWidth',2); hold all;
-    plot([4,4],[0,2],'r:','lineWidth',2)
-    set(gca,'YLim', [0, 2], 'XLim', [0 18], ...
+    plot(fs(1:15),fftDoG(1:15)/max(fftDoG(1:15)), 'color', 'k', 'LineWidth',2); hold all;
+    plot([4,4],[0,1],'r:','lineWidth',2)
+    set(gca,'YLim', [0.75 1], 'XLim', [0 18], ...
         'TickDir', 'out', 'FontSize', 15);
     xlabel('Spatial Frequency (cycles/deg)')
-    ylabel('Amplitude (a.u.)')
+    ylabel('Normalized Amplitude (a.u.)')
     title('DoG 1D FFT')
     axis square; box off;
 
