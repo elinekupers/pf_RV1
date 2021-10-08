@@ -1,12 +1,12 @@
 %% s_plotFiguresLateNoiseRGCmodel
 
 %% 0. Set general parameters
-runnum            = 2;
+runnum            = 1;
 pth               = '/Volumes/server/Projects/PerformanceFieldsIsetBio/data/';
 expName           = 'conedensitynophaseshiftlonly500';
 subfolder         = sprintf('run%d', runnum);
 expParams         = loadExpParams(expName);
-saveFig           = true;
+saveFig           = false;
 lateNoiseLevel    = 1;
 dataTypeLabels    = {'absorptions', 'current', 'Filtered', 'LateNoise',...
                      'DownSampled1', 'DownSampled2', 'DownSampled3',...
@@ -18,8 +18,9 @@ downsampleFactors = 2./(1:5).^2; % RGC:cone downsample ratios for 2D arrays
 
 if saveFig
     figurePth  = fullfile('/Volumes/server/Projects/PerformanceFields_RetinaV1Model/', ...
-        'figures','psychometricCurves', expName, 'current', subfolder);
+        'figures','lateNoiseModel', 'rgc', sprintf('%s_noiselevel%1.1f',subfolder,lateNoiseLevel));
     if ~exist(figurePth,'dir'); mkdir(figurePth); end
+else, figurePth = [];
 end
 
 %% 1. Set Weibull parameters
@@ -47,7 +48,7 @@ weibullFit.init         = [4, 0.001]; % slope (at ~80%) and initial threshold
 for eccen = 1:nrEccen
     loadStr = sprintf('classifierAccuracy_latenoiselevel%1.1f_eccen%1.2f_withDownsampling.mat', ...
         lateNoiseLevel, expParams.eccentricities(eccen));
-    load(fullfile(pth,'conecurrent', expName, subfolder, 'classifierAccuracy',loadStr), 'PercentCorrect')
+    load(fullfile(pth,'classification', expName, subfolder, sprintf('noiselevel%1.1f',lateNoiseLevel),loadStr), 'PercentCorrect')
     
     % Loop over data types
     for dt = 1:nrDataTypes
@@ -85,20 +86,20 @@ for dt = 1:nrDataTypes
     fittedWeibull = squeeze(weibullFit.ctrpred(dt,:,:));
     
     fH1(dt) = makeFigure_WeibullLateNoiseRGCModel(dataPoints, fittedWeibull, ...
-         xUnits, expName, expParams, dataTypeLabels{dt}, saveFig, figurePth);
+         xUnits, expName, expParams, dataTypeLabels{dt}, saveFig, figurePth, lateNoiseLevel);
 end
 
 %% 4. Plot contrast thresholds vs downsampling
 
 fH2 = makeFigure_ThreshVsDownsamplingLateNoiseRGCModel(...
-    weibullFit, expName, expParams, figurePth, saveFig);
+    weibullFit, expName, expParams, figurePth, saveFig, lateNoiseLevel);
 
 %% 5. Plot contrast thresholds vs cone density
 
 whichfit = 'lowess';
 [fH3, rgc3D, current3D, absorptions3D] = ...
     makeFigure_ThreshVsConeDensityLateNoiseRGCModel(...
-    weibullFit, whichfit, dataTypeLabels, expName, expParams, figurePth, saveFig);
+    weibullFit, whichfit, dataTypeLabels, expName, expParams, figurePth, saveFig,lateNoiseLevel);
 
 %% 6. Get cone density and down sample factor at 4.5 deg
 % i.e, the eccentricity of the psychophysical experiment we compare model predictions to
@@ -137,6 +138,7 @@ fH4 = makeFigure_3DSurfaceMesh_LateNoiseRGCModel(...
             rgc3D, ratioAtIdx, observedConesAtEccen, ...
             predictedContrastThreshold, expName, figurePth, saveFig);
 
+        
 %% 8. Get thresholds, sensitivity, error bars, asymmetries from fits
 
 % Convert predicted thresholds from log10 fraction to fraction
@@ -237,4 +239,73 @@ fH5 = makeFigure_PredictedSensivitiy_LateNoiseRGCModel(...
         prediction_visualfield, observed_visualfield, combHVA, errorCombHVA, combVMA, errorCombVMA, ...
         expName,figurePth,saveFig);
 
+%% 10. add contour line to 3D mesh
+figure(fH4)
+% Order: HVM (average nasal & temporal), UVM (inferior), LVM (superior)
+obs_sensitivity_HM  = observed_visualfield.sensitivity.mean_wHorz(1);
+obs_sensitivity_UVM = observed_visualfield.sensitivity.mean_wHorz(2);
+obs_sensitivity_LVM = observed_visualfield.sensitivity.mean_wHorz(3);
 
+obs_sensitivitydiff_HM_LVM = (obs_sensitivity_HM-obs_sensitivity_LVM)/obs_sensitivity_HM;
+obs_sensitivitydiff_HM_UVM = (obs_sensitivity_HM-obs_sensitivity_UVM)/obs_sensitivity_HM;
+
+rgc_diff_HM_UVM_matched_to_obs = prediction_visualfield.rgc.sensitivity.mean_wHorz(1)*(1-obs_sensitivitydiff_HM_UVM);
+rgc_diff_HM_LVM_matched_to_obs = prediction_visualfield.rgc.sensitivity.mean_wHorz(1)*(1-obs_sensitivitydiff_HM_LVM);
+
+hva([prediction_retina.rgc.sensitivity.mean(1), ...
+     rgc_diff_HM_LVM_matched_to_obs, ...
+     prediction_retina.rgc.sensitivity.mean(3), ...
+     rgc_diff_HM_UVM_matched_to_obs])
+ 
+vma([prediction_retina.rgc.sensitivity.mean(1), ...
+     rgc_diff_HM_LVM_matched_to_obs, ...
+     prediction_retina.rgc.sensitivity.mean(3), ...
+     rgc_diff_HM_UVM_matched_to_obs])
+
+
+[HM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10(1./[prediction_visualfield.rgc.sensitivity.mean_wHorz(1) prediction_visualfield.rgc.sensitivity.mean_wHorz(1)]));
+c.LineWidth = 3;
+c.Color = 'r';
+ 
+[LVM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10(1./[rgc_diff_HM_LVM_matched_to_obs rgc_diff_HM_LVM_matched_to_obs]));
+c.LineWidth = 3;
+c.Color = 'b';
+
+[UVM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10(1./[rgc_diff_HM_UVM_matched_to_obs rgc_diff_HM_UVM_matched_to_obs]));
+c.LineWidth = 3;
+c.Color = 'k';
+
+set(gca, 'View',[-134.4000   11.2000]);
+set(gca, 'xdir', 'reverse')
+set(gca, 'ydir', 'normal')
+
+% Save figure
+if saveFig
+    fName = sprintf('3Dmesh_Ratio-vs-Density-vs-Threshold_loglogFit%s_withDotsAndContoursMatchBehavior_view1',rgc3D.whichfit);
+    print(fH4, fullfile(figurePth, [fName '.eps']),'-depsc2','-painters','-r300','-loose')
+    savefig(fH4, fullfile(figurePth, [fName '.fig']))
+    print(fH4, fullfile(figurePth, [fName '.png']), '-dpng')
+end
+
+% Rotate view: Ratio left / cone density right
+set(gca, 'View', [-45.6000   11.2000])
+set(gca, 'ydir', 'reverse')
+
+% Save figure again
+if saveFig
+    fName = sprintf('3Dmesh_Ratio-vs-Density-vs-Threshold_loglogFit%s_withDotsAndContoursMatchBehavior_view2',rgc3D.whichfit);
+    print(fH4, fullfile(figurePth, [fName '.eps']),'-depsc2','-painters','-r300','-loose')
+    savefig(fH4, fullfile(figurePth, [fName '.fig']))
+    print(fH4, fullfile(figurePth, [fName '.png']), '-dpng')
+end
+
+match_ratio_LVM = 10.^LVM_match_obs(1,2:end);
+match_density_LVM = 10.^LVM_match_obs(2,2:end);
+match_ratio_UVM = 10.^UVM_match_obs(1,2:end);
+match_density_UVM = 10.^UVM_match_obs(2,2:end);
+
+match_ratio_LVM / ratioAtIdx(2)
+match_ratio_UVM / ratioAtIdx(4)
+
+match_density_LVM / observedConesAtEccen(2)
+match_density_UVM / observedConesAtEccen(4)
