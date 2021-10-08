@@ -1,6 +1,6 @@
 function [fH, RGC, current, absorptions] = ...
     makeFigure_ThreshVsConeDensityLateNoiseRGCModel(...
-    weibullFit, whichfit, dataTypeLabels, expName, expParams, figurePth, saveFig)
+    weibullFit, whichfit, dataTypeLabels, expName, expParams, figurePth, saveFig,lateNoiseLevel)
 
 % Get nr of data types
 nrDataTypes = length(dataTypeLabels);
@@ -22,7 +22,7 @@ for jj = 2:4; xlabels_eccen{jj==[2:4]} = sprintf('10^%i',jj); end %#ok<AGROW>
 % Get colors and downsampled data types
 colors2 = parula(5+1);
 selectDataTypes = 5:nrDataTypes;
-lateNoiseLevel = 1;
+colorsGray = [0.7 0.7 0.7; 0.3 0.3 0.3];
 
 % Plot it!
 fH = figure(11); clf; set(gcf, 'Color', 'w', 'Position', [ 394   156   836   649], ...
@@ -49,23 +49,23 @@ for dt = 1:length(selectDataTypes)
     scatter(cDensity, RGC.data(dt,:), 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colors2(dt,:), 'LineWidth',2);
 end
 
-%% FILTERED: Fit filtered current by RGC DoGs
-filtered.data = weibullFit.ctrthresh(3,:)';
-[filtered.X,filtered.Y] = meshgrid(ones(11,1),log10(cDensity));
-filtered.Z              = repmat(log10(filtered.data),1,11);
-[filtered.meshFit, filtered.gof] = ogSurfaceFit(filtered.X, filtered.Y, filtered.Z, whichfit);
+% %% FILTERED: Fit filtered current by RGC DoGs
+% filtered.data = weibullFit.ctrthresh(3,:)';
+% [filtered.X,filtered.Y] = meshgrid(ones(11,1),log10(cDensity));
+% filtered.Z              = repmat(log10(filtered.data),1,11);
+% [filtered.meshFit, filtered.gof] = ogSurfaceFit(filtered.X, filtered.Y, filtered.Z, whichfit);
+% 
+% % Extract single lines for separate ratio's
+% filtered.lineFit = 10.^filtered.meshFit(filtered.X(:,1), filtered.Y(:,1));
+% filtered.R2      = filtered.gof.rsquare;
+% 
+% % Store fit type
+% filtered.whichfit = whichfit;
+% 
+% % Plot fit and markers
 
-% Extract single lines for separate ratio's
-filtered.lineFit = 10.^filtered.meshFit(filtered.X(:,1), filtered.Y(:,1));
-filtered.R2      = filtered.gof.rsquare;
-
-% Store fit type
-filtered.whichfit = whichfit;
-
-% Plot fit and markers
-colorsGray = [0.7 0.7 0.7; 0.3 0.3 0.3];
-plot(cDensity, filtered.lineFit, 'color', colorsGray(1,:), 'LineWidth', 2); hold all;
-scatter(cDensity, filtered.data, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colorsGray(1,:), 'LineWidth',2);
+% plot(cDensity, filtered.lineFit, 'color', colorsGray(1,:), 'LineWidth', 2); hold all;
+% scatter(cDensity, filtered.data, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor',colorsGray(1,:), 'LineWidth',2);
 
 %% CURRENT: Fit and plot current data
 current.data          = weibullFit.ctrthresh(2,:)';
@@ -105,7 +105,9 @@ plot(cDensity, absorptions.lineFit, 'color', 'k', 'LineWidth', 2); hold all;
 scatter(cDensity, absorptions.data, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',2);
 
 % Make plot pretty
-box off; axis square; yrange = [0.001 0.01 0.1];
+box off; axis square; 
+yrange = [0.001 0.01 0.1 0.2];
+
 xlabel('Cone density (cones/deg^2)','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
     'XScale','log', 'YScale', 'log', 'XTick',10.^[2:4],'XTickLabel',xlabels_eccen,...
@@ -114,7 +116,7 @@ set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',2
     'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
     'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 h = findobj(gca,'Type','line');
-allDataTypeLabels = {downsamplelbls{:}, 'Filtered by RGC DoG','Cone current','Cone absorptions'};
+allDataTypeLabels = {downsamplelbls{:},'Cone current','Cone absorptions'};
 legend([h(end:-1:1)],allDataTypeLabels, 'Location','bestoutside'); legend boxoff
 title(sprintf('Contrast threshold vs cone density'))
 
@@ -128,18 +130,18 @@ if saveFig
 end
 
 %% Separate plot for individual data fits
-fH2 = figure(); set(gcf, 'Position',[1,417,1600,388],'color','w')
-dtToPlotSeparately = {'absorptions','current','filtered','lateNoise'};
+fH2 = figure(8); set(gcf, 'Position',[1,417,1600,388],'color','w')
+dtToPlotSeparately = {'absorptions','current','lateNoise'};
 dt = struct();
 dt.absorptions = absorptions;
 dt.current = current;
-dt.filtered = filtered;
+% dt.filtered = filtered;
 dt.lateNoise.data = RGC.data(1,:);
 dt.lateNoise.lineFit = RGC.lineFit(1,:);
 clf
 for ii = 1:length(dtToPlotSeparately)
     
-    subplot(1,4,ii); hold on; axis square
+    subplot(1,3,ii); hold on; axis square
     plot(cDensity, dt.(dtToPlotSeparately{ii}).lineFit, 'color', 'k', 'LineWidth', 2); hold all;
     scatter(cDensity, dt.(dtToPlotSeparately{ii}).data, 80, 'MarkerFaceColor', 'w', 'MarkerEdgeColor','k', 'LineWidth',2);
 
@@ -155,10 +157,10 @@ for ii = 1:length(dtToPlotSeparately)
 end
 
 if saveFig
-    savefName = sprintf('singlePlots_ContrastThreshold_vs_Conedensity_%s_noiselevel%1.2f_%s', ...
+    savefName = sprintf('singleLineFits_ContrastThreshold_vs_Conedensity_%s_noiselevel%1.2f_%s', ...
         expName, lateNoiseLevel, whichfit);
     savefig(fullfile(figurePth,[savefName '.fig']))
-    hgexport(gcf,fullfile(figurePth,[savefName '.eps']))
-    print(gcf,fullfile(figurePth,[savefName '.png']), '-dpng')
+    hgexport(fH2,fullfile(figurePth,[savefName '.eps']))
+    print(fH2,fullfile(figurePth,[savefName '.png']), '-dpng')
 end
 

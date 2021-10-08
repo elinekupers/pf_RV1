@@ -1,5 +1,5 @@
 function fH = makeFigure_ThreshVsDownsamplingLateNoiseRGCModel(...
-    weibullFit, expName, expParams, figurePth, saveFig)
+    weibullFit, expName, expParams, figurePth, saveFig, lateNoiseLevel)
     
 % Get downsample factors as x-axis
 downsampleFactors = 2./(1:5).^2; % RGC:cone downsample ratios for 2D arrays
@@ -12,7 +12,6 @@ x = downsampleFactors';
 % Extract nr of eccentricities and make color guide
 nrEccen     = length(expParams.eccentricities);
 colors      = jet(nrEccen+1);
-lateNoiseLevel = 1;
 
 % Convert eccentricity to cone density using Curcio et al. 1990 data
 conedensityLabels =  getConeDensityLabelsForPlotting(expParams);
@@ -41,11 +40,13 @@ for ec = 1:nrEccen
 end
 
 % Make plot pretty
-box off; axis square; yrange = [0.001 0.01 0.1];
+box off; axis square; 
+yrange = [0.001 0.01 0.1 0.2];
+
 xlabel('Downsample factor','FontSize',20); ylabel('Contrast threshold (%)','FontSize',20)
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
     'XScale','log', 'YScale', 'log', 'XTick',xticks,'XTickLabel',xlabels_downsample, ...
-    'XLim', [0.06 2.3], 'YLim', [0.001 0.1], 'YTick', yrange, ...
+    'XLim', [0.06 2.3], 'YLim', [min(yrange) max(yrange)], 'YTick', yrange, ...
     'YTickLabel',sprintfc('%1.1f',yrange*100), 'XGrid','on', 'YGrid','on', ...
     'XMinorGrid','on','YMinorGrid','on', 'GridAlpha',0.25,'LineWidth',0.5);
 drawnow;
@@ -62,11 +63,11 @@ for m = 1:size(preDownsampledDataToPlot,2)
 end
 
 % Make plot pretty
-box off; yrange = [0.001 0.01 0.1];
+box off;
 set(gca, 'TickDir', 'out','TickLength',[0.015 0.015], 'LineWidth',1,'Fontsize',20,...
     'XScale','linear', 'YScale', 'log','XTick',[1:3],'XTickLabel',fliplr({'Absorptions','Current','Filtered'}),...
     'XTickLabelRotation', 15,'XLim', [0.5 3.5], ...
-    'YLim', [0.001 0.1], 'YTick',yrange,'YTickLabel',sprintfc('%1.1f',yrange*100), ...
+    'YLim', [min(yrange) max(yrange)], 'YTick',yrange,'YTickLabel',sprintfc('%1.1f',yrange*100), ...
     'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on', ...
     'GridAlpha',0.25, 'LineWidth',0.5); drawnow;
 
