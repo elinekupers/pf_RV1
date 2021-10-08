@@ -1,10 +1,9 @@
 function fH = makeFigure_WeibullLateNoiseRGCModel(dataPoints, fittedWeibull, ...
-                        xUnits, expName, expParams, dataTypeLabel, saveFig, figurePth)
+                        xUnits, expName, expParams, dataTypeLabel, saveFig, figurePth, lateNoiseLevel)
 
 % Extract nr of eccentricities and make color guide
 nrEccen     = length(expParams.eccentricities);
 colors      = jet(nrEccen+1);
-lateNoiseLevel = 1;
 
 % Define a zero point (just a very small number), to plot the 0 contrast,
 % since a log-linear plot does not define 0.
