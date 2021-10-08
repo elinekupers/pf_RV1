@@ -115,9 +115,11 @@ end
 %% -----------------------------------------------------------------
 %  ----------------- V1 CMF from Benson et al 2018 -----------------
 %  -----------------------------------------------------------------
+wwidths = [10,20];
+for w = 2:length(wwidths)
 
 % Get surface area data from HCP all 181 subjects, separate for lh and rh:
-wedgeWidth = 10; %  +/- wedge width in deg from meridian
+wedgeWidth = wwidths(w); %  +/- wedge width in deg from meridian
 v1CMF = getV1SurfaceAreaHCP(wedgeWidth);
 
 % Get all fieldnames
@@ -163,6 +165,12 @@ for ii = 1:numel(fn)
     allVert = [allVert; vert];
 
 end
+
+    % Convert zeros to NaN
+    allUpr(allUpr==0)=NaN;
+    allLowr(allLowr==0)=NaN;
+    allHorz(allHorz==0)=NaN;
+    allVert(allVert==0)=NaN;
 
 % Get new fieldnames
 fn2 = fieldnames(asymV1CMF);
@@ -230,3 +238,4 @@ meridCMF_RV79 = [CMF_RV79.nasalR; ...
 [fH13, fH14, fH15] = visualizeV1CMFHCP(V1CMF, meridCMF_RV79, ...
                 CMF_HH91, eccDeg, saveFigures, figureDir);
 
+end

@@ -32,23 +32,23 @@ color_Horz = [[0 0 0]; ...              black
                [51,160,44]./255; ...    dark green
                [31,120,180]./255]; %    dark blue 
 pink       = [231,41,138]./255;
-lightgray  = [0.7 0.7 0.7];
-darkgray    = [0.1 0.1 0.1];
+% lightgray  = [0.7 0.7 0.7];
+% darkgray    = [0.1 0.1 0.1];
 
 lineStyles  = {'-','-','-','-'};
 xScaleDensity = 'log';
 yScaleDensity = 'log';
 xl            = [0.9 40]; % x axis limits in deg
 if strcmp(yScaleDensity, 'log')
-    ylR  = 10.^[1 4]; % 3.5 log units for retinal density
-    ylV  = 10.^[-0.9 2.1]; % 3.5 log units for cortical surface area
+    ylR  = 10.^[1 4]; % 3 log units for retinal density
+    ylV  = 10.^[-0.7 2.3]; % 3 log units for cortical surface area
 else
     ylR  = [0 25000];   % for retinal density
     ylV  = [0 250];     % for V1 CMF
 end
 
 ylR2 = [0 35];   % y-axis limit for retinal transformations (cone:mRGC)
-ylV2 = [0 200];  % y-axis limit for retina to cortex transformations
+ylV2 = [0 220];  % y-axis limit for retina to cortex transformations
 
 
 %% -----------------------------------------------------------------
@@ -109,13 +109,15 @@ end
 
 % Get CMF from & Hoyt (1991) in mm2/deg2
 CMF_HH91 = HortonHoytCMF(eccDeg);
+
+% HCP V1/V2 surface area 
 loadDataFromFolder = false;
 if loadDataFromFolder
     % Load from folder. 
     load(fullfile(pfRV1rootPath, 'external', 'data', 'benson2021','V1AreaHCP_sum.mat'),'mdHVA', 'stdHVA', 'mdVMA', 'stdVMA', 'allUpr', 'allLowr', 'allHorz', 'allVert')
 else
     % Get V1 surface area from HCP all 181 subjects, separate for lh and rh:
-    wedgeWidth = 10; %  +/- wedge width in deg from meridian
+    wedgeWidth = 20; %  +/- wedge width in deg from meridian
     v1Area = getV1SurfaceAreaHCP(wedgeWidth);
     numSubjects = size(v1Area.individualSubjects.eccen1_2,2);
     
@@ -153,6 +155,12 @@ else
         allVert = [allVert; vert];
     end
     
+    % Convert zeros to NaN
+%     allUpr(allUpr==0)=NaN;
+%     allLowr(allLowr==0)=NaN;
+%     allHorz(allHorz==0)=NaN;
+%     allVert(allVert==0)=NaN;
+%     
     % Get scale factor for dorsal/vert regions
     scaleROI       = allVert./(allLowr + allUpr);
     downscaledLowr = scaleROI.*allLowr;
@@ -160,16 +168,16 @@ else
     
     % Get visual field area (deg2) for the different eccentricity bins
     areaWedge = @(r1,r2,th) (pi*(r1.^2)*(th./360)) - (pi*(r2.^2)*(th./360));
-    areaDeg2_40 = [areaWedge(2,1,40), ...
-        areaWedge(3,2,40), ...
-        areaWedge(4,3,40), ...
-        areaWedge(5,4,40), ...
-        areaWedge(6,5,40)];
-    areaDeg2_20 = [areaWedge(2,1,20), ...
-        areaWedge(3,2,20), ...
-        areaWedge(4,3,20), ...
-        areaWedge(5,4,20), ...
-        areaWedge(6,5,20)];
+    areaDeg2_40 = [areaWedge(2,1,2*2*wedgeWidth), ...
+        areaWedge(3,2,2*2*wedgeWidth), ...
+        areaWedge(4,3,2*2*wedgeWidth), ...
+        areaWedge(5,4,2*2*wedgeWidth), ...
+        areaWedge(6,5,2*2*wedgeWidth)];
+    areaDeg2_20 = [areaWedge(2,1,2*wedgeWidth), ...
+        areaWedge(3,2,2*wedgeWidth), ...
+        areaWedge(4,3,2*wedgeWidth), ...
+        areaWedge(5,4,2*wedgeWidth), ...
+        areaWedge(6,5,2*wedgeWidth)];     
     
     % COMPUTE CMF (surface area / visual area) PER ECCEN BIN
     % Note: we use 20 deg for upper and lower visual field, because we
@@ -205,7 +213,7 @@ else
         5, 6],2); % (5.5 degree)
     
     if saveData
-        save(fullfile(pfRV1rootPath, 'external', 'data','benson2021','V1AreaHCP_sum.mat'), ...
+        save(fullfile(pfRV1rootPath, 'external', 'data','benson2021',sprintf('V1AreaHCP_sum%d.mat',wedgeWidth)), ...
             'eccenHCP', 'allUpr','allLowr', 'allHorz','allVert', ...
             'allUprCMF', 'allLowrCMF', 'allHorzCMF', 'allVertCMF',...
             'medianUpperVF', 'medianLowerVF', 'medianHorzVF', 'medianVertVF', ...
@@ -257,8 +265,8 @@ eccIdx_1_6_Isetbio = (find(eccDeg==1):find(eccDeg==6));
 
 % Merge horizontal axis and concatenate
 watsonMRGC_wHorz_eccen1_6 = [watsonMRGC_wHorz(1,eccIdx_1_6_Isetbio); ... horz VF
-                             watsonMRGC_wHorz(2,eccIdx_1_6_Isetbio); ... upper VF
-                             watsonMRGC_wHorz(3,eccIdx_1_6_Isetbio) ];  % lower  VF
+                             watsonMRGC_wHorz(2,eccIdx_1_6_Isetbio); ... lower VF
+                             watsonMRGC_wHorz(3,eccIdx_1_6_Isetbio) ];  % upper VF
 
 % Compute RGC : V1 CMF from HCP ratio
 RGCWatson2V1HCP   = watsonMRGC_wHorz_eccen1_6 ./ HCPFits;
@@ -270,6 +278,7 @@ mRGC2V1HH_Avg = nanmean(watsonMRGC_wHorz,1) ./ CMF_HH91;
 % -------------------------------------------------------------------------
 
 fH = figure(1); clf; set(gcf, 'Color', 'w', 'Position', [ 305 39 1225 766])
+labels = {'Horz VF (avg temp & nasal)', 'Lower VF', 'Upper VF'}; % 'Nasal Retina', 'Temporal Retina', 
 
 % %%% Cones %%%%
 subplot(131); hold on;
@@ -286,8 +295,7 @@ set(gca, 'XLim', xl, 'YLim', ylR, 'XScale', xScaleDensity, 'YScale', yScaleDensi
          'XGrid','on', 'YGrid','on','XMinorGrid','on','YMinorGrid','on','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
 set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
-legend({'Nasal Retina', 'Temporal Retina', 'Horz VF (avg temp & nasal)', 'Lower VF', 'Upper VF'}, ...
-     'Location', 'Best'); legend boxoff;
+legend(labels, 'Location', 'Best'); legend boxoff;
 
 % %%%% mRGC %%%%
 subplot(132); hold on;
@@ -305,7 +313,7 @@ set(gca, 'XLim', xl, 'YLim', ylR,'XScale', xScaleDensity, 'YScale', yScaleDensit
 set(gca, 'XTick', [1, 10:10:max(xl)], 'XTickLabel', sprintfc('%d',[1, 10:10:max(xl)]))
 
 % Add legend
-legend({'Nasal Retina', 'Temporal Retina', 'Horz Retina (avg temp & nasal)', 'Lower VF', 'Upper VF'}, ...
+legend(labels, ...
      'Location', 'Best'); legend boxoff;
 
 % %%%% V1 CMF %%%%
@@ -331,7 +339,7 @@ plot(x, fitLowerVFHCP, 'color',color_Horz(2,:), 'LineWidth', 2);
 plot(x, fitUpperVFHCP, 'color',color_Horz(3,:), 'LineWidth', 2);
 
 % Plot average of HCP fits in pink
-plot(x, mean([fitHorzVFHCP;fitLowerVFHCP;fitUpperVFHCP]), 'color', pink, 'LineStyle', '--', 'LineWidth', 2);
+plot(x, nanmean([fitHorzVFHCP;fitLowerVFHCP;fitUpperVFHCP]), 'color', pink, 'LineStyle', '--', 'LineWidth', 2);
 
 % Add legend
 l = findobj(gca, 'Type', 'Line');
@@ -416,7 +424,7 @@ plot(eccDeg, c2rgc_uvf_vs_horz, 'color', color_Horz(3,:), 'LineWidth', 2);
 xlabel('Eccentricity (deg)');
 ylabel('Ratio');
 title('Ratio of Tranformation Cone : mRGC RF density')
-set(gca, 'XLim', xl, 'YLim', [0,2.5],'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
+set(gca, 'XLim', xl, 'YLim', [0,3],'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
 set(gca, 'XTick', [0:10:max(xl)], 'XTickLabel', sprintfc('%d',[0:10:max(xl)]))
@@ -435,7 +443,7 @@ plot(x, rgc2v1cmf_uvf_vs_horz, 'color', color_Horz(3,:), 'LineWidth', 2);
 xlabel('Eccentricity (deg)');
 ylabel('Ratio (counts/mm^2)');
 title('Ratio of Tranformation mRGC : V1 CMF')
-set(gca, 'XLim', [0 10], 'YLim', [0,7], 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
+set(gca, 'XLim', [0 10], 'YLim', [0,3], 'XScale', 'linear', 'YScale', 'linear', 'TickDir', 'out', ...
          'XGrid','on', 'YGrid','on','XMinorGrid','off','YMinorGrid','off','GridAlpha',0.25, ...
          'LineWidth',1,'FontSize',15); box off;
 set(gca, 'XTick', [0:2:10], 'XTickLabel', sprintfc('%d',[0:2:10]))

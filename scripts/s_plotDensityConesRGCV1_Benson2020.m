@@ -25,8 +25,8 @@
 cd(pfRV1rootPath)
 
 % Define general parameters
-saveData               = true;
-saveFigures            = true;
+saveData               = false;
+saveFigures            = false;
 loadDataFromServer     = true; % if false, we will recompute the density and surface area numbers (takes 20min+)
 
 % Make figure dir if doesnt exist
@@ -98,7 +98,7 @@ fH1 = plotHVAandVMA(meridianData.conesCurcioIsetbio', [], eccDeg, visualFieldFla
 
 if loadDataFromServer
     % load data from mat-file
-    load(fullfile(pfRV1rootPath, 'external', 'data','isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2')
+    load(fullfile(pfRV1rootPath, 'external', 'data','isetbio', 'mRGCWatsonISETBIO.mat'),'mRGCRFDensityPerDeg2', 'eccDeg')
 else % recompute data
     % Instantiate a WatsonRGCModel object. Set the 'generateAllFigures' flag
     % to true to generate several figures of the Watson 2014 paper
@@ -189,6 +189,12 @@ for ww = 1:length(wedgeWidth)
         allVert = [allVert; vert];
         
     end
+    
+    % Convert zeros to NaN
+%     allUpr(allUpr==0)=NaN;
+%     allLowr(allLowr==0)=NaN;
+%     allHorz(allHorz==0)=NaN;
+%     allVert(allVert==0)=NaN;
     
     % Get new fieldnames
     fn2 = fieldnames(asymV1CMF);
@@ -286,7 +292,7 @@ l = findobj(gca, 'Type', 'Line');
 legend(l([length(l),length(l)-2,7,1]), {'Cones', 'mRGC', 'V1/V2 cortex 10 deg wedge', 'V1/V2 cortex 20 deg wedge'}, 'Location', 'EastOutside'); legend boxoff;
 ylabel('Asymmetry (%)')
 xlabel('Eccentricity (deg)')
-set(gca', 'xlim', [0 max(eccDeg)], 'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
+set(gca', 'xlim', [0 8], 'ylim', yl, 'TickDir', 'out', 'FontSize', 14)
 title({sprintf('VMA (10 deg V1/V2 fit R2: %1.2f)',R2_VMA(1)), ...
     sprintf('VMA (20 deg V1/V2 fit R2: %1.2f)',R2_VMA(2))})
     
