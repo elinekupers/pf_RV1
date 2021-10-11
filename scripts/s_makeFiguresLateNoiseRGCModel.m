@@ -7,7 +7,7 @@ expName           = 'conedensitynophaseshiftlonly500';
 subfolder         = sprintf('run%d', runnum);
 expParams         = loadExpParams(expName);
 saveFig           = false;
-lateNoiseLevel    = 1;
+lateNoiseLevel    = 1; % can be 0.5, 1 or 2 std (sampling from a Gaussian distribution, i.e. white noise)
 dataTypeLabels    = {'absorptions', 'current', 'Filtered', 'LateNoise',...
                      'DownSampled1', 'DownSampled2', 'DownSampled3',...
                      'DownSampled4', 'DownSampled5'};
@@ -105,7 +105,7 @@ whichfit = 'lowess';
 % i.e, the eccentricity of the psychophysical experiment we compare model predictions to
 
 % Get mRGC data for different meridia.
-% Order = nasal, superior, temporal,inferior.
+% Order = nasal, superior, temporal, inferior.
 watson2015 = load(fullfile(pfRV1rootPath, 'external', 'data', 'isetbio', 'mRGCWatsonISETBIO.mat'), ...
     'mRGCRFDensityPerDeg2', 'eccDeg');
 assert([length(watson2015.eccDeg) == length(0:0.05:40)]);
@@ -159,7 +159,8 @@ diffConeDensityFromMean      = averageConeDensity_stimeccen-observedConesAtEccen
 errorRatioConeDensity        = 0.5*diffConeDensityFromMean;
 
 % Get error for RGC responses, absorptions and current.
-% Note: fits are in log10-log10, hence we convert inputs and outputs
+% Note: fits are in log10-log10, hence we convert inputs to log10(inputs)
+% and outputs to 10.^(outputs)
 prediction_retina.rgc.cThresholds.error.upper     = 10.^rgc3D.meshFit(log10(ratioAtIdx),log10(observedConesAtEccen+errorRatioConeDensity));
 prediction_retina.rgc.cThresholds.error.lower     = 10.^rgc3D.meshFit(log10(ratioAtIdx),log10(observedConesAtEccen-errorRatioConeDensity));
 prediction_retina.cones.cThresholds.error.upper   = 10.^absorptions3D.meshFit(ones(4,1),log10(observedConesAtEccen+errorRatioConeDensity));
@@ -240,38 +241,39 @@ fH5 = makeFigure_PredictedSensivitiy_LateNoiseRGCModel(...
         expName,figurePth,saveFig);
 
 %% 10. add contour line to 3D mesh
-figure(fH4)
+
 % Order: HVM (average nasal & temporal), UVM (inferior), LVM (superior)
-obs_sensitivity_HM  = observed_visualfield.sensitivity.mean_wHorz(1);
-obs_sensitivity_UVM = observed_visualfield.sensitivity.mean_wHorz(2);
-obs_sensitivity_LVM = observed_visualfield.sensitivity.mean_wHorz(3);
+obs_thresh_HM  = 1/observed_visualfield.sensitivity.mean_wHorz(1);
+obs_thresh_UVM = 1/observed_visualfield.sensitivity.mean_wHorz(2);
+obs_thresh_LVM = 1/observed_visualfield.sensitivity.mean_wHorz(3);
 
-obs_sensitivitydiff_HM_LVM = (obs_sensitivity_HM-obs_sensitivity_LVM)/obs_sensitivity_HM;
-obs_sensitivitydiff_HM_UVM = (obs_sensitivity_HM-obs_sensitivity_UVM)/obs_sensitivity_HM;
+obs_threshdiff_HM_LVM = obs_thresh_LVM/obs_thresh_HM;
+obs_threshdiff_HM_UVM = obs_thresh_UVM/obs_thresh_HM;
 
-rgc_diff_HM_UVM_matched_to_obs = prediction_visualfield.rgc.sensitivity.mean_wHorz(1)*(1-obs_sensitivitydiff_HM_UVM);
-rgc_diff_HM_LVM_matched_to_obs = prediction_visualfield.rgc.sensitivity.mean_wHorz(1)*(1-obs_sensitivitydiff_HM_LVM);
+rgc_diff_HM_LVM_matched_to_obs = (1/prediction_visualfield.rgc.sensitivity.mean_wHorz(1))*obs_threshdiff_HM_LVM;
+rgc_diff_HM_UVM_matched_to_obs = (1/prediction_visualfield.rgc.sensitivity.mean_wHorz(1))*obs_threshdiff_HM_UVM;
 
-hva([prediction_retina.rgc.sensitivity.mean(1), ...
+hva(1./[prediction_retina.rgc.cThresholds.mean(1), ...
      rgc_diff_HM_LVM_matched_to_obs, ...
-     prediction_retina.rgc.sensitivity.mean(3), ...
+     prediction_retina.rgc.cThresholds.mean(3), ...
      rgc_diff_HM_UVM_matched_to_obs])
  
-vma([prediction_retina.rgc.sensitivity.mean(1), ...
+vma(1./[prediction_retina.rgc.cThresholds.mean(1), ...
      rgc_diff_HM_LVM_matched_to_obs, ...
-     prediction_retina.rgc.sensitivity.mean(3), ...
+     prediction_retina.rgc.cThresholds.mean(3), ...
      rgc_diff_HM_UVM_matched_to_obs])
 
-
+% Plot contours onto mesh
+figure(fH4)
 [HM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10(1./[prediction_visualfield.rgc.sensitivity.mean_wHorz(1) prediction_visualfield.rgc.sensitivity.mean_wHorz(1)]));
 c.LineWidth = 3;
 c.Color = 'r';
  
-[LVM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10(1./[rgc_diff_HM_LVM_matched_to_obs rgc_diff_HM_LVM_matched_to_obs]));
+[LVM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10([rgc_diff_HM_LVM_matched_to_obs rgc_diff_HM_LVM_matched_to_obs]));
 c.LineWidth = 3;
 c.Color = 'b';
 
-[UVM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10(1./[rgc_diff_HM_UVM_matched_to_obs rgc_diff_HM_UVM_matched_to_obs]));
+[UVM_match_obs,c] = contour3(rgc3D.X,rgc3D.Y,rgc3D.Z,log10([rgc_diff_HM_UVM_matched_to_obs rgc_diff_HM_UVM_matched_to_obs]));
 c.LineWidth = 3;
 c.Color = 'k';
 
@@ -299,13 +301,18 @@ if saveFig
     print(fH4, fullfile(figurePth, [fName '.png']), '-dpng')
 end
 
-match_ratio_LVM = 10.^LVM_match_obs(1,2:end);
-match_density_LVM = 10.^LVM_match_obs(2,2:end);
-match_ratio_UVM = 10.^UVM_match_obs(1,2:end);
-match_density_UVM = 10.^UVM_match_obs(2,2:end);
+% Get equivalent eccentricity along horizontal meridian for increase in
+% thresholds upper/lower vertical to match behavior
+fitEcc = 10.^rgc3D.meshFit(log10(rgc2coneRatio),log10(coneDensityDeg2PerMeridian)); % Order = nasal, superior, temporal, inferior.
+meridianNames = {'HM (nasal)','LVM (superior)','HM (temporal)','UVM (inferior)'};
+for jj = 1:4
+    [val1,idx1] = min(abs(rgc_diff_HM_LVM_matched_to_obs-fitEcc(jj,:)));
+    ecLVM(jj) = watson2015.eccDeg(idx1);
+    [val2,idx2] = min(abs(rgc_diff_HM_UVM_matched_to_obs-fitEcc(jj,:)));
+    ecUVM(jj) = watson2015.eccDeg(idx2);
+    fprintf('Matched eccentricity for LVM asymmetry is %1.2f, given data along %s meridian\n', ecLVM(jj), meridianNames{jj});
+    fprintf('Matched eccentricity for UVM asymmetry is %1.2f, given data along %s meridian\n', ecUVM(jj), meridianNames{jj});
+end
 
-match_ratio_LVM / ratioAtIdx(2)
-match_ratio_UVM / ratioAtIdx(4)
-
-match_density_LVM / observedConesAtEccen(2)
-match_density_UVM / observedConesAtEccen(4)
+fprintf('Matched eccentricity for LVM asymmetry is %1.2f, given data along horizontal meridian (average nasal/temporal)\n', mean([ecLVM(1),ecLVM(3)]));
+fprintf('Matched eccentricity for UVM asymmetry is %1.2f, given data along horizontal meridian (average nasal/temporal)\n', mean([ecUVM(1),ecUVM(3)]));
